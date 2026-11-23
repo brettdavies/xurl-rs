@@ -422,8 +422,8 @@ fn validate_webhook_url_refuses_a_username_or_password() {
         "https://user:pw@[2001:db8::1]/hook",
         "https:///user:pw@example.com/hook",
         "https://user%40mail:pw@example.com/hook",
-        "https://example.com\\hook@x",
         "https://\t/user:pw@example.com/hook",
+        "https://\t/@example.com/hook",
     ] {
         assert_eq!(
             validate_webhook_url(url),
@@ -441,6 +441,7 @@ fn validate_webhook_url_takes_an_at_sign_outside_the_authority() {
         "https://example.com/hook#a@b",
         "https://example.com?u=a@b",
         "https://example.com/hook/user:pw@host",
+        "https://example.com\\hook@x",
     ] {
         assert_eq!(validate_webhook_url(url), Ok(()), "{url}");
     }
@@ -453,6 +454,8 @@ fn validate_webhook_url_reads_past_the_slashes_a_parser_skips() {
         "https:///example.com:443/hook",
         "https://\\example.com:8443/hook",
         "https:////[2001:db8::1]:8443/hook",
+        "https://\t/example.com:443/hook",
+        "https://\t/example.com:8443/hook",
     ] {
         assert_eq!(
             validate_webhook_url(url),

@@ -1213,21 +1213,16 @@ pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> 
     if url.chars().count() > WEBHOOK_URL_MAX_CHARS {
         return Err("webhook-url-too-long");
     }
-    let Some(rest) = url.strip_prefix("https://") else {
+    if !url.starts_with("https://") {
         return Err("webhook-url-not-https");
-    };
+    }
     let Ok(parsed) = url::Url::parse(url) else {
         return Err("webhook-url-not-https");
     };
-    // The authority as written, past the slashes a URL parser skips after the
-    // scheme: `Url` drops a port that is the scheme's default, and X refuses
-    // one that is spelled out. A `\` stays inside it, as RFC 3986 reads it,
-    // so `https://host\hook@x` carries userinfo.
-    let authority = rest
-        .trim_start_matches(['/', '\\'])
-        .split(['/', '?', '#'])
-        .next()
-        .unwrap_or_default();
+    // The authority as a parser reads it, written out: `Url` drops a port that
+    // is the scheme's default and reports no userinfo for `https://@host`, and
+    // X refuses both.
+    let authority = super::url_authority::split_special_url(url).authority;
     let host_and_port = authority.rsplit('@').next().unwrap_or_default();
     let has_port = match host_and_port.rsplit_once(']') {
         Some((_, after_bracket)) => after_bracket.starts_with(':'),
@@ -1236,7 +1231,6 @@ pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> 
     if has_port || parsed.port().is_some() {
         return Err("webhook-url-has-port");
     }
-    // `Url` reports no userinfo for `https://@host`; the written authority does.
     if authority.contains('@') || !parsed.username().is_empty() || parsed.password().is_some() {
         return Err("webhook-url-has-credentials");
     }

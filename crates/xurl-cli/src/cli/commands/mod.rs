@@ -273,33 +273,15 @@ fn checked_url(
 }
 
 /// `url` without the username and password before its host, which is how a
-/// dry run's context shows a URL the caller typed. The authority runs from
-/// the first character after `://` that is not a `/` or `\`, to the next
-/// `/` or `\`, since a URL parser skips further slashes there and reads
-/// `https:///user:pw@host` as carrying a credential; a string with no `://`
-/// before its query is taken as authority throughout, since a URL parser reads
-/// `http:/user:pw@host` and `http:\\user:pw@host` as carrying one too. A URL
-/// parser deletes every tab and newline before it reads the URL, so they are
-/// dropped first.
+/// dry run's context shows a URL the caller typed. The authority is the one
+/// the validator reads, from `split_special_url`, so the two cannot disagree.
 fn without_userinfo(url: &str) -> String {
-    let url = url.replace(['\t', '\n', '\r'], "");
-    let (head, query) = url.split_at(url.find(['?', '#']).unwrap_or(url.len()));
-    let (scheme, rest) = head.split_at(head.find("://").map_or(0, |at| at + 3));
-    let (slashes, rest) = if scheme.is_empty() {
-        ("", rest)
-    } else {
-        rest.split_at(rest.len() - rest.trim_start_matches(['/', '\\']).len())
-    };
-    let split = if scheme.is_empty() {
-        rest.len()
-    } else {
-        rest.find(['/', '\\']).unwrap_or(rest.len())
-    };
-    let (authority, path) = rest.split_at(split);
-    let host = authority
+    let parts = xdk::api::split_special_url(url);
+    let host = parts
+        .authority
         .rsplit_once('@')
-        .map_or(authority, |(_, host)| host);
-    format!("{scheme}{slashes}{host}{path}{query}")
+        .map_or(parts.authority.as_str(), |(_, host)| host);
+    format!("{}{host}{}", parts.head, parts.tail)
 }
 
 /// Checks `inputs` with `validator`, which takes them all at once. A refusal
@@ -1405,3 +1387,6 @@ where
     })
     .await
 }
+
+#[cfg(test)]
+mod url_authority_tests;
