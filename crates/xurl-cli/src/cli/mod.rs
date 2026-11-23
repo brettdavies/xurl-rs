@@ -1045,7 +1045,8 @@ pub struct Cli {
     #[arg(short = 'F', long = "file")]
     pub file: Option<String>,
 
-    /// Use a specific registered app (overrides default)
+    /// Use a specific registered app (overrides default). A name the store
+    /// does not hold is refused.
     #[arg(long = "app", global = true, help_heading = GLOBAL_OPTIONS, env = "XURL_APP")]
     pub app: Option<String>,
 

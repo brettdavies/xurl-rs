@@ -1,7 +1,7 @@
 args: ["articles", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6847
+stdout_len: 6890
 stderr_len: 0
 --- stdout ---
 Write and publish long-form X Articles
@@ -26,7 +26,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

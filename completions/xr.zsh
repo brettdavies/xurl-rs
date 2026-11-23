@@ -28,7 +28,7 @@ _xr() {
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '-F+[File to upload (for multipart requests)]:FILE:_default' \
 '--file=[File to upload (for multipart requests)]:FILE:_default' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -83,7 +83,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -124,7 +124,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -165,7 +165,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -206,7 +206,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -244,7 +244,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -291,7 +291,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -332,7 +332,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -372,7 +372,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -449,7 +449,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -492,7 +492,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -535,7 +535,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -577,7 +577,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -617,7 +617,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -659,7 +659,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -699,7 +699,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -741,7 +741,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -783,7 +783,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -825,7 +825,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -867,7 +867,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -907,7 +907,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -947,7 +947,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -989,7 +989,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1030,7 +1030,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1069,7 +1069,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1109,7 +1109,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1149,7 +1149,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1189,7 +1189,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1229,7 +1229,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1269,7 +1269,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1309,7 +1309,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1349,7 +1349,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1391,7 +1391,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1427,7 +1427,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1474,7 +1474,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1515,7 +1515,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1555,7 +1555,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1633,7 +1633,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1672,7 +1672,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1712,7 +1712,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1755,7 +1755,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1797,7 +1797,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1836,7 +1836,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1876,7 +1876,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1918,7 +1918,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1957,7 +1957,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -1997,7 +1997,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2039,7 +2039,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2078,7 +2078,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2125,7 +2125,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2192,7 +2192,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2230,7 +2230,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2276,7 +2276,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2316,7 +2316,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2359,7 +2359,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2401,7 +2401,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2478,7 +2478,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2523,7 +2523,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2563,7 +2563,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2636,7 +2636,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2676,7 +2676,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2718,7 +2718,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2754,7 +2754,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2802,7 +2802,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2844,7 +2844,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2886,7 +2886,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2925,7 +2925,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -2964,7 +2964,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3006,7 +3006,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3048,7 +3048,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3085,7 +3085,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3132,7 +3132,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3172,7 +3172,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3213,7 +3213,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3291,7 +3291,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3334,7 +3334,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3376,7 +3376,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3417,7 +3417,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3457,7 +3457,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3497,7 +3497,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3537,7 +3537,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3682,7 +3682,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3729,7 +3729,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3769,7 +3769,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3838,7 +3838,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3886,7 +3886,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3926,7 +3926,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -3995,7 +3995,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4043,7 +4043,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4083,7 +4083,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4123,7 +4123,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4165,7 +4165,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4242,7 +4242,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4284,7 +4284,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4331,7 +4331,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4371,7 +4371,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4412,7 +4412,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4454,7 +4454,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4586,7 +4586,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4634,7 +4634,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4673,7 +4673,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4743,7 +4743,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4791,7 +4791,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4835,7 +4835,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4877,7 +4877,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4919,7 +4919,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -4959,7 +4959,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5041,7 +5041,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5088,7 +5088,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5128,7 +5128,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5167,7 +5167,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5239,7 +5239,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5286,7 +5286,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5325,7 +5325,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5367,7 +5367,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5407,7 +5407,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5445,7 +5445,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5492,7 +5492,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5531,7 +5531,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5576,7 +5576,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5621,7 +5621,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5662,7 +5662,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5744,7 +5744,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5791,7 +5791,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5856,7 +5856,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5901,7 +5901,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5940,7 +5940,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -5980,7 +5980,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6053,7 +6053,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6100,7 +6100,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6141,7 +6141,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6182,7 +6182,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6255,7 +6255,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6300,7 +6300,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6339,7 +6339,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6379,7 +6379,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6419,7 +6419,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6459,7 +6459,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6500,7 +6500,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6540,7 +6540,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6826,7 +6826,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6871,7 +6871,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6908,7 +6908,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6957,7 +6957,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -6996,7 +6996,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7043,7 +7043,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7094,7 +7094,7 @@ this-and-following\:"The named occurrence and every one after it"))' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7139,7 +7139,7 @@ this-and-following\:"The named occurrence and every one after it"))' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7185,7 +7185,7 @@ this-and-following\:"The named occurrence and every one after it"))' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7341,7 +7341,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7386,7 +7386,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7425,7 +7425,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7465,7 +7465,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7505,7 +7505,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7543,7 +7543,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7588,7 +7588,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7627,7 +7627,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7667,7 +7667,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7707,7 +7707,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7747,7 +7747,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7830,7 +7830,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7875,7 +7875,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7914,7 +7914,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -7954,7 +7954,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8040,7 +8040,7 @@ oauth1\:"The app'\''s \`OAuth1\` consumer secret (API Secret Key)"))' \
 '--checkpoint=[Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so \`xr webhooks replay --from-checkpoint\` can request what a stop missed. The file holds {"last_event_at"\: <Unix seconds>}]:FILE:_files' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8082,7 +8082,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8231,7 +8231,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8277,7 +8277,7 @@ _arguments "${_arguments_options[@]}" : \
 '*--scopes=[Request only these comma-separated scopes, plus offline.access (default\: every scope)]:SCOPES:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8319,7 +8319,7 @@ _arguments "${_arguments_options[@]}" : \
 '--token-secret-file=[File holding the token secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8355,7 +8355,7 @@ _arguments "${_arguments_options[@]}" : \
 '--bearer-token-file=[File holding the bearer token; '\''-'\'' reads it from stdin]:PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8389,7 +8389,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8424,7 +8424,7 @@ _arguments "${_arguments_options[@]}" : \
 '--oauth2-username=[Clear \`OAuth2\` token for username]:OAUTH2_USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8462,7 +8462,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8508,7 +8508,7 @@ _arguments "${_arguments_options[@]}" : \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback)]:REDIRECT_URI:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8547,7 +8547,7 @@ _arguments "${_arguments_options[@]}" : \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback); empty string clears]:REDIRECT_URI:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8582,7 +8582,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8618,7 +8618,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8652,7 +8652,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8694,7 +8694,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8729,7 +8729,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -8861,7 +8861,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9001,7 +9001,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9051,7 +9051,7 @@ _arguments "${_arguments_options[@]}" : \
 '*--header=[Request headers]:HEADERS:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9095,7 +9095,7 @@ _arguments "${_arguments_options[@]}" : \
 '*--header=[Request headers]:HEADERS:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9135,7 +9135,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9178,7 +9178,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9218,7 +9218,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9256,7 +9256,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9304,7 +9304,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9347,7 +9347,7 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9484,7 +9484,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9526,7 +9526,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9562,7 +9562,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9631,7 +9631,7 @@ _arguments "${_arguments_options[@]}" : \
 '--path=[Print the node at a dot path into the command'\''s \`data\`, or into the wrapper with \`--common\`]:DOT_PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9671,7 +9671,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9706,7 +9706,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9740,7 +9740,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
@@ -9775,7 +9775,7 @@ _arguments "${_arguments_options[@]}" : \
 '--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`drafts\`, \`draft-created\`, \`broadcast\`, \`broadcasts\`, \`broadcast-updated\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-muted\`, \`chat-mutes\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`trend-locations\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-created\`, \`stream-source-deleted\`, \`stream-source-key\`, \`ingest-region\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
 '--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"

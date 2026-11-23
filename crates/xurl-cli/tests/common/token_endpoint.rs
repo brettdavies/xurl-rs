@@ -10,7 +10,7 @@ pub const RESPONSE_CODES_DOCS: &str =
     "https://docs.x.com/x-api/fundamentals/response-codes-and-errors";
 
 /// The README section on the token endpoint, `TOKEN_URL`, and proxies, which
-/// a 403 points at.
+/// a 403, or a status with no reading of its own, points at.
 pub const TOKEN_ENDPOINT_DOCS: &str =
     "https://github.com/brettdavies/xurl-rs#the-oauth2-token-endpoint";
 
@@ -26,12 +26,15 @@ pub struct NoRefusal {
     pub docs: &'static str,
 }
 
-/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with an `error`
-/// string. Any other answer came from something that did not process the
-/// grant, such as a proxy or a token URL with the wrong path.
+/// RFC 6749 section 5.2 refuses with a JSON body whose `error` is one of its
+/// codes. Any other answer, a bare 400 or 401 among them, came from something
+/// that did not process the grant, such as a proxy or a token URL with the wrong
+/// path. A 403 or a status of no reading of its own points at the token URL and
+/// the proxy, and a 404, a 408, a 429, or a 5xx reads as it does on any request.
 pub fn no_refusal_answers() -> Vec<NoRefusal> {
     let general = xdk::error::EXIT_GENERAL_ERROR;
     let not_found = xdk::error::EXIT_NOT_FOUND;
+    let proxy = || serde_json::json!({"error": "Something went wrong at the proxy"});
     vec![
         NoRefusal {
             why: "a 408 with no JSON",
@@ -43,8 +46,36 @@ pub fn no_refusal_answers() -> Vec<NoRefusal> {
             docs: RESPONSE_CODES_DOCS,
         },
         NoRefusal {
+            why: "a 408 with JSON whose `error` is no RFC 6749 code",
+            response: ResponseTemplate::new(408).set_body_json(proxy()),
+            status: "408",
+            reason: "api-error",
+            exit_code: general,
+            action: "retry",
+            docs: RESPONSE_CODES_DOCS,
+        },
+        NoRefusal {
             why: "a 404 with no JSON",
             response: ResponseTemplate::new(404).set_body_string("<html>Not Found</html>"),
+            status: "404",
+            reason: "not-found",
+            exit_code: not_found,
+            action: "fix-input",
+            docs: RESPONSE_CODES_DOCS,
+        },
+        NoRefusal {
+            why: "a 404 with JSON whose `error` is no RFC 6749 code",
+            response: ResponseTemplate::new(404).set_body_json(proxy()),
+            status: "404",
+            reason: "not-found",
+            exit_code: not_found,
+            action: "fix-input",
+            docs: RESPONSE_CODES_DOCS,
+        },
+        NoRefusal {
+            why: "a 404 with JSON whose `error` is an object",
+            response: ResponseTemplate::new(404)
+                .set_body_json(serde_json::json!({"error": {"code": 404, "message": "Not Found"}})),
             status: "404",
             reason: "not-found",
             exit_code: not_found,
@@ -72,14 +103,113 @@ pub fn no_refusal_answers() -> Vec<NoRefusal> {
             docs: TOKEN_ENDPOINT_DOCS,
         },
         NoRefusal {
-            why: "a 404 with JSON whose `error` is an object",
-            response: ResponseTemplate::new(404)
-                .set_body_json(serde_json::json!({"error": {"code": 404, "message": "Not Found"}})),
-            status: "404",
-            reason: "not-found",
-            exit_code: not_found,
+            why: "a 403 with JSON whose `error` is no RFC 6749 code",
+            response: ResponseTemplate::new(403).set_body_json(proxy()),
+            status: "403",
+            reason: "forbidden",
+            exit_code: general,
             action: "fix-input",
-            docs: RESPONSE_CODES_DOCS,
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 400 with no body",
+            response: ResponseTemplate::new(400),
+            status: "400",
+            reason: "invalid-request",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 400 with no JSON",
+            response: ResponseTemplate::new(400).set_body_string("<html>Bad Request</html>"),
+            status: "400",
+            reason: "invalid-request",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 400 with JSON whose `error` is no RFC 6749 code",
+            response: ResponseTemplate::new(400).set_body_json(proxy()),
+            status: "400",
+            reason: "invalid-request",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 422 with no JSON",
+            response: ResponseTemplate::new(422).set_body_string("<html>Unprocessable</html>"),
+            status: "422",
+            reason: "invalid-request",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 422 with JSON whose `error` is no RFC 6749 code",
+            response: ResponseTemplate::new(422).set_body_json(proxy()),
+            status: "422",
+            reason: "invalid-request",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 401 with no body",
+            response: ResponseTemplate::new(401),
+            status: "401",
+            reason: "api-error",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 401 with no JSON",
+            response: ResponseTemplate::new(401).set_body_string("<html>Unauthorized</html>"),
+            status: "401",
+            reason: "api-error",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 401 with JSON whose `error` is no RFC 6749 code",
+            response: ResponseTemplate::new(401).set_body_json(proxy()),
+            status: "401",
+            reason: "api-error",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 401 with the resource server's `invalid_token`",
+            response: ResponseTemplate::new(401)
+                .set_body_json(serde_json::json!({"error": "invalid_token"})),
+            status: "401",
+            reason: "api-error",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 418 with no JSON",
+            response: ResponseTemplate::new(418).set_body_string("<html>Teapot</html>"),
+            status: "418",
+            reason: "api-error",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
+        },
+        NoRefusal {
+            why: "a 418 with JSON whose `error` is no RFC 6749 code",
+            response: ResponseTemplate::new(418).set_body_json(proxy()),
+            status: "418",
+            reason: "api-error",
+            exit_code: general,
+            action: "fix-input",
+            docs: TOKEN_ENDPOINT_DOCS,
         },
     ]
 }

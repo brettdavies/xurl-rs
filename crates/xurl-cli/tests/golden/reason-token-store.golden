@@ -2,12 +2,13 @@ args: ["--output", "json", "auth", "apps", "remove", "nosuchapp", "--force"]
 store: empty
 exit_code: 77
 stdout_len: 0
-stderr_len: 253
+stderr_len: 267
 --- stdout ---
 
 --- stderr ---
 {
   "exit_code": 77,
+  "held": [],
   "message": "Token Store Error: the store holds no app named \"nosuchapp\"",
   "next_step": {
     "action": "fix-input",

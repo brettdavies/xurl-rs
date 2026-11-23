@@ -1,7 +1,7 @@
 args: ["broadcasts", "moderators", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7262
+stdout_len: 7305
 stderr_len: 0
 --- stdout ---
 Add a broadcast chat moderator
@@ -34,7 +34,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

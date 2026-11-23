@@ -60,7 +60,9 @@ Flags:
   store at `PATH/.xurl` included, exits 2 naming the path it read. It seeds nothing, and exit never shreds PATH.
   `--smoke-home "$HOME"` runs both gates against the production store.
 - `--no-cleanup`: keep the home a gate seeded after exit (useful for follow-up `xr` probes). Without it, exit shreds that
-  home. A home that `--smoke-home` or an exported `SMOKE_HOME` names is never shredded, with the flag or without it.
+  home. The stores and empty homes a gate makes for itself are shredded at exit either way, one that a failed gate,
+  SIGINT, or SIGTERM left included. A home that `--smoke-home` or an exported `SMOKE_HOME` names is never shredded, with
+  the flag or without it.
 - `--tag TAG`: override LAST_TAG auto-detection (default: the newest `v[0-9]*` tag, so an `xdk-rs-v*` tag never stands
   in for the CLI's)
 
@@ -85,8 +87,8 @@ Each window copies the store to `auth.yml.bak` beside it, makes one `xr` call, a
 keeps its logins and its `default_app`, or none. A run killed inside a window leaves that copy behind, holding secrets:
 move it back over `auth.yml`. What `xr` writes in a call outside a window stays, such as a refreshed OAuth2 token.
 Another `xr` command that writes the store during a window loses its write to the move, so run none while the gates
-run. Exit shreds only a home a gate seeded, so a store `--smoke-home` names, `$HOME` itself in any spelling included,
-is still there after the run.
+run. Exit shreds the stores and empty homes a gate made and none a caller named, so a store `--smoke-home` names, `$HOME`
+itself in any spelling included, is still there after the run.
 
 ## Establish the surface
 

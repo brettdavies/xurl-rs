@@ -32,7 +32,7 @@ complete -c xr -n "__fish_xr_needs_command" -s u -l username -d '`OAuth2` login 
 complete -c xr -n "__fish_xr_needs_command" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -s F -l file -d 'File to upload (for multipart requests)' -r
-complete -c xr -n "__fish_xr_needs_command" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_needs_command" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_needs_command" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -142,7 +142,7 @@ complete -c xr -n "__fish_xr_using_subcommand post" -l auth -d 'Authentication t
 complete -c xr -n "__fish_xr_using_subcommand post" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand post" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -179,7 +179,7 @@ complete -c xr -n "__fish_xr_using_subcommand reply" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand reply" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand reply" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand reply" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -215,7 +215,7 @@ complete -c xr -n "__fish_xr_using_subcommand quote" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand quote" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand quote" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand quote" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -251,7 +251,7 @@ complete -c xr -n "__fish_xr_using_subcommand delete" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand delete" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand delete" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand delete" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -286,7 +286,7 @@ complete -c xr -n "__fish_xr_using_subcommand delete" -l no-pager -d 'Documented
 complete -c xr -n "__fish_xr_using_subcommand delete" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -326,7 +326,7 @@ complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -364,7 +364,7 @@ complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -400,7 +400,7 @@ complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -441,7 +441,7 @@ complete -c xr -n "__fish_xr_using_subcommand read" -l auth -d 'Authentication t
 complete -c xr -n "__fish_xr_using_subcommand read" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand read" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand read" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -483,7 +483,7 @@ complete -c xr -n "__fish_xr_using_subcommand analytics" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand analytics" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -524,7 +524,7 @@ complete -c xr -n "__fish_xr_using_subcommand search-counts" -l auth -d 'Authent
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -561,7 +561,7 @@ complete -c xr -n "__fish_xr_using_subcommand search-users" -l auth -d 'Authenti
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -597,7 +597,7 @@ complete -c xr -n "__fish_xr_using_subcommand users" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand users" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand users" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand users" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -634,7 +634,7 @@ complete -c xr -n "__fish_xr_using_subcommand user-posts" -l auth -d 'Authentica
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -670,7 +670,7 @@ complete -c xr -n "__fish_xr_using_subcommand posts" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand posts" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -707,7 +707,7 @@ complete -c xr -n "__fish_xr_using_subcommand search" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -744,7 +744,7 @@ complete -c xr -n "__fish_xr_using_subcommand likers" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand likers" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand likers" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand likers" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -781,7 +781,7 @@ complete -c xr -n "__fish_xr_using_subcommand reposters" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -818,7 +818,7 @@ complete -c xr -n "__fish_xr_using_subcommand quotes" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -854,7 +854,7 @@ complete -c xr -n "__fish_xr_using_subcommand whoami" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -891,7 +891,7 @@ complete -c xr -n "__fish_xr_using_subcommand user" -l auth -d 'Authentication t
 complete -c xr -n "__fish_xr_using_subcommand user" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand user" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand user" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -928,7 +928,7 @@ complete -c xr -n "__fish_xr_using_subcommand timeline" -l auth -d 'Authenticati
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -965,7 +965,7 @@ complete -c xr -n "__fish_xr_using_subcommand mentions" -l auth -d 'Authenticati
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1001,7 +1001,7 @@ complete -c xr -n "__fish_xr_using_subcommand like" -l auth -d 'Authentication t
 complete -c xr -n "__fish_xr_using_subcommand like" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand like" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand like" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1037,7 +1037,7 @@ complete -c xr -n "__fish_xr_using_subcommand unlike" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1073,7 +1073,7 @@ complete -c xr -n "__fish_xr_using_subcommand hide" -l auth -d 'Authentication t
 complete -c xr -n "__fish_xr_using_subcommand hide" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand hide" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand hide" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1109,7 +1109,7 @@ complete -c xr -n "__fish_xr_using_subcommand unhide" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1145,7 +1145,7 @@ complete -c xr -n "__fish_xr_using_subcommand repost" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand repost" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand repost" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand repost" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1181,7 +1181,7 @@ complete -c xr -n "__fish_xr_using_subcommand unrepost" -l auth -d 'Authenticati
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1217,7 +1217,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark" -l auth -d 'Authenticati
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1253,7 +1253,7 @@ complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l auth -d 'Authentica
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1290,7 +1290,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1324,7 +1324,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l no-pager -d 'Documen
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1364,7 +1364,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1401,7 +1401,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1437,7 +1437,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1478,7 +1478,7 @@ complete -c xr -n "__fish_xr_using_subcommand likes" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand likes" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand likes" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1514,7 +1514,7 @@ complete -c xr -n "__fish_xr_using_subcommand follow" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand follow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand follow" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand follow" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1550,7 +1550,7 @@ complete -c xr -n "__fish_xr_using_subcommand unfollow" -l auth -d 'Authenticati
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1588,7 +1588,7 @@ complete -c xr -n "__fish_xr_using_subcommand following" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand following" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand following" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1626,7 +1626,7 @@ complete -c xr -n "__fish_xr_using_subcommand followers" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand followers" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand followers" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1662,7 +1662,7 @@ complete -c xr -n "__fish_xr_using_subcommand mute" -l auth -d 'Authentication t
 complete -c xr -n "__fish_xr_using_subcommand mute" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand mute" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand mute" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1698,7 +1698,7 @@ complete -c xr -n "__fish_xr_using_subcommand unmute" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1735,7 +1735,7 @@ complete -c xr -n "__fish_xr_using_subcommand muted" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand muted" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand muted" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1771,7 +1771,7 @@ complete -c xr -n "__fish_xr_using_subcommand block" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand block" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand block" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1807,7 +1807,7 @@ complete -c xr -n "__fish_xr_using_subcommand unblock" -l auth -d 'Authenticatio
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1844,7 +1844,7 @@ complete -c xr -n "__fish_xr_using_subcommand blocked" -l auth -d 'Authenticatio
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1880,7 +1880,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1918,7 +1918,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1956,7 +1956,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm" -l auth -d 'Authentication typ
 complete -c xr -n "__fish_xr_using_subcommand dm" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -1990,7 +1990,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm" -l no-pager -d 'Documented no-
 complete -c xr -n "__fish_xr_using_subcommand dm" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2031,7 +2031,7 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2067,7 +2067,7 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2104,7 +2104,7 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2141,7 +2141,7 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2180,7 +2180,7 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2218,7 +2218,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2254,7 +2254,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2294,7 +2294,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm-block" -l auth -d 'Authenticati
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2330,7 +2330,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l auth -d 'Authentica
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2367,7 +2367,7 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -l auth -d 'Authentication ty
 complete -c xr -n "__fish_xr_using_subcommand dms" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dms" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand dms" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2401,7 +2401,7 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -l no-pager -d 'Documented no
 complete -c xr -n "__fish_xr_using_subcommand dms" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2454,7 +2454,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2492,7 +2492,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2530,7 +2530,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2566,7 +2566,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2602,7 +2602,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2639,7 +2639,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2676,7 +2676,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2710,7 +2710,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2750,7 +2750,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2789,7 +2789,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2827,7 +2827,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2864,7 +2864,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2900,7 +2900,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2936,7 +2936,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -2972,7 +2972,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3022,7 +3022,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3061,7 +3061,7 @@ complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subco
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3097,7 +3097,7 @@ complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subco
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3134,7 +3134,7 @@ complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subco
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3174,7 +3174,7 @@ complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3210,7 +3210,7 @@ complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3247,7 +3247,7 @@ complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3291,7 +3291,7 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3327,7 +3327,7 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3363,7 +3363,7 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3400,7 +3400,7 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3439,7 +3439,7 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3474,7 +3474,7 @@ complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3514,7 +3514,7 @@ complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3555,7 +3555,7 @@ complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3591,7 +3591,7 @@ complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3629,7 +3629,7 @@ complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3680,7 +3680,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3720,7 +3720,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3757,7 +3757,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3795,7 +3795,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3832,7 +3832,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3873,7 +3873,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3913,7 +3913,7 @@ complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3949,7 +3949,7 @@ complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -3985,7 +3985,7 @@ complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4023,7 +4023,7 @@ complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4069,7 +4069,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4105,7 +4105,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4143,7 +4143,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4179,7 +4179,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4214,7 +4214,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4253,7 +4253,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4288,7 +4288,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4325,7 +4325,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4362,7 +4362,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4413,7 +4413,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4451,7 +4451,7 @@ complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4485,7 +4485,7 @@ complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4528,7 +4528,7 @@ complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4572,7 +4572,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4608,7 +4608,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4644,7 +4644,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4680,7 +4680,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4715,7 +4715,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4754,7 +4754,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4801,7 +4801,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l checkpoint -d 'Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so `xr webhooks replay --from-checkpoint` can request what a stop missed. The file holds {"last_event_at": <Unix seconds>}' -r -F
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4840,7 +4840,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4883,7 +4883,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4929,7 +4929,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l scopes -d 'Request only these comma-separated scopes, plus offline.access (default: every scope)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -4969,7 +4969,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l token-secret-file -d 'File holding the token secret; \'-\' reads it from stdin' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5004,7 +5004,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l bearer-token-file -d 'File holding the bearer token; \'-\' reads it from stdin' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5037,7 +5037,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5071,7 +5071,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l oauth2-username -d 'Clear `OAuth2` token for username' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5108,7 +5108,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5147,7 +5147,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5188,7 +5188,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5234,7 +5234,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s H -l header -d 'Request headers' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5272,7 +5272,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s H -l header -d 'Request headers' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5308,7 +5308,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5349,7 +5349,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5385,7 +5385,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5419,7 +5419,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5462,7 +5462,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5498,7 +5498,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5531,7 +5531,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5568,7 +5568,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand schema" -l path -d 'Print the node at a dot path into the command\'s `data`, or into the wrapper with `--common`' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand schema" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand schema" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5606,7 +5606,7 @@ complete -c xr -n "__fish_xr_using_subcommand schema" -l no-pager -d 'Documented
 complete -c xr -n "__fish_xr_using_subcommand schema" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand completions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand completions" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand completions" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5639,7 +5639,7 @@ complete -c xr -n "__fish_xr_using_subcommand completions" -l no-pager -d 'Docum
 complete -c xr -n "__fish_xr_using_subcommand completions" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand version" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand version" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand version" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5672,7 +5672,7 @@ complete -c xr -n "__fish_xr_using_subcommand version" -l no-pager -d 'Documente
 complete -c xr -n "__fish_xr_using_subcommand version" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand examples" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand examples" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand examples" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
@@ -5706,7 +5706,7 @@ complete -c xr -n "__fish_xr_using_subcommand examples" -s h -l help -d 'Print h
 complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `drafts`, `draft-created`, `broadcast`, `broadcasts`, `broadcast-updated`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `trend-locations`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-created`, `stream-source-deleted`, `stream-source-key`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'

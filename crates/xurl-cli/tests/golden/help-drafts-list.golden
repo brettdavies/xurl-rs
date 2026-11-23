@@ -1,7 +1,7 @@
 args: ["drafts", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7174
+stdout_len: 7217
 stderr_len: 0
 --- stdout ---
 List your post drafts, newest first
@@ -35,7 +35,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

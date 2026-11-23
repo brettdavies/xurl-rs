@@ -735,6 +735,48 @@ async fn an_unknown_scope_is_rejected_before_anything_is_written() {
     );
 }
 
+/// A scope X does not define is an argument `xr` refused: the step is the help
+/// of the command, and the envelope keeps the rule and the value, in the real
+/// run and in its dry run alike.
+#[tokio::test]
+async fn an_unknown_scope_sends_the_caller_to_the_help_of_the_command() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let sign_in = [
+        "auth",
+        "oauth2",
+        "--no-browser",
+        "--step",
+        "1",
+        "--scopes",
+        "tweet.reed",
+    ];
+    let mut real = vec!["xr", "--output", "json"];
+    real.extend(sign_in);
+    let mut dry = vec!["xr", "--output", "json", "--dry-run"];
+    dry.extend(sign_in);
+
+    let (code, _stdout, stderr) = run_cli(&store, &step1_overrides(), &real).await;
+    assert_eq!(code, 1, "stderr: {stderr}");
+    let refusal: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    let (code, stdout, _stderr) = run_cli(&store, &step1_overrides(), &dry).await;
+    assert_eq!(code, 0, "a dry run exits 0");
+    let rehearsal: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+
+    for (name, envelope) in [("real run", &refusal), ("dry run", &rehearsal)] {
+        assert_eq!(envelope["reason"], "validation", "{name}: {envelope}");
+        assert_eq!(envelope["rule"], "unknown-scope", "{name}: {envelope}");
+        assert_eq!(envelope["value"], "tweet.reed", "{name}: {envelope}");
+        assert_eq!(envelope["exit_code"], 1, "{name}: {envelope}");
+        assert_eq!(
+            envelope["next_step"],
+            serde_json::json!({"action": "show-help", "command": "xr auth oauth2 --help"}),
+            "{name}: {envelope}"
+        );
+    }
+}
+
 /// Step 2 takes the scope set from what step 1 saved, so the two steps cannot
 /// describe different sign-ins: no flag is needed, and a flag that names a
 /// different set is refused before the code is spent.
@@ -3199,10 +3241,6 @@ fn oauth_error(status: u16, error: &str) -> ResponseTemplate {
 async fn step2_whose_code_x_would_not_exchange_starts_over_at_step_one() {
     for (why, response) in [
         ("invalid_grant", oauth_error(400, "invalid_grant")),
-        (
-            "a 400 with no JSON",
-            ResponseTemplate::new(400).set_body_string("no"),
-        ),
         ("invalid_grant on a 403", oauth_error(403, "invalid_grant")),
         ("invalid_grant on a 404", oauth_error(404, "invalid_grant")),
         (
@@ -3261,12 +3299,13 @@ async fn step2_x_answered_with_a_server_error_is_a_server_error_and_is_sent_agai
     }
 }
 
-/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with a JSON body that
-/// holds a string `error`. Any other answer came from something that did not
-/// process the exchange, such as a proxy or a token URL with the wrong path, so
-/// the code is still good and the saved flow stays for the same step 2. A 403
-/// points at the token URL and the proxy in front of it, and every such answer
-/// is warned of by name, with its status.
+/// RFC 6749 section 5.2 refuses with a JSON body whose `error` is one of its
+/// codes, whatever the status. Any other answer, a bare 400 or 401 among them,
+/// came from something that did not process the exchange, such as a proxy or a
+/// token URL with the wrong path, so the code is still good and the saved flow
+/// stays for the same step 2. A 403 or any other status the token endpoint's
+/// own step covers points at the token URL and the proxy in front of it, and
+/// every such answer is warned of by name, with its status.
 #[tokio::test]
 async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
     for NoRefusal {
@@ -3308,6 +3347,11 @@ async fn step2_the_token_endpoint_redirects_is_not_followed(#[case] status: u16)
 
     assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{envelope}");
     assert_eq!(envelope["reason"], "api-error", "{envelope}");
+    assert_eq!(envelope["next_step"]["action"], "fix-input", "{envelope}");
+    assert_eq!(
+        envelope["next_step"]["docs"], TOKEN_ENDPOINT_DOCS,
+        "{envelope}"
+    );
     assert_warns_of_the_exchange(&envelope, &status.to_string());
 }
 
@@ -3315,7 +3359,7 @@ async fn step2_the_token_endpoint_redirects_is_not_followed(#[case] status: u16)
 /// sent is a credential, so none of it reaches the error.
 #[tokio::test]
 async fn step2_failure_answer_that_echoes_the_exchange_leaks_none_of_it() {
-    for status in [403, 404, 502] {
+    for status in [400, 401, 403, 404, 418, 502] {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/2/oauth2/token"))
@@ -3354,15 +3398,18 @@ async fn step2_failure_answer_of_a_large_page_is_cut_short() {
     }
 }
 
-/// An empty 403 is said to be empty, not printed as `{}`.
+/// An answer with an empty body is said to be empty, not printed as `{}`.
 #[tokio::test]
-async fn step2_with_an_empty_token_endpoint_403_says_so() {
-    let (_code, envelope) = step2_answered_with(ResponseTemplate::new(403)).await;
+async fn step2_with_an_empty_token_endpoint_answer_says_so() {
+    for status in [400, 401, 403, 418] {
+        let (_code, envelope) = step2_answered_with(ResponseTemplate::new(status)).await;
 
-    assert_eq!(
-        envelope["message"], "the token endpoint answered 403 with an empty body",
-        "{envelope}"
-    );
+        assert_eq!(
+            envelope["message"],
+            format!("the token endpoint answered {status} with an empty body"),
+            "{envelope}"
+        );
+    }
 }
 
 /// A warning names the token endpoint and the HTTP status of its answer, since
@@ -3829,4 +3876,151 @@ async fn the_headless_state_needs_no_encoding() {
     let state = query_param(&step1_url(&store, &[]).await, "state");
 
     assert!(needs_no_encoding(&state), "state {state:?}");
+}
+
+// ── A step that signs in under another app keeps the invocation ─────────
+
+/// The envelope a refused run wrote on stderr.
+fn refusal_of(stderr: &str) -> serde_json::Value {
+    serde_json::from_str(stderr.trim()).expect("one JSON envelope")
+}
+
+/// Runs the `command` a step carries, as printed.
+async fn run_step(
+    store: &std::path::Path,
+    overrides: &xdk::config::EnvOverrides,
+    command: &str,
+) -> (i32, String, String) {
+    let words: Vec<&str> = command.split(' ').collect();
+    run_cli(store, overrides, &words).await
+}
+
+/// The `select-app` step names the sign-in the caller ran, under the app that
+/// can sign in: its output format, its login label, and its scopes stay, and
+/// the step runs as printed.
+#[tokio::test]
+async fn a_select_app_step_keeps_the_invocation_it_answers() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_without_a_client_id(&store);
+    let overrides = closed_overrides(false);
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "alice",
+            "--no-browser",
+            "--step",
+            "1",
+            "--scopes",
+            "tweet.read",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let refusal = refusal_of(&stderr);
+    assert_eq!(refusal["reason"], "client-credentials-missing", "{refusal}");
+    assert_eq!(refusal["next_step"]["action"], "select-app", "{refusal}");
+    let command = refusal["next_step"]["command"].as_str().expect("a command");
+    assert_eq!(
+        command,
+        "xr --output json auth oauth2 alice --no-browser --step 1 --scopes tweet.read --app work"
+    );
+    assert!(
+        refusal["message"].as_str().unwrap().ends_with(command),
+        "the message names the step it carries: {refusal}"
+    );
+
+    let (code, stdout, stderr) = run_step(&store, &overrides, command).await;
+    assert_eq!(code, 0, "the step runs as printed; stderr: {stderr}");
+    let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    let url = Url::parse(answer["auth_url"].as_str().expect("auth_url")).expect("a URL");
+    assert_eq!(query_param(&url, "client_id"), "work-client-id");
+    assert_eq!(query_param(&url, "scope"), "tweet.read offline.access");
+}
+
+/// A step 2 that meets an app with no client id answers with a step 1, and
+/// the redirect URL, which holds an authorization code, stays out of it.
+#[tokio::test]
+async fn a_select_app_step_from_step_two_starts_over_without_the_code() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_without_a_client_id(&store);
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &closed_overrides(false),
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let refusal = refusal_of(&stderr);
+    assert_eq!(refusal["reason"], "client-credentials-missing", "{refusal}");
+    assert_eq!(
+        refusal["next_step"]["command"],
+        "xr --output json auth oauth2 --no-browser --step 1 --app work"
+    );
+    assert!(
+        !format!("{stdout}{stderr}").contains("AUTHCODE"),
+        "the code is echoed: {stdout}{stderr}"
+    );
+}
+
+/// A dry run that names `--dry-run` itself gets a step with the flag once, so
+/// the step is one `xr` accepts, and it sends nothing either.
+#[tokio::test]
+async fn a_dry_runs_select_app_step_names_dry_run_once_and_runs() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_without_a_client_id(&store);
+    let overrides = closed_overrides(false);
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    assert_eq!(answer["would_succeed"], false, "{answer}");
+    let command = answer["next_step"]["command"].as_str().expect("a command");
+    assert_eq!(
+        command,
+        "xr --output json --dry-run auth oauth2 --no-browser --step 1 --app work"
+    );
+    let (code, stdout, stderr) = run_step(&store, &overrides, command).await;
+    assert_eq!(code, 0, "the step runs as printed; stderr: {stderr}");
+    let again: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    assert_eq!(again["would_succeed"], true, "{again}");
 }
