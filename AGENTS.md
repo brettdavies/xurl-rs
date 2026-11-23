@@ -222,8 +222,13 @@ kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and th
 `validation` refusal also carries `rule`, the validator's kebab-case code for the input rule it broke, and its `message`
 is the sentence for that rule, from the one function in `crates/xurl-cli/src/cli/output/validation.rs` that text output
 and any help stating the rule also call. When the rule names the offending input, `value` carries it as given, always a
-string. It also carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table
-under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
+string: a validator's closure answers `Result<(), Invalid>`, and `checked` and `checked_each` in
+`crates/xurl-cli/src/cli/commands/mod.rs` build the refusal with the input, the first one a batch refused. A rule no
+single input broke (`too-many-ids`, `mixed-ids-and-handles`, `no-list-changes`) carries none, and so does a blank input
+to those two builders, which has nothing to name. For `--forward` and `webhooks add`, `value` never repeats a URL with
+an `@` in it, and a dry run's `url` and `forward.url` drop its username and password, since it may hold a credential. It
+also carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table under "Which
+Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
 `crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
 fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
 caller finishes or decides on first: angle-bracket placeholders to fill; under `confirm`, the invocation that destroys
@@ -325,7 +330,9 @@ never the tests.
   four. A command with a post id argument checks it with `valid_post_id` before any other input, so a value that is
   neither digits nor a post URL is refused as `invalid-post-id` before a request goes out (`post --clip` has its own
   rule, `invalid-clip-post-id`); `crates/xurl-cli/tests/post_id_guard.rs` fails for a command that accepts one or sends
-  first.
+  first. Every input a command validates is named in the refusal: `crates/xurl-cli/tests/validation_value_guard.rs` runs
+  each command once per argument with a malformed value, for real and under `--dry-run`, and fails for a validation
+  refusal that leaves that value out of `value`.
 - **Accepted auth.** A row in `crates/xurl-cli/src/cli/accepted_auth.rs` naming the endpoints the command's requests
   reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
   schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes

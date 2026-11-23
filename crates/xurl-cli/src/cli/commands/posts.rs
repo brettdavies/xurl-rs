@@ -4,8 +4,8 @@
 use serde_json::json;
 
 use super::{
-    Invalid, Run, dry_run_or_validate, make_client, send_confirmed, send_or_report, valid_post_id,
-    with_flags,
+    Checked, Invalid, Run, checked, dry_run_or_validate, make_client, send_confirmed,
+    send_or_report, valid_post, valid_post_id, with_flags,
 };
 use crate::cli::failure::CommandResult;
 use crate::cli::{Commands, CommonFlags};
@@ -74,9 +74,8 @@ async fn post(
         ctx["clip"] = json!(clip);
     }
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_post_body(text)?;
-        shortcuts::validate_media_attachments(media_ids)?;
-        clip.map_or(Ok(()), shortcuts::validate_post_clip)
+        valid_post(text, media_ids)?;
+        clip.map_or(Ok(()), valid_clip)
     })?;
     let client = make_client(cfg, auth)?;
     let call = match clip {
@@ -109,11 +108,9 @@ async fn reply(
         "body": text,
         "media_ids": media_ids,
     });
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || -> Result<(), Invalid> {
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
         valid_post_id(post_id)?;
-        shortcuts::validate_post_body(text)?;
-        shortcuts::validate_media_attachments(media_ids)?;
-        Ok(())
+        valid_post(text, media_ids)
     })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(client.reply_to_post(post_id, text, media_ids), common, None);
@@ -135,10 +132,9 @@ async fn quote(run: Run<'_>, post_id: &str, text: &str, common: &CommonFlags) ->
         "post_id": post_id,
         "body": text,
     });
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || -> Result<(), Invalid> {
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
         valid_post_id(post_id)?;
-        shortcuts::validate_post_body(text)?;
-        Ok(())
+        checked(shortcuts::validate_post_body, text)
     })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(client.quote_post(post_id, text), common, None);
@@ -159,4 +155,11 @@ async fn delete(
         client.delete_post(post_id)
     })
     .await
+}
+
+/// Checks the post a clip is cut from, then its range, which no single input
+/// breaks.
+fn valid_clip(clip: &PostClip) -> Checked {
+    checked(shortcuts::validate_clip_post_id, &clip.post_id)?;
+    shortcuts::validate_post_clip(clip).map_err(Invalid::unnamed)
 }

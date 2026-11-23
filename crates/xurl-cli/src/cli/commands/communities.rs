@@ -2,7 +2,7 @@
 
 use serde_json::json;
 
-use super::{Run, list_paged, no_checks, send_validated};
+use super::{Run, checked, list_paged, no_checks, send_validated};
 use crate::cli::CommunitiesCommands;
 use crate::cli::failure::CommandResult;
 use xdk::api::{Client, shortcuts};
@@ -25,7 +25,7 @@ pub(super) async fn run(action: CommunitiesCommands, run: Run<'_>) -> CommandRes
             common,
         } => {
             let ctx = json!({"command": "communities-get", "community_id": community_id});
-            let validate = || shortcuts::validate_community_id(&community_id);
+            let validate = || checked(shortcuts::validate_community_id, &community_id);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_community(&community_id)
             })

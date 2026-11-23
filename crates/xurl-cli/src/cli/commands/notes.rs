@@ -4,7 +4,9 @@
 
 use serde_json::json;
 
-use super::{Invalid, Run, list_paged, no_checks, send_confirmed, send_validated, valid_post_id};
+use super::{
+    Checked, Run, checked, list_paged, no_checks, send_confirmed, send_validated, valid_post_id,
+};
 use crate::cli::NotesCommands;
 use crate::cli::failure::CommandResult;
 use xdk::api::Client;
@@ -79,7 +81,7 @@ pub(super) async fn run(action: NotesCommands, run: Run<'_>) -> CommandResult<()
         } => {
             let ctx = json!({"command": "notes-remove", "note_id": note_id});
             let prompt = format!("Delete Community Note {note_id}?");
-            let validate = || shortcuts::validate_note_id(&note_id);
+            let validate = || checked(shortcuts::validate_note_id, &note_id);
             send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.delete_note(&note_id)
             })
@@ -91,8 +93,7 @@ pub(super) async fn run(action: NotesCommands, run: Run<'_>) -> CommandResult<()
 /// Checks a note's post and text, for writing it or scoring the draft: X
 /// writes no note without a source URL, so a draft without one is not worth
 /// a request to score.
-fn validate_draft(post: &str, text: &str) -> Result<(), Invalid> {
+fn validate_draft(post: &str, text: &str) -> Checked {
     valid_post_id(post)?;
-    shortcuts::validate_note_text(text)?;
-    Ok(())
+    checked(shortcuts::validate_note_text, text)
 }
