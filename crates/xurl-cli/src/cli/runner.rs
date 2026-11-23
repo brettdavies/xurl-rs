@@ -736,12 +736,18 @@ fn render_invalid_args(
         .trim_end();
     let command = failing_command(error, args);
     // clap puts its own tips between the error line and the usage line.
-    let body = match equals_form_hint(error, args, &command) {
-        Some(hint) => match body.split_once("\n\nUsage:") {
-            Some((failure, usage)) => format!("{failure}\n\n  tip: {hint}\n\nUsage:{usage}"),
-            None => format!("{body}\n\n  tip: {hint}"),
-        },
-        None => body.to_string(),
+    let body = if let Some(refusal) = crate::cli::conflict_source::refusal_for(error, args) {
+        refusal.replacing(body)
+    } else {
+        match equals_form_hint(error, args, &command) {
+            Some(hint) => match body.split_once("\n\nUsage:") {
+                Some((failure, usage)) => {
+                    format!("{failure}\n\n  tip: {hint}\n\nUsage:{usage}")
+                }
+                None => format!("{body}\n\n  tip: {hint}"),
+            },
+            None => body.to_string(),
+        }
     };
     out.print_invalid_args(stderr, &body, "\n\n", &command);
     EXIT_USAGE_ERROR

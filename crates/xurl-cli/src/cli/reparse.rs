@@ -77,7 +77,7 @@ pub(crate) fn lenient_cli(args: &[OsString]) -> Option<Cli> {
 
 /// What clap resolved from `args` before an error stopped it: the flags ahead
 /// of the rejected token, their environment bindings, and the defaults.
-fn lenient_matches(args: &[OsString]) -> Option<ArgMatches> {
+pub(crate) fn lenient_matches(args: &[OsString]) -> Option<ArgMatches> {
     parse::try_matches(args, |command| {
         with_inert_display_flags(command).ignore_errors(true)
     })
