@@ -139,44 +139,20 @@ impl NextStep {
     /// and `--step 2` becomes `--step 1`.
     #[must_use]
     pub fn sign_in_again(invocation: &[String], no_browser: bool) -> Self {
-        let restep = |step: &str| {
-            if step == "2" {
-                "1".to_string()
-            } else {
-                shell_word(step)
-            }
-        };
-        let mut words = vec![ROOT_COMMAND.to_string()];
-        let mut args = invocation.iter().skip(1);
-        while let Some(arg) = args.next() {
-            if arg == "--auth-url" {
-                args.next();
-                continue;
-            }
-            if arg.starts_with("--auth-url=") {
-                continue;
-            }
-            if arg == "--step" {
-                words.push(arg.clone());
-                if let Some(step) = args.next() {
-                    words.push(restep(step));
-                }
-                continue;
-            }
-            match arg.strip_prefix("--step=") {
-                Some(step) => words.push(format!("--step={}", restep(step))),
-                None => words.push(shell_word(arg)),
-            }
-        }
-        if no_browser && !invocation.iter().any(|arg| arg == "--no-browser") {
-            words.push("--no-browser".to_string());
-        }
         Self {
             action: NextAction::SignIn,
-            command: Some(words.join(" ")),
+            command: Some(restart_sign_in(invocation, no_browser, None)),
             template: None,
             docs: None,
         }
+    }
+
+    /// [`Self::sign_in_again`] under `app`, which replaces the `--app` of the
+    /// invocation, for a sign-in whose own app has no client id to sign in
+    /// with.
+    #[must_use]
+    pub fn select_app_sign_in(invocation: &[String], no_browser: bool, app: &str) -> Self {
+        Self::select_app(restart_sign_in(invocation, no_browser, Some(app)))
     }
 
     /// The headless step 2 `invocation` ran, again, under `app` when one is
@@ -230,15 +206,39 @@ impl NextStep {
     }
 
     /// This step's command with `--dry-run` after the program word, for a
-    /// dry run's refusal whose step reruns an invocation. A command that does
-    /// not start with the program word is left as it is.
+    /// dry run's refusal whose step reruns an invocation, unless the command
+    /// carries it already. A command that does not start with the program
+    /// word is left as it is.
     #[must_use]
-    pub fn under_dry_run(mut self) -> Self {
+    pub fn under_dry_run(self) -> Self {
+        let named = self.command.as_deref().is_some_and(|command| {
+            command
+                .split(' ')
+                .any(|word| word == "--dry-run" || word.starts_with("--dry-run="))
+        });
+        if named {
+            self
+        } else {
+            self.after_program(&["--dry-run".to_string()])
+        }
+    }
+
+    /// This step's command with the words of `invocation` that name the output
+    /// format after the program word, so the run it hands out answers in the
+    /// format the failed run did. A command that does not start with the
+    /// program word is left as it is.
+    #[must_use]
+    pub fn keeping_format(self, invocation: &[String]) -> Self {
+        self.after_program(&format_words(invocation))
+    }
+
+    fn after_program(mut self, words: &[String]) -> Self {
         if let Some(command) = &mut self.command
             && let Some(rest) = command.strip_prefix(ROOT_COMMAND)
             && rest.starts_with(' ')
+            && !words.is_empty()
         {
-            *command = format!("{ROOT_COMMAND} --dry-run{rest}");
+            *command = format!("{ROOT_COMMAND} {}{rest}", words.join(" "));
         }
         self
     }
@@ -1051,7 +1051,8 @@ pub fn refresh_refused_hint(
     let login =
         requested_login(invocation).or_else(|| snapshot.oauth2_default_logins.get(target).cloned());
     let app = (target != snapshot.default_app).then_some(target);
-    let next_step = NextStep::sign_in_as(login.as_deref(), app, headless);
+    let next_step =
+        NextStep::sign_in_as(login.as_deref(), app, headless).keeping_format(invocation);
     let command = next_step.command.clone().unwrap_or_default();
     Some(Hint {
         text_lines: vec![format!("{what} Sign in again. Run: {command}")],
@@ -1331,6 +1332,73 @@ fn hidden_header(header: &str) -> String {
     } else {
         format!("{name}: <value>")
     }
+}
+
+/// The words of `invocation` that name the output format: `--output NAME`,
+/// `--output=NAME`, `--json`, and `--jsonl`, each as given.
+fn format_words(invocation: &[String]) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut args = invocation.iter().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "--" {
+            break;
+        }
+        if arg == "--output" {
+            words.push(arg.clone());
+            words.extend(args.next().map(|name| shell_word(name)));
+        } else if arg.starts_with("--output=") || arg == "--json" || arg == "--jsonl" {
+            words.push(shell_word(arg));
+        }
+    }
+    words
+}
+
+/// The sign-in `invocation` started, written to run again from its first
+/// step. `--auth-url` and its value are dropped, since the redirect URL holds
+/// an authorization code and answers the flow that failed, and `--step 2`
+/// becomes `--step 1`. `--no-browser` is added when `no_browser` asks for the
+/// paste-the-URL form. `app`, when given, replaces the invocation's `--app` and
+/// comes last, where the other sign-in steps put it.
+fn restart_sign_in(invocation: &[String], no_browser: bool, app: Option<&str>) -> String {
+    let restep = |step: &str| {
+        if step == "2" {
+            "1".to_string()
+        } else {
+            shell_word(step)
+        }
+    };
+    let mut words = vec![ROOT_COMMAND.to_string()];
+    let mut args = invocation.iter().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "--auth-url" || (app.is_some() && arg == "--app") {
+            args.next();
+            continue;
+        }
+        if arg.starts_with("--auth-url=")
+            || (app.is_some() && arg.starts_with("--app="))
+            || (no_browser && arg.starts_with("--no-browser="))
+        {
+            continue;
+        }
+        if arg == "--step" {
+            words.push(arg.clone());
+            if let Some(step) = args.next() {
+                words.push(restep(step));
+            }
+            continue;
+        }
+        match arg.strip_prefix("--step=") {
+            Some(step) => words.push(format!("--step={}", restep(step))),
+            None => words.push(shell_word(arg)),
+        }
+    }
+    if no_browser && !invocation.iter().any(|arg| arg == "--no-browser") {
+        words.push("--no-browser".to_string());
+    }
+    if let Some(app) = app {
+        words.extend(["--app".to_string(), quote_app_name(app)]);
+    }
+    words.join(" ")
 }
 
 fn non_empty(value: Option<&str>) -> Option<&str> {
@@ -1641,6 +1709,123 @@ mod tests {
         );
         let registration = NextStep::register_app();
         assert_eq!(registration.clone().under_dry_run(), registration);
+    }
+
+    #[test]
+    fn under_dry_run_names_the_flag_once() {
+        for command in [
+            "xr --dry-run auth oauth2 --app work",
+            "xr --dry-run=true auth oauth2 --app work",
+        ] {
+            let step = NextStep::select_app(command.into());
+            assert_eq!(step.clone().under_dry_run(), step, "{command}");
+        }
+    }
+
+    /// The failed command's `--output` and `--json` words ride on the step, so
+    /// a structured caller runs it in the format it was reading.
+    #[test]
+    fn a_refresh_step_keeps_the_format_the_failed_command_named() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let store = two_signed_in_apps(&tmp);
+        let refused = Error::auth(format!("{REFRESH_TOKEN_REFUSED}: HTTP 400"));
+        for (invocation, headless, expected) in [
+            (
+                "xr --output json whoami",
+                true,
+                "xr --output json auth oauth2 bob --no-browser --step 1 --app work",
+            ),
+            (
+                "xr whoami --output=yaml",
+                true,
+                "xr --output=yaml auth oauth2 bob --no-browser --step 1 --app work",
+            ),
+            (
+                "xr --json whoami",
+                true,
+                "xr --json auth oauth2 bob --no-browser --step 1 --app work",
+            ),
+            ("xr whoami", false, "xr auth oauth2 bob --app work"),
+        ] {
+            let hint =
+                refresh_refused_hint(&snapshot_of(&store), &refused, &argv(invocation), headless)
+                    .expect("a hint");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some(expected),
+                "{invocation}"
+            );
+            assert!(
+                hint.text_lines[0].ends_with(expected),
+                "the text names the step it carries: {:?}",
+                hint.text_lines
+            );
+        }
+    }
+
+    #[test]
+    fn a_select_app_sign_in_keeps_the_invocation_under_the_other_app() {
+        for (invocation, no_browser, app, expected) in [
+            (
+                "xr --app blank --output json auth oauth2 alice --no-browser --step 1 --scopes tweet.read",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 alice --no-browser --step 1 --scopes tweet.read --app myapp",
+            ),
+            (
+                "xr --output json auth oauth2 --app=blank --no-browser --step=1",
+                true,
+                "my app",
+                "xr --output json auth oauth2 --no-browser --step=1 --app 'my app'",
+            ),
+            (
+                "xr --output json auth oauth2",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 --no-browser --app myapp",
+            ),
+            (
+                "xr auth oauth2",
+                false,
+                "myapp",
+                "xr auth oauth2 --app myapp",
+            ),
+            (
+                "xr --output json auth oauth2 --no-browser=true --step 1",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 --step 1 --no-browser --app myapp",
+            ),
+            (
+                "xr --output json auth oauth2 --no-browser=false --step 1",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 --step 1 --no-browser --app myapp",
+            ),
+            (
+                "xr auth oauth2 --no-browser=true --step 1",
+                false,
+                "myapp",
+                "xr auth oauth2 --no-browser=true --step 1 --app myapp",
+            ),
+        ] {
+            let step = NextStep::select_app_sign_in(&argv(invocation), no_browser, app);
+            assert_eq!(step.action, NextAction::SelectApp, "{invocation}");
+            assert_eq!(step.command.as_deref(), Some(expected), "{invocation}");
+        }
+    }
+
+    /// The redirect URL holds an authorization code, which no step carries.
+    #[test]
+    fn a_select_app_sign_in_from_step_two_starts_at_step_one_without_the_code() {
+        let invocation = argv(
+            "xr --output json auth oauth2 --no-browser --step 2 --auth-url http://localhost:8080/callback?code=SECRET&state=s --app blank",
+        );
+        let step = NextStep::select_app_sign_in(&invocation, true, "myapp");
+        assert_eq!(
+            step.command.as_deref(),
+            Some("xr --output json auth oauth2 --no-browser --step 1 --app myapp")
+        );
     }
 
     /// The URL holds an authorization code, so no spelling of it survives,

@@ -21,17 +21,19 @@ const OAUTH2_COMMAND: &str = "xr auth oauth2";
 
 /// Arguments of `xr auth oauth2`: whether to suppress the browser, which
 /// manual step to run, the redirect URL that step 2 exchanges, the scopes to
-/// request instead of every one, and the username label for the saved token.
-pub(super) struct Oauth2Args {
+/// request instead of every one, the username label for the saved token, and
+/// the words the run was invoked with.
+pub(super) struct Oauth2Args<'a> {
     pub(super) no_browser: bool,
     pub(super) step: Option<u8>,
     pub(super) auth_url: Option<String>,
     pub(super) scopes: Option<Vec<String>>,
     pub(super) username: Option<String>,
+    pub(super) invocation: &'a [String],
 }
 
 pub(super) async fn oauth2(
-    args: Oauth2Args,
+    args: Oauth2Args<'_>,
     mut auth: Auth,
     cfg: &Config,
     flags: AuthGlobalFlags,
@@ -45,6 +47,7 @@ pub(super) async fn oauth2(
         auth_url,
         scopes,
         username,
+        invocation,
     } = args;
     let AuthGlobalFlags {
         dry_run,
@@ -63,12 +66,12 @@ pub(super) async fn oauth2(
         && let Err(error) = auth.with_oauth2_scopes(&scopes)
     {
         return Err(if dry_run {
-            Failure::DryRunRefusal {
+            Failure::DryRunInvalid {
                 ctx: dry_run_ctx(),
                 error,
             }
         } else {
-            error.into()
+            Failure::refused(error)
         });
     }
     // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
@@ -94,6 +97,7 @@ pub(super) async fn oauth2(
                 auth_url: auth_url.as_deref(),
                 refused,
                 ctx: dry_run_ctx(),
+                invocation,
             },
             out,
             stdout,
@@ -118,9 +122,13 @@ pub(super) async fn oauth2(
                 return Err(Failure::from(error));
             }
             Err(_) => None,
-            Ok(()) => {
-                client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false)
-            }
+            Ok(()) => client_credentials_missing(
+                &auth,
+                app_explicit,
+                invocation,
+                out.format.is_structured(),
+                false,
+            ),
         }
     };
     if let Some(body) = refusal {
@@ -279,6 +287,7 @@ struct DryRun<'a> {
     /// What the headless flow refuses about `--auth-url` itself.
     refused: Option<String>,
     ctx: serde_json::Value,
+    invocation: &'a [String],
 }
 
 /// Answers a dry run of `xr auth oauth2` with the verdict the real run
@@ -302,6 +311,7 @@ fn dry_run_answer(
         auth_url,
         refused,
         ctx,
+        invocation,
     } = plan;
     if let Some(message) = refused {
         out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
@@ -315,9 +325,13 @@ fn dry_run_answer(
         Err(error) if !step2 => return Err(Failure::DryRunRefusal { ctx, error }),
         Err(_) => {}
         Ok(()) => {
-            if let Some(body) =
-                client_credentials_missing(auth, app_explicit, out.format.is_structured(), true)
-            {
+            if let Some(body) = client_credentials_missing(
+                auth,
+                app_explicit,
+                invocation,
+                out.format.is_structured(),
+                true,
+            ) {
                 out.print_dry_run_error_body(stdout, &ctx, body);
                 return Ok(());
             }
@@ -523,12 +537,14 @@ pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult
 ///
 /// The effective client id comes from the [`Auth`] accessor, so `CLIENT_ID`
 /// exported in the environment counts regardless of how the app was
-/// selected. When another app does carry credentials the hint names it;
-/// otherwise the hint is registration, whose values only the caller has. A
-/// dry run's hint reruns the sign-in under `--dry-run`.
+/// selected. When another app does carry credentials the hint names it, and
+/// runs `invocation` again from its first step under that app; otherwise the
+/// hint is registration, whose values only the caller has. A dry run's hint
+/// reruns the sign-in under `--dry-run`.
 fn client_credentials_missing(
     auth: &Auth,
     app_explicit: bool,
+    invocation: &[String],
     structured: bool,
     dry_run: bool,
 ) -> Option<ErrorBody> {
@@ -551,11 +567,7 @@ fn client_credentials_missing(
     let (prose, next_step) = match credentialed.first() {
         Some(alternative) => (
             format!("app {target:?} has no client credentials; app {alternative:?} does."),
-            NextStep::select_app(
-                NextStep::sign_in(Some(alternative), structured)
-                    .command
-                    .unwrap_or_default(),
-            ),
+            NextStep::select_app_sign_in(invocation, structured, alternative),
         ),
         None => (
             if app_explicit {

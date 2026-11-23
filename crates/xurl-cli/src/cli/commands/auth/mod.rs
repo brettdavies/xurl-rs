@@ -155,6 +155,7 @@ pub(super) async fn run(cmd: AuthCommands, run: Run<'_>) -> CommandResult<()> {
         out,
         stdout,
         stderr,
+        invocation,
         ..
     } = run;
     let flags = AuthGlobalFlags::from(&flags);
@@ -175,6 +176,7 @@ pub(super) async fn run(cmd: AuthCommands, run: Run<'_>) -> CommandResult<()> {
                     auth_url,
                     scopes,
                     username,
+                    invocation,
                 },
                 auth,
                 cfg,

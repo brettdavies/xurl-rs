@@ -485,11 +485,13 @@ pub(crate) fn make_client(cfg: &Config, auth: Auth) -> Result<Client> {
 /// handler lets library tests capture all output into `Vec<u8>`.
 ///
 /// `overrides` carries the environment the run resolved at its entrypoint, so
-/// nothing below this call reads the process.
+/// nothing below this call reads the process. `invocation` is the argv the run
+/// was parsed from, for a refusal whose step runs the same command again.
 ///
 /// # Errors
 ///
 /// Returns an error if the command fails.
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn run(
     cli: Cli,
     out: &OutputConfig,
@@ -498,6 +500,7 @@ pub(crate) async fn run(
     mut auth: Auth,
     overrides: &xdk::config::EnvOverrides,
     hooks: &crate::cli::runner::RunHooks,
+    invocation: &[String],
 ) -> CommandResult<()> {
     let mut cfg = Config::from_overrides(overrides);
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
@@ -553,6 +556,7 @@ pub(crate) async fn run(
                 stdout,
                 stderr,
                 hooks,
+                invocation,
             };
             run_subcommand(cmd, run).await
         }
@@ -585,6 +589,8 @@ struct Run<'a> {
     stderr: &'a mut dyn Write,
     /// What an in-process run takes in place of what a process uses.
     hooks: &'a crate::cli::runner::RunHooks,
+    /// The words the run was invoked with, program word first.
+    invocation: &'a [String],
 }
 
 /// Runs raw curl-style mode.

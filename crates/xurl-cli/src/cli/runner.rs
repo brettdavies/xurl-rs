@@ -412,15 +412,24 @@ async fn run_inner(
     // turns them into the stderr lines the flags call for, for this dispatch
     // and this thread only.
     let diagnostics = Diagnostics::new(out.clone());
-    let dispatched = crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides, hooks)
-        .with_subscriber(diagnostics)
-        .await;
     let invocation = || -> Vec<String> {
         args_vec
             .iter()
             .map(|a| a.to_string_lossy().into_owned())
             .collect()
     };
+    let dispatched = crate::cli::commands::run(
+        cli,
+        &out,
+        stdout,
+        stderr,
+        auth,
+        overrides,
+        hooks,
+        &invocation(),
+    )
+    .with_subscriber(diagnostics)
+    .await;
     let code = match dispatched {
         Ok(()) => EXIT_SUCCESS,
         Err(Failure::Emitted { exit_code }) => exit_code,

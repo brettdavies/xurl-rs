@@ -4743,7 +4743,7 @@ async fn test_oauth2_with_blank_target_names_the_credentialed_app() {
     assert_eq!(v["app"], "blank", "got: {v}");
     assert_eq!(v["next_step"]["action"], "select-app", "got: {v}");
     assert_eq!(
-        v["next_step"]["command"], "xr auth oauth2 --no-browser --step 1 --app myapp",
+        v["next_step"]["command"], "xr --output json auth oauth2 --no-browser --step 1 --app myapp",
         "got: {v}"
     );
 }
