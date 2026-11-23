@@ -986,10 +986,10 @@ pub const REFRESH_NO_TOKEN: &str = "RefreshTokenError: no access_token in respon
 /// request can go to. The URL follows, quoted.
 pub const TOKEN_URL_UNUSABLE: &str = "the token URL";
 
-/// The start of the message of an [`Error::Auth`] for an authorization URL no
-/// URL can be built from. The parser's cause follows, in parentheses.
-pub const AUTH_URL_UNUSABLE: &str =
-    "InvalidURL: the authorization URL is not one a URL can be built from";
+/// The start of the message of an [`Error::InvalidUrl`] for an authorization
+/// URL no URL can be built from. The URL follows, quoted, then the parser's
+/// cause in parentheses.
+pub const AUTH_URL_UNUSABLE: &str = "the authorization URL";
 
 /// The start of the message of a headless step 2 whose client id is not the
 /// one step 1 saved. The saved app's name follows, as a quoted string.

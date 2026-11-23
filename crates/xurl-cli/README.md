@@ -1142,7 +1142,8 @@ no answer, `server-error` on a 5xx, `rate-limited` on a 429, and the reason for 
 token URL with the wrong path, or `api-error` with `retry` for a 408. Each such answer also carries a warning that names
 the token endpoint and its HTTP status. The same invocation finishes once the endpoint answers, or, for a token URL with
 the wrong path, once `TOKEN_URL` names the right one, and if X had already spent the code, it answers with the `sign-in`
-step above. A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
+step above. A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past, and so is an
+`AUTH_URL` that step 1 cannot build the authorize URL from, which its dry run refuses the same way.
 
 Any command whose OAuth2 login has expired refreshes it first, and a failed refresh writes nothing to the store. A
 refresh X refused is `auth-required`: a refused refresh token, or an answer with no token, carries the `sign-in` that

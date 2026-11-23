@@ -4059,9 +4059,9 @@ fn step1_argv(dry: bool) -> Vec<&'static str> {
     argv
 }
 
-/// An `AUTH_URL` no URL can be built from refuses step 1 under the reason and
-/// exit code it always had, now naming the variable, and the dry run says so
-/// with the same keys.
+/// An `AUTH_URL` no URL can be built from refuses step 1 as an invalid URL, as a
+/// `TOKEN_URL` that is not a URL does: it quotes the value, names the variable,
+/// and sends the caller to the help. The dry run says so with the same keys.
 #[tokio::test]
 async fn an_authorize_url_no_url_can_be_built_from_refuses_step_one_in_its_dry_run_too() {
     let tmp = TempDir::new().unwrap();
@@ -4076,20 +4076,18 @@ async fn an_authorize_url_no_url_can_be_built_from_refuses_step_one_in_its_dry_r
     let (dry_code, dry_stdout, dry_stderr) = run_cli(&store, &overrides, &step1_argv(true)).await;
     let (code, stdout, stderr) = run_cli(&store, &overrides, &step1_argv(false)).await;
 
-    assert_eq!(code, 77, "stderr: {stderr}");
+    assert_eq!(code, 1, "stderr: {stderr}");
     assert!(stdout.is_empty(), "no URL is printed: {stdout}");
     let real = json_document("real run", &stderr);
-    assert_eq!(real["reason"], "auth-required", "{real}");
+    assert_eq!(real["reason"], "invalid-url", "{real}");
     let message = real["message"].as_str().expect("a message");
-    assert!(message.contains("AUTH_URL"), "{message}");
-    assert!(
-        real["next_step"].is_null(),
-        "no step fits this reason: {real}"
-    );
+    assert!(message.contains("'::not a url'"), "{message}");
+    assert!(message.ends_with("; AUTH_URL sets it"), "{message}");
+    assert_eq!(real["next_step"]["action"], "show-help", "{real}");
     assert_eq!(dry_code, 0, "stderr: {dry_stderr}");
     let dry = json_document("dry run", &dry_stdout);
     assert_eq!(
-        dry_run_faults("authorize URL", &dry, &real, 77),
+        dry_run_faults("authorize URL", &dry, &real, 1),
         Vec::<String>::new()
     );
     assert_eq!(on_disk(&store), kept, "nothing is written");
@@ -4116,7 +4114,7 @@ async fn a_refused_step_one_gives_no_warning_about_replacing_the_saved_flow() {
         dry_stderr.is_empty(),
         "the dry run warns of nothing: {dry_stderr}"
     );
-    assert_eq!(code, 77, "stderr: {stderr}");
+    assert_eq!(code, 1, "stderr: {stderr}");
     let real = json_document("real run", &stderr);
     assert!(real["warnings"].is_null(), "{real}");
 }

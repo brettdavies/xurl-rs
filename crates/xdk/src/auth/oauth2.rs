@@ -114,10 +114,15 @@ fn new_state() -> String {
 ///
 /// # Errors
 ///
-/// Returns an error if it cannot be parsed.
+/// Returns [`Error::InvalidUrl`] if it cannot be parsed.
 fn authorize_url(auth: &Auth) -> Result<Url> {
-    Url::parse(auth.auth_url())
-        .map_err(|e| Error::auth_with_cause(AUTH_URL_UNUSABLE, &e).with_source(e))
+    Url::parse(auth.auth_url()).map_err(|e| {
+        Error::invalid_url(format!(
+            "{AUTH_URL_UNUSABLE} '{}' is not one a URL can be built from (cause: {e})",
+            auth.auth_url()
+        ))
+        .with_source(e)
+    })
 }
 
 /// Builds the `OAuth2` authorization URL with all required query parameters.
