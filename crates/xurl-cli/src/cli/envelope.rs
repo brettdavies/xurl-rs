@@ -152,6 +152,10 @@ pub struct DryRunBody {
     /// The offending input, as it was given, when the broken `rule` names one.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
+    /// The apps the store holds, in name order, when `value` is an app name it
+    /// does not hold; empty when the store holds none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub held: Option<Vec<String>>,
     /// The message the real run's error would carry.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
@@ -404,6 +408,11 @@ pub struct ErrorBody {
     /// a number goes in as its decimal digits.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
+    /// The apps the store holds, in name order, when `value` is an app name it
+    /// does not hold; empty when the store holds none. Its text hint lists the
+    /// same apps.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub held: Option<Vec<String>>,
 
     /// What the caller should do next, when a recovery step exists.
     ///

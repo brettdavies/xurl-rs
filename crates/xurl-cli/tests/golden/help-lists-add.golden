@@ -1,7 +1,7 @@
 args: ["lists", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7240
+stdout_len: 7283
 stderr_len: 0
 --- stdout ---
 Create a list
@@ -40,7 +40,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

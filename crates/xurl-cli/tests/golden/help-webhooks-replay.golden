@@ -1,7 +1,7 @@
 args: ["webhooks", "replay", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7662
+stdout_len: 7705
 stderr_len: 0
 --- stdout ---
 Deliver a past window of events to a webhook again
@@ -43,7 +43,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

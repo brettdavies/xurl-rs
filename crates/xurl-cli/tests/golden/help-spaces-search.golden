@@ -1,7 +1,7 @@
 args: ["spaces", "search", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7271
+stdout_len: 7314
 stderr_len: 0
 --- stdout ---
 Search Spaces by keyword
@@ -42,7 +42,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

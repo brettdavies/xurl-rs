@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "rsvp", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7818
+stdout_len: 7861
 stderr_len: 0
 --- stdout ---
 Answer an invitation to a scheduled call
@@ -53,7 +53,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

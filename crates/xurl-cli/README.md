@@ -656,10 +656,13 @@ xr --app dev whoami                             # Per-request override
 ```
 
 `--app` and `XURL_APP` name an app the store holds. A name it does not hold exits 77 with reason `token-store`, the name
-in `value`, and the step `xr auth status`, before any request goes out; no other app's credential and no
-`XURL_BEARER_TOKEN` stands in for it. An empty name is the default app. A dry run answers the same refusal with
-`would_succeed: false` and no `auth` key. A store file that could not be loaded holds no apps to check the name against,
-so it is not refused there: `XURL_BEARER_TOKEN`, when set, serves the run as it does without `--app`.
+in `value`, the apps the store holds in `held` (empty when it holds none), and the step `xr auth status`, before any
+request goes out; no other app's credential and no `XURL_BEARER_TOKEN` stands in for it. When `XURL_APP` gave the name,
+no `--app` overrode it, and the command was not given the name as an argument of its own, the `message` ends with
+`(from XURL_APP)`. An empty name is the default app. A dry run
+answers the same refusal with `would_succeed: false` and no `auth` key. A store file that could not be loaded holds no
+apps to check the name against, so it is not refused there: `XURL_BEARER_TOKEN`, when set, serves the run as it does
+without `--app`.
 
 Register an app with a custom OAuth2 callback URL via `--redirect-uri`:
 
@@ -1026,7 +1029,8 @@ secret `webhooks listen` lacks, and a template that runs `xr auth oauth2 --step 
 `<redirect-url>`, because that URL holds an authorization code: when the URL did not parse, or when the saved sign-in
 belongs to another app the store holds, which the template names; and the resumed wait after a 401 on the status read
 after `xr media upload`, a template too, also under `auth-required`. Under `token-store`, for an app or login name the
-store refuses, the step is `xr auth status`, which lists what it holds. A `validation` refusal names the input rule it
+store refuses, the step is `xr auth status`, which lists what it holds; a refused app name also carries the apps the
+store holds in `held`. A `validation` refusal names the input rule it
 broke in `rule`, the validator's kebab-case code (`invalid-username`, `no-list-changes`, ...), with the sentence for it
 in `message`, and `value` carries the offending input when the rule names one: an app name, a redirect URI, or a
 header's position among the `-H` headers. Branch on `rule`, not on the sentence. Text mode prints the same advice as

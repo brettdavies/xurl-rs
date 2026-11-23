@@ -1,7 +1,7 @@
 args: ["webhooks", "validate", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7143
+stdout_len: 7186
 stderr_len: 0
 --- stdout ---
 Ask X to send its CRC check to a webhook again
@@ -34,7 +34,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 
