@@ -28,7 +28,7 @@ mod common;
 use std::path::{Path, PathBuf};
 
 use common::production_source::up_to_inline_tests;
-use common::{member_dirs, rust_files, workspace_name, workspace_sources};
+use common::{declared_test_module, member_dirs, rust_files, workspace_name, workspace_sources};
 use regex::Regex;
 
 /// A bind on port 0: a `"host:0"` literal, or a `(host, 0)` tuple.
@@ -168,31 +168,6 @@ fn violations_in(file: &str, source: &str) -> Vec<String> {
     found
 }
 
-/// The file `#[cfg(test)] mod name;` in `declaring` names: beside it for a
-/// `mod.rs`, `lib.rs`, or `main.rs`, and in a directory named for the file
-/// otherwise.
-fn declared_module(declaring: &Path, name: &str) -> PathBuf {
-    let dir = declaring.parent().expect("a file has a directory");
-    let stem = declaring.file_stem().and_then(|s| s.to_str());
-    let base = match stem {
-        Some("mod" | "lib" | "main") => dir.to_path_buf(),
-        _ => dir.join(stem.expect("a file name")),
-    };
-    [
-        base.join(format!("{name}.rs")),
-        base.join(name).join("mod.rs"),
-    ]
-    .into_iter()
-    .find(|candidate| candidate.is_file())
-    .unwrap_or_else(|| {
-        panic!(
-            "{}: `#[cfg(test)] mod {name};` names no file under {}",
-            declaring.display(),
-            base.display()
-        )
-    })
-}
-
 /// The unit tests of one file under `src/`, as each file's path and the text
 /// to scan. An inline test module comes with the lines above it blanked, so a
 /// line number in the text is the file's own. A declared test module is the
@@ -210,7 +185,7 @@ fn unit_tests_in(path: &Path, source: &str) -> Vec<(PathBuf, String)> {
     let declaration = Regex::new(r"#\[cfg\(test\)\]\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+(\w+)\s*;")
         .expect("the pattern compiles");
     for module in declaration.captures_iter(source) {
-        let file = declared_module(path, &module[1]);
+        let file = declared_test_module(path, &module[1]);
         let text = std::fs::read_to_string(&file)
             .unwrap_or_else(|e| panic!("cannot read {}: {e}", file.display()));
         found.push((file, text));

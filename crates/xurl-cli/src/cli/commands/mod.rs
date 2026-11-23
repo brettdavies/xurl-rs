@@ -574,6 +574,9 @@ pub(crate) fn make_client(cfg: &Config, auth: Auth) -> Result<Client> {
 /// `overrides` carries the environment the run resolved at its entrypoint, so
 /// nothing below this call reads the process. `invocation` is the argv the run
 /// was parsed from, for a refusal whose step runs the same command again.
+/// `no_browser_typed` says `--no-browser` stood on the command line, which the
+/// sign-in's `bool` cannot. `page_token` is the page the run asked for, as
+/// the settings resolver answered it.
 ///
 /// # Errors
 ///
@@ -588,6 +591,8 @@ pub(crate) async fn run(
     overrides: &xdk::config::EnvOverrides,
     hooks: &crate::cli::runner::RunHooks,
     invocation: &[String],
+    no_browser_typed: bool,
+    page_token: Option<String>,
 ) -> CommandResult<()> {
     let mut cfg = Config::from_overrides(overrides);
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
@@ -608,8 +613,8 @@ pub(crate) async fn run(
         auth.with_app_name(app_name);
     }
 
-    // Resolve cursor from --cursor or --after. --page is rejected upstream
-    // because the X API does not offer offset-style pagination.
+    // `--page` is refused because the X API does not offer offset-style
+    // pagination.
     if cli.page.is_some() {
         return Err(Failure::Refused {
             error: Error::validation("unsupported-pagination"),
@@ -623,11 +628,7 @@ pub(crate) async fn run(
         global_limit: cli.limit,
         quiet: cli.quiet,
         app_explicit,
-        cursor: cli
-            .cursor
-            .clone()
-            .or_else(|| cli.after.clone())
-            .filter(|token| !token.is_empty()),
+        cursor: page_token,
     };
 
     match cli.command {
@@ -641,6 +642,7 @@ pub(crate) async fn run(
                 stderr,
                 hooks,
                 invocation,
+                no_browser_typed,
             };
             run_subcommand(cmd, run).await
         }
@@ -675,6 +677,8 @@ struct Run<'a> {
     hooks: &'a crate::cli::runner::RunHooks,
     /// The words the run was invoked with, program word first.
     invocation: &'a [String],
+    /// Whether `--no-browser` stood on the command line of `xr auth oauth2`.
+    no_browser_typed: bool,
 }
 
 /// Runs raw curl-style mode.

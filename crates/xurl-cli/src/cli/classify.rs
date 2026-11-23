@@ -12,7 +12,7 @@ use clap::error::{ContextKind, ContextValue, ErrorKind};
 use clap::{CommandFactory, ValueEnum};
 
 use crate::cli::output::OutputFormat;
-use crate::cli::{Cli, ColorChoice};
+use crate::cli::{Cli, ColorChoice, parse};
 
 /// Jaro score a candidate must beat to be offered as the nearest command.
 /// Above clap's 0.7: at 0.7 a short command word such as `calls` matches
@@ -27,7 +27,8 @@ pub(crate) const ROOT_COMMAND: &str = "xr";
 /// request, `xr media alt-text --help` for a subcommand.
 pub(crate) fn invoked_help<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> String {
     let mut path = vec![ROOT_COMMAND.to_string()];
-    if let Ok(matches) = Cli::command().try_get_matches_from(args.iter().map(AsRef::as_ref)) {
+    if let Ok(matches) = parse::try_matches(args.iter().map(AsRef::as_ref), std::convert::identity)
+    {
         let mut current = &matches;
         while let Some((name, sub)) = current.subcommand() {
             path.push(name.to_string());
@@ -96,9 +97,8 @@ pub(crate) fn raw_only_flag_given(cli: &Cli) -> bool {
 /// The login `-u` names, on the command the invocation runs or on a raw
 /// request; `None` when the invocation does not parse or names none.
 pub(crate) fn requested_login<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<String> {
-    let matches = Cli::command()
-        .try_get_matches_from(args.iter().map(AsRef::as_ref))
-        .ok()?;
+    let matches =
+        parse::try_matches(args.iter().map(AsRef::as_ref), std::convert::identity).ok()?;
     let mut current = &matches;
     while let Some((_, sub)) = current.subcommand() {
         current = sub;
@@ -113,9 +113,8 @@ pub(crate) fn requested_login<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<S
 
 /// The deepest parsed command of `args`, or `None` when they do not parse.
 fn parsed_leaf<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<(Vec<String>, clap::ArgMatches)> {
-    let matches = Cli::command()
-        .try_get_matches_from(args.iter().map(AsRef::as_ref))
-        .ok()?;
+    let matches =
+        parse::try_matches(args.iter().map(AsRef::as_ref), std::convert::identity).ok()?;
     let mut words = Vec::new();
     let mut current = &matches;
     while let Some((name, sub)) = current.subcommand() {
@@ -360,10 +359,9 @@ pub(crate) fn context_string(error: &clap::Error, kind: ContextKind) -> Option<S
 
 /// The color choice the caller named before clap parsed anything.
 ///
-/// Read from the unparsed argv for the reason [`structured_intent`] is: on
-/// the clap error path no `Cli` exists, and clap stops at the token it
-/// rejected, so a `--color` after that token reaches no parse. The last valid
-/// choice named wins.
+/// Read from the unparsed argv, because on the clap error path no `Cli`
+/// exists, and clap stops at the token it rejected, so a `--color` after that
+/// token reaches no parse. The last valid choice named wins.
 pub(crate) fn color_intent(args: &[OsString]) -> Option<ColorChoice> {
     let mut found = None;
     let mut iter = args.iter().peekable();
@@ -405,32 +403,6 @@ pub(crate) fn raw_intent(args: &[OsString]) -> Option<bool> {
 /// The spellings clap's `FalseyValueParser` reads as false, compared after
 /// lowercasing.
 const FALSE_LITERALS: [&str; 6] = ["n", "no", "f", "false", "off", "0"];
-
-/// The output format the caller named before clap parsed anything.
-///
-/// Read from the unparsed argv, because the clap error path runs before `Cli`
-/// exists. `text` returns `None`, which keeps clap's own rendering, and a
-/// spelling that names no format returns JSON (see [`rendering_format`]). The
-/// last format named wins, matching how clap resolves a repeated flag.
-pub(crate) fn structured_intent(args: &[OsString]) -> Option<OutputFormat> {
-    let mut found = None;
-    let mut iter = args.iter().peekable();
-    while let Some(a) = iter.next() {
-        let s = a.to_string_lossy();
-        if s == "--json" {
-            found = Some(OutputFormat::Json);
-        } else if s == "--jsonl" {
-            found = Some(OutputFormat::Jsonl);
-        } else if s == "--output"
-            && let Some(next) = iter.peek()
-        {
-            found = rendering_format(&next.to_string_lossy()).or(found);
-        } else if let Some(rest) = s.strip_prefix("--output=") {
-            found = rendering_format(rest).or(found);
-        }
-    }
-    found
-}
 
 /// The format a usage error takes for the spelling the caller gave
 /// `--output` or `XURL_OUTPUT`.

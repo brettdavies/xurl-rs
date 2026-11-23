@@ -1123,17 +1123,16 @@ fn cli_no_browser_without_step_auto_engages_step1() {
 }
 
 #[test]
-fn cli_step_without_no_browser_fails() {
+fn cli_step_without_no_browser_is_not_refused_for_the_flag() {
     let output = common::xr()
         .args(["auth", "oauth2", "--step", "1"])
         .output()
         .unwrap();
 
-    assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("--no-browser"),
-        "Expected --no-browser required error, got: {stderr}"
+        !stderr.contains("--no-browser"),
+        "a typed step needs no --no-browser beside it, got: {stderr}"
     );
 }
 

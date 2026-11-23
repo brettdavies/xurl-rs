@@ -4205,3 +4205,224 @@ async fn a_directory_at_the_pending_path_is_refused_by_name_without_the_overwrit
     );
     assert!(refusal["warnings"].is_null(), "{refusal}");
 }
+
+// ── A typed `--step` runs the no-browser flow by itself ──────────────────
+
+/// Runs the built `xr` over a one-app store with `env` set on the child and
+/// returns its output. `XURL_TOKEN_STORE` is the test's own store.
+fn sign_in(env: &[(&str, &str)], args: &[&str]) -> (std::process::Output, TempDir) {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let mut command = common::xr_with_store(&store);
+    for (name, value) in env {
+        command.env(name, value);
+    }
+    let output = command.args(args).output().expect("xr runs");
+    (output, tmp)
+}
+
+fn stdout_document(output: &std::process::Output) -> serde_json::Value {
+    json_document("stdout", &String::from_utf8_lossy(&output.stdout))
+}
+
+fn stderr_document(output: &std::process::Output) -> serde_json::Value {
+    json_document("stderr", &String::from_utf8_lossy(&output.stderr))
+}
+
+fn keys(document: &serde_json::Value) -> Vec<String> {
+    let mut keys: Vec<String> = document
+        .as_object()
+        .expect("a JSON object")
+        .keys()
+        .cloned()
+        .collect();
+    keys.sort();
+    keys
+}
+
+/// `--step 1` alone is the no-browser flow's first step: the sign-in has no
+/// other use for a step, so the flag is not required beside it.
+#[test]
+fn a_typed_step_one_runs_without_no_browser_beside_it() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let document = stdout_document(&output);
+    assert_eq!(document["would_succeed"], true, "{document}");
+    assert_eq!(document["step"], 1, "{document}");
+    assert_eq!(
+        document["no_browser"], false,
+        "the key echoes the input: {document}"
+    );
+}
+
+/// A typed step 2 is held to what step 2 needs, not to a flag it makes
+/// redundant: the dry run reaches the saved-flow check and refuses for it.
+#[test]
+fn a_typed_step_two_is_checked_as_step_two_without_no_browser_beside_it() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--step",
+            "2",
+            "--auth-url",
+            "https://localhost/callback?code=c&state=s",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let document = stdout_document(&output);
+    assert_ne!(document["reason"], "invalid-args", "{document}");
+    assert!(
+        !document.to_string().contains("--no-browser"),
+        "no refusal for the flag: {document}"
+    );
+}
+
+/// `XURL_NO_BROWSER=0` is no `--no-browser`, and the typed step decides. A run
+/// with stdout piped is headless already, so this pins the rule and is not the
+/// failure the other cases show.
+#[test]
+fn a_typed_step_beats_a_false_no_browser_variable() {
+    let (output, _store) = sign_in(
+        &[("XURL_NO_BROWSER", "0")],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let document = stdout_document(&output);
+    assert_eq!(document["would_succeed"], true, "{document}");
+}
+
+/// A typed `--no-browser=false` beside a typed step contradicts itself, and
+/// the run is refused as the sign-in refuses its other arguments: exit 2, the
+/// `invalid-args` envelope, both flags named, and no key that envelope lacks.
+#[test]
+fn a_typed_no_browser_false_beside_a_typed_step_is_refused_naming_both() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser=false",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let refusal = stderr_document(&output);
+    assert_eq!(refusal["reason"], "invalid-args", "{refusal}");
+    assert_eq!(refusal["exit_code"], 2, "{refusal}");
+    let message = refusal["message"].as_str().expect("a message");
+    assert!(
+        message.contains("--no-browser") && message.contains("--step"),
+        "{message}"
+    );
+
+    let (usual, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+            "--auth-url",
+            "x",
+        ],
+    );
+    assert_eq!(usual.status.code(), Some(2), "{usual:?}");
+    assert_eq!(
+        keys(&refusal),
+        keys(&stderr_document(&usual)),
+        "an argument refusal of this command carries the same keys"
+    );
+}
+
+/// The dry run of that refusal answers at exit 0 with the verdict the real run
+/// reaches, as the sign-in's other argument refusals do.
+#[test]
+fn the_dry_run_of_a_typed_no_browser_false_beside_a_typed_step_would_not_succeed() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser=false",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let document = stdout_document(&output);
+    assert_eq!(document["would_succeed"], false, "{document}");
+    assert_eq!(document["reason"], "invalid-args", "{document}");
+    assert_eq!(document["exit_code"], 2, "{document}");
+}
+
+/// `--auth-url` still belongs to a step, so without one it is refused for the
+/// missing `--step`.
+#[test]
+fn an_auth_url_without_a_step_is_still_refused_for_the_missing_step() {
+    let (output, _store) = sign_in(&[], &["auth", "oauth2", "--auth-url", "x"]);
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("--step"), "{stderr}");
+}
+
+/// The spelling the recovery steps use is unchanged: `--no-browser --step 1`
+/// is the same flow, so its dry run answers as it did.
+#[test]
+fn no_browser_beside_a_step_still_runs() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    assert_eq!(stdout_document(&output)["would_succeed"], true);
+}

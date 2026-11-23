@@ -6,12 +6,14 @@
 pub mod accepted_auth;
 mod classify;
 pub mod commands;
+mod conflict_source;
 pub(crate) mod credential_step;
 mod failure;
 pub mod hints;
 mod misplaced_flags;
 pub mod rerun;
 pub mod runner;
+pub mod settings;
 pub(crate) mod shutdown;
 
 pub use runner::{run, run_argv, run_with_store_path};
@@ -26,6 +28,7 @@ pub mod envelope;
 pub mod family_help;
 pub mod output;
 pub mod panic_hook;
+pub mod parse;
 #[cfg(test)]
 mod parse_tests;
 mod reparse;
@@ -79,6 +82,7 @@ Examples:
 ENVIRONMENT VARIABLES:
   XURL_OUTPUT            Output format: text, json, jsonl, ndjson, yaml, csv, tsv (same as --output)
   XURL_CURSOR            Pagination cursor / page token (same as --cursor)
+  XURL_AFTER             Page token, one setting with XURL_CURSOR (same as --after)
   XURL_QUIET             Suppress non-essential output (same as --quiet)
   XURL_NO_INTERACTIVE    Fail instead of prompting (same as --no-interactive)
   XURL_TIMEOUT           Network timeout in seconds (same as --timeout)
@@ -103,9 +107,14 @@ ENVIRONMENT VARIABLES:
   API_BASE_URL           API origin every request is built against
   INFO_URL               User-info endpoint override; derived from API_BASE_URL when unset
 
-Flags override env vars when both are set. NO_COLOR=1 always wins over
---color/XURL_COLOR (https://no-color.org). --no-pager is a documented
-no-op so agents can pass it unconditionally; xr never invokes $PAGER.
+A typed flag wins over its env var. --output, --json, and --jsonl outrank
+XURL_OUTPUT, XURL_JSON, and XURL_JSONL; --cursor and --after outrank
+XURL_CURSOR and XURL_AFTER; and of several typed, the last wins. Two env
+vars for one setting are refused, as is an env var beside a typed flag it
+conflicts with (XURL_PAGE with --cursor). XURL_JSON=0 counts as unset.
+NO_COLOR=1 always wins over --color/XURL_COLOR (https://no-color.org).
+--no-pager is a documented no-op so agents can pass it unconditionally; xr
+never invokes $PAGER.
 
 INPUT FROM STDIN:
   Subcommands that accept JSON input (currently `xr validate`) read from
@@ -1054,36 +1063,47 @@ pub struct Cli {
     /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
     /// yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused
     /// at exit 2 with a JSON envelope whose reason is `invalid-args`.
+    ///
+    /// Read from `XURL_OUTPUT` only when no `--output`, `--json`, or `--jsonl`
+    /// is typed.
     #[arg(
         long,
         global = true, help_heading = GLOBAL_OPTIONS,
         default_value = "text",
         value_enum,
-        env = "XURL_OUTPUT"
+        overrides_with_all = ["output", "json", "jsonl"],
+        help = "Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]",
+        long_help = "Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`\n\nRead from XURL_OUTPUT only when no --output, --json, or --jsonl is typed.\n\n[env: XURL_OUTPUT]",
     )]
     pub output: OutputFormat,
 
-    /// Shorthand for `--output json` (P2 alias).
+    /// Shorthand for `--output json`.
+    ///
+    /// Read from `XURL_JSON` only when no `--output`, `--json`, or `--jsonl`
+    /// is typed; `XURL_JSON=0` is unset.
     #[arg(
         long,
         global = true, help_heading = GLOBAL_OPTIONS,
-        conflicts_with = "output",
-        conflicts_with = "jsonl",
-        env = "XURL_JSON",
+        overrides_with_all = ["output", "json", "jsonl"],
         value_parser = clap::builder::FalseyValueParser::new(),
         action = clap::ArgAction::SetTrue,
+        help = "Shorthand for `--output json` [env: XURL_JSON]",
+        long_help = "Shorthand for `--output json`\n\nRead from XURL_JSON only when no --output, --json, or --jsonl is typed; XURL_JSON=0 is unset.\n\n[env: XURL_JSON]",
     )]
     pub json: bool,
 
-    /// Shorthand for `--output jsonl` (P2 alias).
+    /// Shorthand for `--output jsonl`.
+    ///
+    /// Read from `XURL_JSONL` only when no `--output`, `--json`, or `--jsonl`
+    /// is typed; `XURL_JSONL=0` is unset.
     #[arg(
         long,
         global = true, help_heading = GLOBAL_OPTIONS,
-        conflicts_with = "output",
-        conflicts_with = "json",
-        env = "XURL_JSONL",
+        overrides_with_all = ["output", "json", "jsonl"],
         value_parser = clap::builder::FalseyValueParser::new(),
         action = clap::ArgAction::SetTrue,
+        help = "Shorthand for `--output jsonl` [env: XURL_JSONL]",
+        long_help = "Shorthand for `--output jsonl`\n\nRead from XURL_JSONL only when no --output, --json, or --jsonl is typed; XURL_JSONL=0 is unset.\n\n[env: XURL_JSONL]",
     )]
     pub jsonl: bool,
 
@@ -1225,11 +1245,16 @@ pub struct Cli {
     /// (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the
     /// endpoint's page token, `pagination_token` or `next_token`. A raw
     /// request carries its page token in its own URL.
+    ///
+    /// Read from `XURL_CURSOR` only when neither `--cursor` nor `--after` is
+    /// typed.
     #[arg(
         long = "cursor",
         global = true, help_heading = GLOBAL_OPTIONS,
-        env = "XURL_CURSOR",
-        value_name = "TOKEN"
+        value_name = "TOKEN",
+        overrides_with_all = ["cursor", "after"],
+        help = "The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]",
+        long_help = "The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it\n\nA command whose endpoint pages answers with `meta.next_token` while more results remain; run the same command again with `--cursor <token>` (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the endpoint's page token, `pagination_token` or `next_token`. A raw request carries its page token in its own URL.\n\nRead from XURL_CURSOR only when neither --cursor nor --after is typed.\n\n[env: XURL_CURSOR]",
     )]
     pub cursor: Option<String>,
 
@@ -1254,13 +1279,17 @@ pub struct Cli {
     /// Threads through to the same `pagination_token` query parameter as
     /// `--cursor`. Exposed so agents that picked up "after-style" pagination
     /// from other CLIs (`gh`, `kubectl`) get a working flag.
+    ///
+    /// Read from `XURL_AFTER` only when neither `--cursor` nor `--after` is
+    /// typed.
     #[arg(
         long = "after",
         global = true, help_heading = GLOBAL_OPTIONS,
-        env = "XURL_AFTER",
         value_name = "TOKEN",
-        conflicts_with = "cursor",
-        conflicts_with = "page"
+        overrides_with_all = ["cursor", "after"],
+        conflicts_with = "page",
+        help = "Documented alias for `--cursor` [env: XURL_AFTER]",
+        long_help = "Documented alias for `--cursor` (`--after <token>`).\n\nThreads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up \"after-style\" pagination from other CLIs (`gh`, `kubectl`) get a working flag.\n\nRead from XURL_AFTER only when neither --cursor nor --after is typed.\n\n[env: XURL_AFTER]",
     )]
     pub after: Option<String>,
 
@@ -3772,25 +3801,6 @@ pub enum SkillCmd {
     },
 }
 
-impl Cli {
-    /// Resolves the effective output format after applying `--json` /
-    /// `--jsonl` aliases.
-    ///
-    /// `--jsonl` wins over `--json` if both were set (they conflict via
-    /// clap, so at most one survives parsing); either alias overrides
-    /// `--output`.
-    #[must_use]
-    pub fn effective_output(&self) -> OutputFormat {
-        if self.jsonl {
-            OutputFormat::Jsonl
-        } else if self.json {
-            OutputFormat::Json
-        } else {
-            self.output.clone()
-        }
-    }
-}
-
 /// Common flags shared by shortcut commands.
 ///
 /// `--verbose` is intentionally absent here; it lives on the root [`Cli`]
@@ -3828,13 +3838,14 @@ pub enum AuthCommands {
     Oauth2 {
         /// Enable manual two-step flow for headless machines (SSH, containers)
         ///
-        /// Auto-engages when stdout is not a TTY (piped runs, CI) so headless
-        /// callers receive the auth URL instead of a silent `open::that` spawn
-        /// that nothing will see. The `XURL_NO_BROWSER` env var sets this by
-        /// default on machines that should never attempt to open a browser.
-        /// Honours `1` / `true` / `yes` / `on` as truthy and `0` / `false` /
-        /// `no` / `off` / empty as falsey (the same `FalseyValueParser` shape
-        /// used by every other env-backed boolean flag).
+        /// A typed `--step` implies it. Auto-engages when stdout is not a TTY
+        /// (piped runs, CI) so headless callers receive the auth URL instead
+        /// of a silent `open::that` spawn that nothing will see. The
+        /// `XURL_NO_BROWSER` env var sets this by default on machines that
+        /// should never attempt to open a browser. Honours `1` / `true` /
+        /// `yes` / `on` as truthy and `0` / `false` / `no` / `off` / empty as
+        /// falsey (the same `FalseyValueParser` shape used by every other
+        /// env-backed boolean flag).
         #[arg(
             long,
             env = "XURL_NO_BROWSER",
@@ -3845,8 +3856,12 @@ pub enum AuthCommands {
             require_equals = true,
         )]
         no_browser: bool,
-        /// Step number: 1 (generate auth URL) or 2 (complete exchange)
-        #[arg(long, requires = "no_browser", value_parser = clap::value_parser!(u8).range(1..=2))]
+        /// Step of the no-browser flow: 1 (generate auth URL) or 2 (complete exchange)
+        ///
+        /// A typed step runs the no-browser flow by itself, so `--no-browser`
+        /// is not needed beside it; `--no-browser=false` beside a step is
+        /// refused.
+        #[arg(long, value_parser = clap::value_parser!(u8).range(1..=2))]
         step: Option<u8>,
         /// Redirect URL from browser (step 2). Use '-' to read from stdin (recommended on shared machines)
         #[arg(long = "auth-url", requires = "step")]

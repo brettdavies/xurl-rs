@@ -29,6 +29,7 @@ use crate::cli::Cli;
 use crate::cli::classify::ROOT_COMMAND;
 use crate::cli::hints::{NextAction, NextStep};
 use crate::cli::output::OutputFormat;
+use crate::cli::settings::Decision;
 
 /// A step that [`carry`] has put the run's output format on, the only kind an
 /// envelope holds. The wire shape is the step's own.
@@ -207,27 +208,27 @@ pub const DROPPED_GLOBALS: &[(&str, &str)] = &[
     ),
 ];
 
-/// How a run's flags spelled its output format, which a step repeats: clap
-/// refuses `--output` beside `--json` or `--jsonl`, and `XURL_JSON` and
-/// `XURL_JSONL` count as those flags there, so a step spelled the other way is
-/// refused in the environment that made it.
+/// How a run spelled its output format, which a step repeats: the spelling
+/// that decided the format, so a caller who typed `--json` gets a step that
+/// says `--json`, and one who typed `--output` gets `--output`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FormatSpelling {
-    /// `--output <format>`, as `--output` and `XURL_OUTPUT` choose it.
+    /// `--output <format>`, as `--output` and `XURL_OUTPUT` decide it, or
+    /// neither of the three spellings did.
     #[default]
     Output,
-    /// `--json` or `--jsonl`, as that flag or its variable chooses it.
+    /// `--json` or `--jsonl`, as that flag or its variable decides it.
     Alias,
 }
 
 impl FormatSpelling {
-    /// The spelling `cli`'s flags and variables used.
+    /// The spelling that decided the output format: an alias when `--json`,
+    /// `--jsonl`, or the variable of one did, `--output` otherwise.
     #[must_use]
-    pub fn of(cli: &Cli) -> Self {
-        if cli.json || cli.jsonl {
-            Self::Alias
-        } else {
-            Self::Output
+    pub(crate) fn of(decision: Decision) -> Self {
+        match decision.spelling() {
+            Some(spelling) if matches!(spelling.id, "json" | "jsonl") => Self::Alias,
+            _ => Self::Output,
         }
     }
 }
@@ -426,18 +427,60 @@ mod tests {
     }
 
     #[test]
-    fn the_spelling_follows_the_flag_that_chose_the_format() {
-        for (args, expected) in [
-            (vec!["xr", "whoami"], FormatSpelling::Output),
+    fn the_spelling_follows_the_spelling_that_decided_the_format() {
+        use crate::cli::env::FlagEnv;
+        use crate::cli::settings::{Variables, resolve_output};
+
+        let json_variable = FlagEnv {
+            json: Some("1".to_string()),
+            ..FlagEnv::default()
+        };
+        let none = FlagEnv::default();
+        for (args, output, flags, expected) in [
+            (vec!["xr", "whoami"], None, &none, FormatSpelling::Output),
             (
                 vec!["xr", "--output", "json", "whoami"],
+                None,
+                &none,
                 FormatSpelling::Output,
             ),
-            (vec!["xr", "--json", "whoami"], FormatSpelling::Alias),
-            (vec!["xr", "--jsonl", "whoami"], FormatSpelling::Alias),
+            (
+                vec!["xr", "--json", "whoami"],
+                None,
+                &none,
+                FormatSpelling::Alias,
+            ),
+            (
+                vec!["xr", "--jsonl", "whoami"],
+                None,
+                &none,
+                FormatSpelling::Alias,
+            ),
+            (
+                vec!["xr", "whoami"],
+                Some("yaml"),
+                &none,
+                FormatSpelling::Output,
+            ),
+            (
+                vec!["xr", "whoami"],
+                None,
+                &json_variable,
+                FormatSpelling::Alias,
+            ),
+            (
+                vec!["xr", "--output", "yaml", "whoami"],
+                None,
+                &json_variable,
+                FormatSpelling::Output,
+            ),
         ] {
-            let cli = Cli::try_parse_from(&args).expect("parses");
-            assert_eq!(FormatSpelling::of(&cli), expected, "{args:?}");
+            let args: Vec<OsString> = args.into_iter().map(OsString::from).collect();
+            let matches = crate::cli::parse::try_matches(args.iter(), std::convert::identity)
+                .expect("parses");
+            let answer =
+                resolve_output(&matches, &args, Variables::new(output, flags)).expect("resolves");
+            assert_eq!(FormatSpelling::of(answer.decision), expected, "{args:?}");
         }
     }
 
