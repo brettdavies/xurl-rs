@@ -273,13 +273,20 @@ fn checked_url(
 }
 
 /// `url` without the username and password before its host, which is how a
-/// dry run's context shows a URL the caller typed. The authority runs to the
-/// first `/` or `\` after `://`; a string with no `://` before its query is
-/// taken as authority throughout, since a URL parser reads `http:/user:pw@host`
-/// and `http:\\user:pw@host` as carrying a credential too.
+/// dry run's context shows a URL the caller typed. The authority runs from
+/// the first character after `://` that is not a `/` or `\`, to the next
+/// `/` or `\`, since a URL parser skips further slashes there and reads
+/// `https:///user:pw@host` as carrying a credential; a string with no `://`
+/// before its query is taken as authority throughout, since a URL parser reads
+/// `http:/user:pw@host` and `http:\\user:pw@host` as carrying one too.
 fn without_userinfo(url: &str) -> String {
     let (head, query) = url.split_at(url.find(['?', '#']).unwrap_or(url.len()));
     let (scheme, rest) = head.split_at(head.find("://").map_or(0, |at| at + 3));
+    let (slashes, rest) = if scheme.is_empty() {
+        ("", rest)
+    } else {
+        rest.split_at(rest.len() - rest.trim_start_matches(['/', '\\']).len())
+    };
     let split = if scheme.is_empty() {
         rest.len()
     } else {
@@ -289,7 +296,7 @@ fn without_userinfo(url: &str) -> String {
     let host = authority
         .rsplit_once('@')
         .map_or(authority, |(_, host)| host);
-    format!("{scheme}{host}{path}{query}")
+    format!("{scheme}{slashes}{host}{path}{query}")
 }
 
 /// Checks `inputs` with `validator`, which takes them all at once. A refusal
