@@ -219,14 +219,15 @@ string: a validator's closure answers `Result<(), Invalid>`, and `checked` and `
 `crates/xurl-cli/src/cli/commands/mod.rs` build the refusal with the input, the first one a batch refused. A rule no
 single input broke (`too-many-ids`, `mixed-ids-and-handles`, `no-list-changes`) carries none, and so does a blank input
 to those two builders, which has nothing to name. For `--forward` and `webhooks add`, `value` never repeats a URL with
-an `@` in it, since it may hold a credential. It also carries a `next_step` object `{action, command | template, docs}`
-wherever a step exists; the table under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a
-row, and `crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each
-golden fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is
-one the caller finishes or decides on first: angle-bracket placeholders to fill; under `confirm`, the invocation that
-destroys once it runs; or, after a 401 or a 429 with no reset on the status read after `xr media upload`, the resumed
-wait to run once the credential works or the window passes. A new error picks an existing action where one fits, and
-does not ship without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
+an `@` in it, and a dry run's `url` and `forward.url` drop its username and password, since it may hold a credential. It
+also carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table under "Which
+Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
+`crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
+fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
+caller finishes or decides on first: angle-bracket placeholders to fill; under `confirm`, the invocation that destroys
+once it runs; or, after a 401 or a 429 with no reset on the status read after `xr media upload`, the resumed wait to run
+once the credential works or the window passes. A new error picks an existing action where one fits, and does not ship
+without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
 
 `--dry-run` sends nothing and changes no stored credential on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an

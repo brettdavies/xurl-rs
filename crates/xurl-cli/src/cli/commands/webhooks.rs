@@ -8,6 +8,7 @@ use super::webhooks_listen::{Listener, listen};
 use super::{
     Confirm, DryRun, Run, checked, checked_url, dry_run_or_validate, make_client, send_confirmed,
     send_confirmed_to_account, send_or_report, sent, validate_account, with_flags,
+    without_userinfo,
 };
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{
@@ -233,7 +234,7 @@ async fn add(run: Run<'_>, url: &str, common: &CommonFlags) -> CommandResult<()>
         stdout,
         ..
     } = run;
-    let ctx = json!({"command": "webhooks-add", "url": url});
+    let ctx = json!({"command": "webhooks-add", "url": without_userinfo(url)});
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
         checked_url(shortcuts::validate_webhook_url, url)
     })?;

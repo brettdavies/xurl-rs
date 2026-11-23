@@ -272,6 +272,17 @@ fn checked_url(
     validator(url).map_err(|rule| Invalid::of_url(rule, url))
 }
 
+/// `url` without the username and password before its host, which is how a
+/// dry run's context shows a URL the caller typed.
+fn without_userinfo(url: &str) -> String {
+    let (scheme, rest) = url.split_at(url.find("://").map_or(0, |at| at + 3));
+    let (authority, tail) = rest.split_at(rest.find(['/', '?', '#']).unwrap_or(rest.len()));
+    let host = authority
+        .rsplit_once('@')
+        .map_or(authority, |(_, host)| host);
+    format!("{scheme}{host}{tail}")
+}
+
 /// Checks `inputs` with `validator`, which takes them all at once. A refusal
 /// names the first input the validator refuses on its own, and one that
 /// refuses the batch as a whole, such as too many ids or a mix of forms,
