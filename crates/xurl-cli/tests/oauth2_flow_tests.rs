@@ -2663,8 +2663,34 @@ fn verdicts() -> Vec<Verdict> {
         },
         &flow_at("not a url"),
     ));
+    rows.push(verdict(
+        "directory at the pending path, step 1",
+        "is a directory",
+        true,
+        |store| {
+            seed_store(store);
+            std::fs::create_dir(xdk::auth::pending::pending_path_for_store(store)).unwrap();
+        },
+        &step1,
+    ));
     #[cfg(unix)]
     {
+        rows.push(verdict(
+            "symlink at the pending path, step 1",
+            "symlink",
+            true,
+            |store| {
+                seed_store(store);
+                let elsewhere = store.with_file_name("elsewhere");
+                std::fs::write(&elsewhere, "x").unwrap();
+                std::os::unix::fs::symlink(
+                    &elsewhere,
+                    xdk::auth::pending::pending_path_for_store(store),
+                )
+                .unwrap();
+            },
+            &step1,
+        ));
         rows.push(verdict(
             "flow with the wrong mode",
             "PendingStatePermissions",
@@ -4023,4 +4049,159 @@ async fn a_dry_runs_select_app_step_names_dry_run_once_and_runs() {
     assert_eq!(code, 0, "the step runs as printed; stderr: {stderr}");
     let again: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
     assert_eq!(again["would_succeed"], true, "{again}");
+}
+
+// ── Step 1's dry run refuses what step 1 refuses ─────────────────────────
+
+/// The `--no-browser --step 1` words of a sign-in, with the dry-run flag when
+/// `dry` asks for it.
+fn step1_argv(dry: bool) -> Vec<&'static str> {
+    let mut argv = vec!["xr", "--output", "json"];
+    if dry {
+        argv.push("--dry-run");
+    }
+    argv.extend(["auth", "oauth2", "--no-browser", "--step", "1"]);
+    argv
+}
+
+/// An `AUTH_URL` no URL can be built from refuses step 1 as an invalid URL, as a
+/// `TOKEN_URL` that is not a URL does: it quotes the value, names the variable,
+/// and sends the caller to the help. The dry run says so with the same keys.
+#[tokio::test]
+async fn an_authorize_url_no_url_can_be_built_from_refuses_step_one_in_its_dry_run_too() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let overrides = xdk::config::EnvOverrides {
+        auth_url: Some("::not a url".to_string()),
+        ..step1_overrides()
+    };
+    let kept = on_disk(&store);
+
+    let (dry_code, dry_stdout, dry_stderr) = run_cli(&store, &overrides, &step1_argv(true)).await;
+    let (code, stdout, stderr) = run_cli(&store, &overrides, &step1_argv(false)).await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    assert!(stdout.is_empty(), "no URL is printed: {stdout}");
+    let real = json_document("real run", &stderr);
+    assert_eq!(real["reason"], "invalid-url", "{real}");
+    let message = real["message"].as_str().expect("a message");
+    assert!(message.contains("'::not a url'"), "{message}");
+    assert!(message.ends_with("; AUTH_URL sets it"), "{message}");
+    assert_eq!(real["next_step"]["action"], "show-help", "{real}");
+    assert_eq!(dry_code, 0, "stderr: {dry_stderr}");
+    let dry = json_document("dry run", &dry_stdout);
+    assert_eq!(
+        dry_run_faults("authorize URL", &dry, &real, 1),
+        Vec::<String>::new()
+    );
+    assert_eq!(on_disk(&store), kept, "nothing is written");
+}
+
+/// A step 1 that refuses leaves the saved flow where it is, so neither run
+/// warns that it replaces one.
+#[tokio::test]
+async fn a_refused_step_one_gives_no_warning_about_replacing_the_saved_flow() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let overrides = xdk::config::EnvOverrides {
+        auth_url: Some("::not a url".to_string()),
+        ..step1_overrides()
+    };
+
+    let (dry_code, _dry_stdout, dry_stderr) = run_cli(&store, &overrides, &step1_argv(true)).await;
+    let (code, _stdout, stderr) = run_cli(&store, &overrides, &step1_argv(false)).await;
+
+    assert_eq!(dry_code, 0);
+    assert!(
+        dry_stderr.is_empty(),
+        "the dry run warns of nothing: {dry_stderr}"
+    );
+    assert_eq!(code, 1, "stderr: {stderr}");
+    let real = json_document("real run", &stderr);
+    assert!(real["warnings"].is_null(), "{real}");
+}
+
+/// A saved flow is replaced by step 1, which says so; the dry run says so too,
+/// in the text and in the document a structured caller reads, and a run with
+/// no flow to replace says nothing. The text `warning:` line goes to the
+/// process's own stderr, so that case spawns the built `xr`.
+#[tokio::test(flavor = "multi_thread")]
+async fn step_ones_dry_run_warns_that_it_replaces_a_saved_flow_as_the_real_run_does() {
+    let warning = serde_json::json!({
+        "status": "ok",
+        "warnings": [{"message": "overwriting previous pending auth flow", "target": "xdk::auth"}],
+    });
+    let with_flow = TempDir::new().unwrap();
+    let store = with_flow.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let kept = on_disk(&store);
+
+    let (code, stdout, stderr) = run_cli(&store, &step1_overrides(), &step1_argv(true)).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(json_document("dry run", &stdout)["would_succeed"], true);
+    assert_eq!(json_document("dry run", &stderr), warning);
+    assert_eq!(on_disk(&store), kept, "the dry run keeps the flow");
+
+    let (code, _stdout, stderr) = run_cli(&store, &step1_overrides(), &step1_argv(false)).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(json_document("real run", &stderr), warning);
+
+    seed_pending(&store);
+    let text_store = store.clone();
+    let output = tokio::task::spawn_blocking(move || {
+        common::xr_with_store(&text_store)
+            .env("CLIENT_ID", "test-client-id")
+            .env("CLIENT_SECRET", "test-client-secret")
+            .args(["--dry-run", "auth", "oauth2", "--no-browser", "--step", "1"])
+            .output()
+    })
+    .await
+    .expect("spawn_blocking joins")
+    .expect("xr runs");
+    let text_stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        text_stderr
+            .lines()
+            .any(|line| line == "warning: overwriting previous pending auth flow"),
+        "{text_stderr}"
+    );
+
+    let without = TempDir::new().unwrap();
+    let store = without.path().join(".xurl");
+    seed_store(&store);
+    let (code, _stdout, stderr) = run_cli(&store, &step1_overrides(), &step1_argv(true)).await;
+    assert_eq!(code, 0);
+    assert!(
+        stderr.is_empty(),
+        "nothing to replace, nothing said: {stderr}"
+    );
+}
+
+/// A directory at the pending path is no flow to replace, so the refusal comes
+/// with no warning, and it names the path.
+#[tokio::test]
+async fn a_directory_at_the_pending_path_is_refused_by_name_without_the_overwrite_warning() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = xdk::auth::pending::pending_path_for_store(&store);
+    std::fs::create_dir(&pending).unwrap();
+
+    let (code, _stdout, stderr) = run_cli(&store, &step1_overrides(), &step1_argv(false)).await;
+
+    assert_eq!(code, 5, "stderr: {stderr}");
+    let refusal = json_document("real run", &stderr);
+    assert_eq!(refusal["reason"], "io", "{refusal}");
+    assert!(
+        refusal["message"]
+            .as_str()
+            .expect("a message")
+            .contains(&pending.display().to_string()),
+        "{refusal}"
+    );
+    assert!(refusal["warnings"].is_null(), "{refusal}");
 }

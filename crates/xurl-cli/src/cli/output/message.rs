@@ -7,8 +7,20 @@
 use crate::cli::hints::NextStep;
 use xdk::api::auth_matrix::WireScheme;
 use xdk::error::{
-    AuthMismatch, Error, MismatchShape, NextAction, STORE_DIR_UNCREATABLE, TOKEN_URL_UNUSABLE,
+    AUTH_URL_UNUSABLE, AuthMismatch, Error, MismatchShape, NextAction, STORE_DIR_UNCREATABLE,
+    TOKEN_URL_UNUSABLE,
 };
+
+/// The environment variable that sets the URL an [`Error::InvalidUrl`] message
+/// names, for the two URLs a sign-in reads from it.
+fn url_variable(message: &str) -> Option<&'static str> {
+    [
+        (TOKEN_URL_UNUSABLE, "TOKEN_URL"),
+        (AUTH_URL_UNUSABLE, "AUTH_URL"),
+    ]
+    .into_iter()
+    .find_map(|(prefix, variable)| message.starts_with(prefix).then_some(variable))
+}
 
 /// The message `xr` prints for `error`, in text mode and in the envelope.
 pub(crate) fn render(error: &Error) -> String {
@@ -37,10 +49,10 @@ pub(crate) fn render(error: &Error) -> String {
         Error::AccountNotFound { account } => {
             format!("X found no account for the handle @{account}.")
         }
-        Error::InvalidUrl { message, .. } if message.starts_with(TOKEN_URL_UNUSABLE) => {
-            format!("Invalid URL: {message}; TOKEN_URL sets it")
-        }
-        Error::InvalidUrl { message, .. } => format!("Invalid URL: {message}"),
+        Error::InvalidUrl { message, .. } => match url_variable(message) {
+            Some(variable) => format!("Invalid URL: {message}; {variable} sets it"),
+            None => format!("Invalid URL: {message}"),
+        },
         Error::InvalidPathParam { name, value } => {
             format!(
                 "Invalid path parameter {name:?}: value {value:?} contains a reserved character"

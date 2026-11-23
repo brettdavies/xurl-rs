@@ -426,3 +426,17 @@ fn save_refuses_a_symlinked_pending_path_and_leaves_the_target_untouched() {
             .is_symlink()
     );
 }
+
+#[test]
+fn save_refuses_a_directory_at_the_pending_path_and_names_it() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    std::fs::create_dir(&path).unwrap();
+
+    let err = pending::save(&sample_state(), &path)
+        .expect_err("a directory at the pending path is refused");
+
+    assert!(matches!(err, xdk::Error::Io { .. }), "{err:?}");
+    assert!(err.to_string().contains(".xurl.pending"), "{err}");
+    assert!(path.is_dir(), "the directory is left as it was");
+}
