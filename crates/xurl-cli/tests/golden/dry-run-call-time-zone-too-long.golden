@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02T16:00:00Z", "--time-zone", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 497
+stdout_len: 577
 stderr_len: 0
 --- stdout ---
 {
@@ -18,6 +18,7 @@ stderr_len: 0
   "start_time": "2026-11-02T16:00:00Z",
   "status": "dry_run",
   "time_zone": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "would_succeed": false
 }
 

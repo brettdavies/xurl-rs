@@ -5,7 +5,7 @@ use std::io::Read;
 
 use serde_json::json;
 
-use super::{Run, send_confirmed, send_validated};
+use super::{Run, checked, send_confirmed, send_validated};
 use crate::cli::ArticlesCommands;
 use crate::cli::failure::CommandResult;
 use xdk::Error;
@@ -28,11 +28,11 @@ pub(super) async fn run(action: ArticlesCommands, run: Run<'_>) -> CommandResult
                 "cover": cover,
             });
             let validate = || {
-                shortcuts::validate_article_title(&title)?;
-                shortcuts::validate_article_body(&body)?;
+                checked(shortcuts::validate_article_title, &title)?;
+                checked(shortcuts::validate_article_body, &body)?;
                 cover
                     .as_deref()
-                    .map_or(Ok(()), shortcuts::validate_media_id)
+                    .map_or(Ok(()), |id| checked(shortcuts::validate_media_id, id))
             };
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.create_article_draft(&title, &body, cover.as_deref())
@@ -46,7 +46,7 @@ pub(super) async fn run(action: ArticlesCommands, run: Run<'_>) -> CommandResult
         } => {
             let ctx = json!({"command": "articles-publish", "article_id": article_id});
             let prompt = format!("Publish article {article_id}?");
-            let validate = || shortcuts::validate_article_id(&article_id);
+            let validate = || checked(shortcuts::validate_article_id, &article_id);
             send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.publish_article(&article_id)
             })

@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{Run, send_validated};
+use super::{Run, checked_each, send_validated, valid_window};
 use crate::cli::CommonFlags;
 use crate::cli::failure::CommandResult;
 use xdk::api::{Client, shortcuts};
@@ -21,7 +21,7 @@ pub(super) async fn get(
     common: &CommonFlags,
 ) -> CommandResult<()> {
     let ctx = json!({"command": "media-get", "media_keys": media_keys});
-    let validate = || shortcuts::validate_media_keys(media_keys);
+    let validate = || checked_each(shortcuts::validate_media_keys, media_keys);
     send_validated(run, ctx, validate, common, |client: &Client| {
         client.get_media(media_keys)
     })
@@ -42,8 +42,8 @@ pub(super) async fn analytics(
         "granularity": window.granularity,
     });
     let validate = || {
-        shortcuts::validate_media_keys(media_keys)?;
-        shortcuts::validate_time_window(Some(window.start), Some(window.end))
+        checked_each(shortcuts::validate_media_keys, media_keys)?;
+        valid_window(Some(window.start), Some(window.end))
     };
     send_validated(run, ctx, validate, common, |client: &Client| {
         client.get_media_analytics(media_keys, window.start, window.end, window.granularity)

@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "notes", "write", "1585341984679469056", "--text", "No source here", "--classification", "not_misleading"]
 store: empty
 exit_code: 0
-stdout_len: 578
+stdout_len: 607
 stderr_len: 0
 --- stdout ---
 {
@@ -24,6 +24,7 @@ stderr_len: 0
   "rule": "note-needs-source-url",
   "status": "dry_run",
   "test_mode": false,
+  "value": "No source here",
   "would_succeed": false
 }
 

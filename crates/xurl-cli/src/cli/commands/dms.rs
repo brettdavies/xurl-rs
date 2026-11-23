@@ -2,7 +2,7 @@
 
 use serde_json::json;
 
-use super::{Run, act_on_user, list_mine, send_to_account, validate_account};
+use super::{Run, act_on_user, checked, list_mine, send_to_account, validate_account};
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
 use xdk::api::{Client, shortcuts};
@@ -21,7 +21,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             });
             let validate = || {
                 validate_account(&target_username)?;
-                shortcuts::validate_dm_body(&text)
+                checked(shortcuts::validate_dm_body, &text)
             };
             send_to_account(
                 run,

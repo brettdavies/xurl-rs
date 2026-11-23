@@ -1036,9 +1036,11 @@ after `xr media upload`, a template too, also under `auth-required`. Under `toke
 store refuses, the step is `xr auth status`, which lists what it holds; a refused app name also carries the apps the
 store holds in `held`. A `validation` refusal names the input rule it
 broke in `rule`, the validator's kebab-case code (`invalid-username`, `no-list-changes`, ...), with the sentence for it
-in `message`, and `value` carries the offending input when the rule names one: an app name, a redirect URI, or a
-header's position among the `-H` headers. Branch on `rule`, not on the sentence. Text mode prints the same advice as
-prose instead; the two need not match word for word.
+in `message`, and `value` carries the offending input when the rule names one: an id, a handle, a time, a URL, an app
+name, a redirect URI, or a header's position among the `-H` headers. A rule no single input broke (`too-many-ids`,
+`no-list-changes`) carries none, and for `--forward` and `webhooks add`, `value` never repeats a URL with an `@` in it,
+and a dry run's `url` and `forward.url` drop its username and password, since it may hold a credential. Branch on
+`rule`, not on the sentence. Text mode prints the same advice as prose instead; the two need not match word for word.
 
 A request that no stored credential serves takes its step from the schemes its command accepts, the schemes each app
 stores, and the scheme `--auth` named. When the active app stores a scheme the command accepts, the step is `fix-input`

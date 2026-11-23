@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "bookmark-folders", "add", "A name that runs past the limit"]
 store: empty
 exit_code: 0
-stdout_len: 429
+stdout_len: 475
 stderr_len: 0
 --- stdout ---
 {
@@ -17,6 +17,7 @@ stderr_len: 0
   "response_schema": "xr schema bookmark-folders add",
   "rule": "folder-name-too-long",
   "status": "dry_run",
+  "value": "A name that runs past the limit",
   "would_succeed": false
 }
 

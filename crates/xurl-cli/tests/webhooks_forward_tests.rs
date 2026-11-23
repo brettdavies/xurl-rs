@@ -339,6 +339,43 @@ async fn a_forward_url_it_cannot_send_to_is_refused_before_anything_binds(#[case
     }
 }
 
+#[rstest::rstest]
+#[case::add_refused(&["webhooks", "add"], "https://user:s3cr3t@example.com:8443/hook", "https://example.com:8443/hook")]
+#[case::add_accepted(&["webhooks", "add"], "https://user:s3cr3t@example.com/hook", "https://example.com/hook")]
+#[case::forward(&["webhooks", "listen", "--forward"], "https://user:s3cr3t@127.0.0.1:9/x", "https://127.0.0.1:9/x")]
+#[case::forward_one_slash(&["webhooks", "listen", "--forward"], "http:/user:s3cr3t@127.0.0.1:9/x", "127.0.0.1:9/x")]
+#[case::add_one_slash(&["webhooks", "add"], "https:/user:s3cr3t@example.com/", "example.com/")]
+#[case::add_backslash(&["webhooks", "add"], "https:\\/user:s3cr3t@example.com/", "example.com/")]
+#[case::add_no_colon(&["webhooks", "add"], "https//user:s3cr3t@example.com/", "example.com/")]
+#[case::add_no_scheme(&["webhooks", "add"], "user:s3cr3t@example.com/?next=https://x", "example.com/?next=https://x")]
+#[case::add_at_in_path(&["webhooks", "add"], "https://example.com/@hook", "https://example.com/@hook")]
+#[tokio::test]
+async fn a_dry_run_never_prints_a_url_credential(
+    #[case] command: &[&str],
+    #[case] url: &str,
+    #[case] shown: &str,
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for format in ["json", "text"] {
+        let mut args = vec!["--output", format, "--dry-run"];
+        args.extend_from_slice(command);
+        args.push(url);
+        let (code, stdout, stderr) = run(&store, "http://127.0.0.1:9", &args).await;
+
+        assert_eq!(code, 0, "{format}: stderr: {stderr}");
+        assert!(
+            !stdout.contains("s3cr3t") && !stderr.contains("s3cr3t"),
+            "{format}: the credential is printed:\n{stdout}\n{stderr}"
+        );
+        assert!(
+            stdout.contains(shown),
+            "{format}: the URL is shown: {stdout}"
+        );
+    }
+}
+
 #[tokio::test]
 async fn a_malformed_header_is_refused_by_position_and_never_echoed() {
     let tmp = TempDir::new().expect("tempdir");
