@@ -126,10 +126,11 @@ jobs:
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
       test_runner: nextest
       nextest_version: ${{ needs.scope.outputs.nextest_version }}
-      # Running the tests outweighs a second build: on warm caches the slower of
-      # two jobs took 200 to 231 s against 244 to 306 s for one job, for about half
-      # again the runner time.
-      test_partitions: 2
+      # Running the tests outweighs another build: the suite has grown to about
+      # 2,600 s of test time per partition at two, so the slower `Tests (1/2)`
+      # spent 363 s running tests after a 114 s build. At four, each partition
+      # runs about half as much after the same build.
+      test_partitions: 4
 
   # A job of its own so its checks report as `warm / <job>`, never under a
   # required `ci / <job>` name. rust-cache keys on the reusable's job ids, not
