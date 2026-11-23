@@ -6,6 +6,9 @@
 
 mod common;
 
+use std::path::Path;
+use std::process::Output;
+
 use serde_json::Value;
 use tempfile::TempDir;
 
@@ -26,14 +29,28 @@ fn refused_over(contents: &str, env: &[(&str, &str)], args: &[&str]) -> Value {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     std::fs::write(&store, contents).expect("write the store");
-    let mut cmd = xr_with_store(&store);
+    document_of(&run(&store, env, args))
+}
+
+/// `xr` over the store file at `store`, run under `env` with `args`.
+fn run(store: &Path, env: &[(&str, &str)], args: &[&str]) -> Output {
+    let mut cmd = xr_with_store(store);
     cmd.env("API_BASE_URL", common::CLOSED);
     for (key, value) in env {
         cmd.env(key, value);
     }
-    let output = cmd.args(args).output().expect("xr runs");
-    serde_json::from_slice(&output.stderr)
-        .unwrap_or_else(|e| panic!("stderr is not a document ({e}): {output:?}"))
+    cmd.args(args).output().expect("xr runs")
+}
+
+/// The document a run wrote: on stderr for a failure, on stdout for a dry run.
+fn document_of(output: &Output) -> Value {
+    let bytes = if output.stderr.is_empty() {
+        &output.stdout
+    } else {
+        &output.stderr
+    };
+    serde_json::from_slice(bytes)
+        .unwrap_or_else(|e| panic!("the run wrote no document ({e}): {output:?}"))
 }
 
 fn step_text(document: &Value) -> String {
@@ -125,5 +142,84 @@ fn a_step_that_runs_the_invocation_again_names_the_app_the_environment_selected(
     assert!(
         text.contains("--app side") && text.contains("--output json"),
         "`{text}` runs where the shell's variable may say another app: {document}"
+    );
+}
+
+#[test]
+fn a_step_runs_again_where_the_environment_made_it() {
+    let mut faults = Vec::new();
+    for (variable, value, spelled) in [
+        ("XURL_OUTPUT", "json", "--output json"),
+        ("XURL_JSON", "1", "--json"),
+        ("XURL_JSONL", "1", "--jsonl"),
+    ] {
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        std::fs::write(&store, "apps: [not, a, map\n").expect("write the store");
+        let env = [(variable, value)];
+        let text = step_text(&document_of(&run(&store, &env, &["whoami"])));
+        if !text.starts_with(&format!("xr {spelled} ")) {
+            faults.push(format!(
+                "{variable}: `{text}` does not spell the format `{spelled}`"
+            ));
+            continue;
+        }
+        let words: Vec<&str> = text.split(' ').skip(1).collect();
+        let again = run(&store, &env, &words);
+        if again.status.code() == Some(2) {
+            faults.push(format!(
+                "{variable}: `{text}` is refused where it was made: {again:?}"
+            ));
+        }
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
+#[test]
+fn a_step_that_runs_the_invocation_again_names_the_rehearsal_the_environment_selected() {
+    let document = refused(
+        &[("XURL_DRY_RUN", "1"), ("XURL_OUTPUT", "json")],
+        &[
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            "https://localhost/callback?code=c&state=s",
+        ],
+    );
+    let text = step_text(&document);
+    assert!(
+        text.contains("--dry-run"),
+        "`{text}` runs for real where the shell's variable made the run a rehearsal: {document}"
+    );
+}
+
+#[test]
+fn the_sign_in_after_a_registration_names_the_app_it_registered() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    std::fs::write(&store, "apps: {}\ndefault_app: ''\n").expect("write the store");
+    let output = run(
+        &store,
+        &[("XURL_APP", "other"), ("XURL_OUTPUT", "json")],
+        &[
+            "auth",
+            "apps",
+            "add",
+            "fresh",
+            "--client-id",
+            "client-fresh",
+            "--client-secret",
+            "secret",
+        ],
+    );
+    let document: Value = serde_json::from_slice(&output.stdout)
+        .unwrap_or_else(|e| panic!("the run wrote no document ({e}): {output:?}"));
+    let text = step_text(&document);
+    assert!(
+        text.contains("--app fresh"),
+        "`{text}` leaves the app to the shell, where XURL_APP says other: {document}"
     );
 }

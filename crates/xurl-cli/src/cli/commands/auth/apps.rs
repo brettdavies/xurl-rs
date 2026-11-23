@@ -84,11 +84,12 @@ fn add(
     }
     register(&mut auth.token_store)?;
     let is_default = auth.token_store.get_default_app() == name;
+    let structured = out.format.is_structured();
     let next = out.carry(NextStep::sign_in(
-        (!is_default).then_some(name),
-        out.format.is_structured(),
+        (!is_default || structured).then_some(name),
+        structured,
     ));
-    if out.format.is_structured() {
+    if structured {
         let payload = json!({
             "message": format!("App {name:?} registered."),
             "default": is_default,

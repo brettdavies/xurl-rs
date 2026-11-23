@@ -1727,7 +1727,11 @@ mod tests {
             let hint =
                 refresh_refused_hint(&snapshot_of(&store), &refused, &argv("xr whoami"), headless)
                     .expect("a hint");
-            let carried = crate::cli::rerun::carry(hint.next_step.clone(), &format);
+            let carried = crate::cli::rerun::carry(
+                hint.next_step.clone(),
+                &format,
+                crate::cli::rerun::FormatSpelling::default(),
+            );
             assert_eq!(carried.command.as_deref(), Some(expected), "{format:?}");
             assert!(
                 hint.text_lines[0].ends_with(hint.next_step.command.as_deref().unwrap_or_default()),

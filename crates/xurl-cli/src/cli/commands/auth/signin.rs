@@ -201,7 +201,8 @@ pub(super) async fn oauth2(
                                 "Open the URL in a browser, authorize, then run '{}'",
                                 crate::cli::rerun::name_format(
                                     &step_two(username_arg, &app, "<redirect-url>"),
-                                    &out.format
+                                    &out.format,
+                                    out.format_spelling
                                 )
                             ),
                         };

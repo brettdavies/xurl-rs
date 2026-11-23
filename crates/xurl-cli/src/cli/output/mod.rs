@@ -31,6 +31,7 @@ use serde_json::Value;
 
 use crate::cli::ColorChoice;
 use crate::cli::envelope::{DryRunAuth, Envelope, ErrorBody, Reason};
+use crate::cli::rerun::FormatSpelling;
 use delimited::write_flattened;
 use xdk::error::Error;
 
@@ -145,6 +146,9 @@ pub struct OutputConfig {
     /// refusal of that name says where it came from. The runner sets it via
     /// [`Self::with_app_from_env`].
     pub app_from_env: Option<String>,
+    /// How the run's flags spelled `format`, which a step repeats. The runner sets it via
+    /// [`Self::with_format_spelling`].
+    pub format_spelling: FormatSpelling,
     /// The warnings a structured run has kept for its one document on
     /// stderr, shared by every clone of this config.
     pub warnings: WarningLog,
@@ -205,6 +209,7 @@ impl OutputConfig {
             no_interactive: false,
             response_schema: None,
             app_from_env: None,
+            format_spelling: FormatSpelling::default(),
             warnings: WarningLog::default(),
         }
     }
@@ -234,11 +239,18 @@ impl OutputConfig {
         self
     }
 
+    /// Sets [`Self::format_spelling`].
+    #[must_use]
+    pub fn with_format_spelling(mut self, spelling: FormatSpelling) -> Self {
+        self.format_spelling = spelling;
+        self
+    }
+
     /// `step` with this run's output format on it: the only way a step reaches
     /// a document.
     #[must_use]
     pub fn carry(&self, step: crate::cli::hints::NextStep) -> crate::cli::rerun::CarriedStep {
-        crate::cli::rerun::carry(step, &self.format)
+        crate::cli::rerun::carry(step, &self.format, self.format_spelling)
     }
 
     /// `body` with its message saying `XURL_APP` gave the app it refuses, when
@@ -964,6 +976,7 @@ fn invalid_args_body(message: &str, separator: &str, command: &str) -> ErrorBody
         next_step: Some(crate::cli::rerun::carry(
             crate::cli::hints::NextStep::show_help(help),
             &OutputFormat::Text,
+            FormatSpelling::default(),
         )),
         ..ErrorBody::default()
     }
@@ -1101,6 +1114,7 @@ impl Default for OutputConfig {
             no_interactive: false,
             response_schema: None,
             app_from_env: None,
+            format_spelling: FormatSpelling::default(),
             warnings: WarningLog::default(),
         }
     }
@@ -1168,6 +1182,7 @@ mod tests {
             no_interactive: false,
             response_schema: None,
             app_from_env: None,
+            format_spelling: FormatSpelling::default(),
             warnings: WarningLog::default(),
         };
         assert!(!cfg.quiet);

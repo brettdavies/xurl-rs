@@ -259,7 +259,8 @@ async fn run_inner(
     .with_response_schema(crate::cli::commands::schema::pointer_for(&matched_path(
         &matches,
     )))
-    .with_app_from_env(app_from_env(&cli, &matches));
+    .with_app_from_env(app_from_env(&cli, &matches))
+    .with_format_spelling(crate::cli::rerun::FormatSpelling::of(&cli));
     crate::cli::panic_hook::publish(&out);
     let invocation = crate::cli::rerun::explicit_invocation(&args_vec, &cli);
 

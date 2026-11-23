@@ -16,7 +16,7 @@
 //!
 //! `--app` and `--dry-run` reach only the steps built by rerunning the
 //! invocation, because they depend on what the step does: a rerun keeps the
-//! rehearsal, and a step that stores a credential or signs in is not a
+//! rehearsal, and any other step that stores a credential or signs in is not a
 //! rehearsal.
 
 use std::ffi::OsString;
@@ -207,6 +207,31 @@ pub const DROPPED_GLOBALS: &[(&str, &str)] = &[
     ),
 ];
 
+/// How a run's flags spelled its output format, which a step repeats: clap
+/// refuses `--output` beside `--json` or `--jsonl`, and `XURL_JSON` and
+/// `XURL_JSONL` count as those flags there, so a step spelled the other way is
+/// refused in the environment that made it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FormatSpelling {
+    /// `--output <format>`, as `--output` and `XURL_OUTPUT` choose it.
+    #[default]
+    Output,
+    /// `--json` or `--jsonl`, as that flag or its variable chooses it.
+    Alias,
+}
+
+impl FormatSpelling {
+    /// The spelling `cli`'s flags and variables used.
+    #[must_use]
+    pub fn of(cli: &Cli) -> Self {
+        if cli.json || cli.jsonl {
+            Self::Alias
+        } else {
+            Self::Output
+        }
+    }
+}
+
 /// `step` with the output format after the program word of its `command` and
 /// of its `template`, unless it names one already or the action prints no
 /// document.
@@ -215,15 +240,15 @@ pub const DROPPED_GLOBALS: &[(&str, &str)] = &[
 /// a place to go; one that does not fails in a debug build, where every test
 /// runs.
 #[must_use]
-pub fn carry(mut step: NextStep, format: &OutputFormat) -> CarriedStep {
+pub fn carry(mut step: NextStep, format: &OutputFormat, spelling: FormatSpelling) -> CarriedStep {
     let words = keeps_format(step.action)
-        .then(|| format_words(format))
+        .then(|| format_words(format, spelling))
         .flatten();
     for text in [&mut step.command, &mut step.template]
         .into_iter()
         .flatten()
     {
-        *text = put_after_program(text, words.as_ref());
+        *text = put_after_program(text, words.as_deref());
     }
     CarriedStep(step)
 }
@@ -232,21 +257,24 @@ pub fn carry(mut step: NextStep, format: &OutputFormat) -> CarriedStep {
 /// its program word, as [`carry`] puts it on a step. For a structured
 /// document's instruction that names a command outside a `next_step`.
 #[must_use]
-pub fn name_format(command: &str, format: &OutputFormat) -> String {
-    put_after_program(command, format_words(format).as_ref())
+pub fn name_format(command: &str, format: &OutputFormat, spelling: FormatSpelling) -> String {
+    put_after_program(command, format_words(format, spelling).as_deref())
 }
 
-/// The words that name `format`, or `None` for text, which is the default.
-fn format_words(format: &OutputFormat) -> Option<[String; 2]> {
-    if *format == OutputFormat::Text {
-        return None;
+/// The words that name `format` as `spelling` does, or `None` for text, which
+/// is the default.
+fn format_words(format: &OutputFormat, spelling: FormatSpelling) -> Option<Vec<String>> {
+    match (spelling, format) {
+        (_, OutputFormat::Text) => None,
+        (FormatSpelling::Alias, OutputFormat::Json) => Some(vec!["--json".to_string()]),
+        (FormatSpelling::Alias, OutputFormat::Jsonl) => Some(vec!["--jsonl".to_string()]),
+        _ => format
+            .to_possible_value()
+            .map(|value| vec!["--output".to_string(), value.get_name().to_string()]),
     }
-    format
-        .to_possible_value()
-        .map(|value| ["--output".to_string(), value.get_name().to_string()])
 }
 
-fn put_after_program(text: &str, words: Option<&[String; 2]>) -> String {
+fn put_after_program(text: &str, words: Option<&[String]>) -> String {
     let tokens: Vec<&str> = text.split(' ').collect();
     let at = tokens.iter().position(|token| *token == ROOT_COMMAND);
     debug_assert!(
@@ -265,10 +293,11 @@ fn put_after_program(text: &str, words: Option<&[String; 2]>) -> String {
     kept.join(" ")
 }
 
-/// Whether `words` name an output format, as `--output NAME`,
-/// `--output=NAME`, or one of its two aliases.
+/// Whether the flags of `words`, up to a `--`, name an output format, as
+/// `--output NAME`, `--output=NAME`, or one of its two aliases. What follows
+/// the `--` is a child program's own arguments.
 fn names_output(words: &[&str]) -> bool {
-    words.iter().any(|word| {
+    words.iter().take_while(|word| **word != "--").any(|word| {
         matches!(*word, "--output" | "--json" | "--jsonl") || word.starts_with("--output=")
     })
 }
@@ -327,9 +356,14 @@ mod tests {
         let status = carry(
             NextStep::fix_input_with("xr auth status".to_string()),
             &OutputFormat::Json,
+            FormatSpelling::Output,
         );
         assert_eq!(command(&status), "xr --output json auth status");
-        let registration = carry(NextStep::register_app(), &OutputFormat::Yaml);
+        let registration = carry(
+            NextStep::register_app(),
+            &OutputFormat::Yaml,
+            FormatSpelling::Output,
+        );
         assert_eq!(
             registration.template.as_deref(),
             Some(
@@ -348,22 +382,86 @@ mod tests {
             "xr auth status --jsonl",
         ] {
             let step = NextStep::fix_input_with(named.to_string());
-            assert_eq!(command(&carry(step, &OutputFormat::Json)), named);
+            assert_eq!(
+                command(&carry(step, &OutputFormat::Json, FormatSpelling::Output)),
+                named
+            );
+        }
+    }
+
+    #[test]
+    fn a_word_after_the_double_dash_belongs_to_the_child_program() {
+        for child in ["cat", "cat --json", "curl --output=f", "tool --jsonl"] {
+            let step = NextStep::fix_input_with(format!("xr webhooks listen --port 0 -- {child}"));
+            assert_eq!(
+                command(&carry(step, &OutputFormat::Json, FormatSpelling::Output)),
+                format!("xr --output json webhooks listen --port 0 -- {child}")
+            );
+        }
+    }
+
+    #[test]
+    fn the_format_is_spelled_as_the_run_spelled_it() {
+        for (format, spelling, expected) in [
+            (OutputFormat::Json, FormatSpelling::Output, "--output json"),
+            (OutputFormat::Json, FormatSpelling::Alias, "--json"),
+            (
+                OutputFormat::Jsonl,
+                FormatSpelling::Output,
+                "--output jsonl",
+            ),
+            (OutputFormat::Jsonl, FormatSpelling::Alias, "--jsonl"),
+            (OutputFormat::Yaml, FormatSpelling::Output, "--output yaml"),
+        ] {
+            let step = NextStep::fix_input_with("xr auth status".to_string());
+            assert_eq!(
+                command(&carry(step, &format, spelling)),
+                format!("xr {expected} auth status")
+            );
+            assert_eq!(
+                name_format("xr auth status", &format, spelling),
+                format!("xr {expected} auth status")
+            );
+        }
+    }
+
+    #[test]
+    fn the_spelling_follows_the_flag_that_chose_the_format() {
+        for (args, expected) in [
+            (vec!["xr", "whoami"], FormatSpelling::Output),
+            (
+                vec!["xr", "--output", "json", "whoami"],
+                FormatSpelling::Output,
+            ),
+            (vec!["xr", "--json", "whoami"], FormatSpelling::Alias),
+            (vec!["xr", "--jsonl", "whoami"], FormatSpelling::Alias),
+        ] {
+            let cli = Cli::try_parse_from(&args).expect("parses");
+            assert_eq!(FormatSpelling::of(&cli), expected, "{args:?}");
         }
     }
 
     #[test]
     fn text_and_help_keep_the_step_as_built() {
         let status = NextStep::fix_input_with("xr auth status".to_string());
-        assert_eq!(*carry(status.clone(), &OutputFormat::Text), status);
+        assert_eq!(
+            *carry(status.clone(), &OutputFormat::Text, FormatSpelling::Output),
+            status
+        );
         let help = NextStep::show_help("xr whoami --help".to_string());
-        assert_eq!(*carry(help.clone(), &OutputFormat::Json), help);
+        assert_eq!(
+            *carry(help.clone(), &OutputFormat::Json, FormatSpelling::Output),
+            help
+        );
     }
 
     #[test]
     fn a_step_without_a_command_or_a_template_has_nowhere_to_put_a_flag() {
         let docs = NextStep::enroll_app("https://example.com".to_string());
-        assert_eq!(*carry(docs.clone(), &OutputFormat::Json), docs);
+        assert_eq!(
+            *carry(docs.clone(), &OutputFormat::Json, FormatSpelling::Output),
+            docs
+        );
     }
 
     #[test]
@@ -372,6 +470,7 @@ mod tests {
         let _ = carry(
             NextStep::fix_input_with("auth status".to_string()),
             &OutputFormat::Text,
+            FormatSpelling::Output,
         );
     }
 
@@ -406,7 +505,7 @@ mod tests {
         policy.sort_by_key(|action| format!("{action:?}"));
         assert_eq!(named, policy, "a row and its representative step disagree");
         for step in steps {
-            let carried = carry(step.clone(), &OutputFormat::Json);
+            let carried = carry(step.clone(), &OutputFormat::Json, FormatSpelling::Output);
             let runs_xr = step.command.is_some() || step.template.is_some();
             let named_format = [&carried.command, &carried.template]
                 .into_iter()

@@ -1023,9 +1023,10 @@ a value you do not recognize as your default branch. A step carries a `command`,
 caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
 fill; under `confirm`, the invocation that destroys once it runs; or, after a 401 or a 429 with no reset on the status
 read after `xr media upload`, the resumed wait to run once the credential works or the window passes. A step that runs
-`xr` names the output format the failed run answered in, as `--output <format>` after `xr`, whether `--output`,
-`--json`, or `XURL_OUTPUT` chose it, so following it prints the document the caller is parsing; a `show-help` step names
-none, since help text has one form. A step that runs the invocation again names `--app` and `--dry-run` as flags when
+`xr` names the output format the failed run answered in, after `xr`, spelled as the run chose it: `--json` or `--jsonl`
+when that flag, `XURL_JSON`, or `XURL_JSONL` chose it, `--output <format>` otherwise, since clap refuses `--output`
+beside either alias. Following it prints the document the caller is parsing; a `show-help` step names none, since help
+text has one form. A step that runs the invocation again names `--app` and `--dry-run` as flags when
 `XURL_APP` or `XURL_DRY_RUN` chose them, so it runs the same in a shell without the variable. One whose recovery is not
 an `xr` invocation carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry` except on
 that status read, `retry`, `fix-input`, `report-issue`, and `inspect-store` when a store command is what failed. Some

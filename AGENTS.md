@@ -237,12 +237,14 @@ once the credential works or the window passes. A new error picks an existing ac
 without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
 
 A step that runs `xr` answers in the output format the failed run did. `NextStep` has no `Serialize`, and every
-envelope field that holds a step holds a `CarriedStep`, which only `OutputConfig::carry` makes: it puts `--output
-<format>` after the program word of each step but `show-help`, whether `--output`, `--json`, or `XURL_OUTPUT` chose it.
+envelope field that holds a step holds a `CarriedStep`, which only `OutputConfig::carry` makes: it puts the format
+after the program word of each step but `show-help`, spelled as the run chose it: `--json` or `--jsonl` when that flag,
+`XURL_JSON`, or `XURL_JSONL` chose it, `--output <format>` otherwise, since clap refuses `--output` beside either alias.
 A step built by running the invocation again also keeps `--dry-run` and `--app` as flags: `explicit_invocation` writes
 what `XURL_DRY_RUN` and `XURL_APP` chose after the program word, so the step runs the same in a shell without the
-variable. A step that signs in or stores a credential is not a rehearsal and takes no `--dry-run`, and a sign-in names
-the app the run used, the default one included. `crates/xurl-cli/src/cli/rerun.rs` holds the tables.
+variable; the sign-in that answers a refused `auth oauth2 --step 2` is such a step. Any other step that signs in or
+stores a credential is not a rehearsal and takes no `--dry-run`, and a sign-in names the app the run used, the default
+one included. `crates/xurl-cli/src/cli/rerun.rs` holds the tables.
 
 `--dry-run` sends nothing and changes no stored credential on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
