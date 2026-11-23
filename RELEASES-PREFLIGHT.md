@@ -61,8 +61,9 @@ Flags:
   `--smoke-home "$HOME"` runs both gates against the production store.
 - `--no-cleanup`: keep the home a gate seeded after exit (useful for follow-up `xr` probes). Without it, exit shreds that
   home. The stores and empty homes a gate makes for itself are shredded at exit either way, one that a failed gate,
-  SIGINT, or SIGTERM left included. A home that `--smoke-home` or an exported `SMOKE_HOME` names is never shredded, with
-  the flag or without it.
+  SIGINT, or SIGTERM left included. The `api-contract` gate's scratch directory and the worktree of the previous tag in
+  it are removed at exit the same way, and leave no entry in `git worktree list`. A home that `--smoke-home` or an
+  exported `SMOKE_HOME` names is never shredded, with the flag or without it.
 - `--tag TAG`: override LAST_TAG auto-detection (default: the newest `v[0-9]*` tag, so an `xdk-rs-v*` tag never stands
   in for the CLI's)
 
