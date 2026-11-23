@@ -85,6 +85,10 @@ EOF
   cat >"$T/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
 echo "cargo store=${XURL_TOKEN_STORE-unset} $*" >>"$STUB_XR_LOG"
+if [[ -n "${STUB_CARGO_HANG:-}" && "$*" == $STUB_CARGO_HANG ]]; then
+  : >"$STUB_XR_LOG.hung"
+  exec sleep 30
+fi
 EOF
 
   cat >"$T/op/read_field.sh" <<'EOF'
@@ -105,7 +109,7 @@ teardown() {
 }
 
 preflight() {
-  cd "$REPO_ROOT" && HOME="${PF_HOME:-$T/home}" TMPDIR="${PF_TMPDIR:-${PF_HOME:-$T/home}/tmp}" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" \
+  cd "${PF_REPO:-$REPO_ROOT}" && HOME="${PF_HOME:-$T/home}" TMPDIR="${PF_TMPDIR:-${PF_HOME:-$T/home}/tmp}" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" \
     PATH="$T/bin:$PATH" STUB_XR_LOG="$T/xr.log" STUB_OP_LOG="$T/op.log" \
     run bash scripts/release/preflight.sh "$@"
 }
@@ -207,7 +211,7 @@ named_store() {
 
 # gate_dirs_left: the directories a gate made under TMPDIR that no gate removed.
 gate_dirs_left() {
-  find "$T/home/tmp" -maxdepth 1 \( -name 'xr-preflight-*' -o -name 'xr-smoke-empty-*' -o -name 'xr-multi-fresh-*' -o -name 'xr-api-empty-*' \)
+  find "$T/home/tmp" -maxdepth 1 \( -name 'xr-preflight-*' -o -name 'xr-smoke-empty-*' -o -name 'xr-multi-fresh-*' -o -name 'xr-api-empty-*' -o -name 'xr-api-??????' \)
 }
 
 @test "a smoke gate whose command fails partway shreds its own directory and the home it seeded" {
@@ -238,20 +242,37 @@ gate_dirs_left() {
   [ "$(cat "$T/home/named/notes.txt")" = keep ]
 }
 
-# A `git` that only adds a worktree, as an empty directory: the gate adds one
-# in the repository under test, and a stub keeps the run from touching it.
-@test "an api-contract gate whose command fails partway shreds its own directory" {
-  cat >"$T/bin/git" <<EOF
-#!/usr/bin/env bash
-[[ "\$1 \$2" == "worktree add" ]] || { echo "stub git: \$*" >&2; exit 99; }
-mkdir -p "\$4"
-EOF
-  chmod +x "$T/bin/git"
+# The api-contract gate adds a worktree of the previous tag to the repository it
+# runs in, so these tests run it in a throwaway one: a copy of the scripts and a
+# single tag. Its stubbed cargo builds nothing, so the gate's next command, the
+# previous release's xr, is the one that fails.
+api_repo() {
+  PF_REPO="$T/repo"
+  mkdir -p "$PF_REPO/scripts"
+  cp -R "$REPO_ROOT/scripts/release" "$PF_REPO/scripts/release"
+  git -C "$PF_REPO" init --quiet
+  git -C "$PF_REPO" config user.name test
+  git -C "$PF_REPO" config user.email test@example.invalid
+  git -C "$PF_REPO" config commit.gpgsign false
+  git -C "$PF_REPO" config tag.gpgsign false
+  git -C "$PF_REPO" add -A
+  git -C "$PF_REPO" commit --quiet -m base
+  git -C "$PF_REPO" tag v0.0.0
+}
+
+# worktrees_left: the worktrees of the throwaway repository beyond its own.
+worktrees_left() {
+  git -C "$PF_REPO" worktree list --porcelain | grep -c '^worktree ' | awk '{print $1 - 1}'
+}
+
+@test "an api-contract gate whose command fails partway removes its worktree and its directory" {
+  api_repo
   preflight --tag v0.0.0 api-contract
   [ "$status" -ne 0 ]
-  [ -d "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-api-??????')/prev" ]
   grep -q '^cargo .* build --release --bin xr$' "$T/xr.log"
   [ -z "$(gate_dirs_left)" ]
+  [ "$(worktrees_left)" -eq 0 ]
+  [ -z "$(find "$PF_REPO/.git/worktrees" -mindepth 1 -maxdepth 1 2>/dev/null)" ]
 }
 
 # The run gets its own session, so the signal reaches the whole group and not
@@ -273,6 +294,27 @@ EOF
   kill -TERM -- "-$(cat "$T/pgid")"
   wait "$run_pid" || true
   [ -z "$(gate_dirs_left)" ]
+}
+
+@test "a SIGTERM that ends an api-contract gate mid-build removes its worktree and its directory" {
+  command -v setsid >/dev/null || skip "setsid is not installed"
+  api_repo
+  cd "$PF_REPO"
+  HOME="$T/home" TMPDIR="$T/home/tmp" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" PATH="$T/bin:$PATH" \
+    STUB_XR_LOG="$T/xr.log" STUB_OP_LOG="$T/op.log" STUB_CARGO_HANG='build *' \
+    setsid bash -c 'echo $$ >"$1"; shift; exec bash scripts/release/preflight.sh "$@"' _ "$T/pgid" --tag v0.0.0 api-contract >"$T/out" 2>&1 &
+  run_pid=$!
+  for _ in $(seq 100); do
+    [ -e "$T/xr.log.hung" ] && break
+    sleep 0.1
+  done
+  [ -e "$T/xr.log.hung" ]
+  [ -n "$(gate_dirs_left)" ]
+  [ "$(worktrees_left)" -eq 1 ]
+  kill -TERM -- "-$(cat "$T/pgid")"
+  wait "$run_pid" || true
+  [ -z "$(gate_dirs_left)" ]
+  [ "$(worktrees_left)" -eq 0 ]
 }
 
 # TMPDIR outside /tmp and $HOME is where macOS keeps it. Each home a gate made

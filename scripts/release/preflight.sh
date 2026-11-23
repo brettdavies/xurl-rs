@@ -110,11 +110,36 @@ SEEDED_HOME=""
 # SIGTERM leaves none behind. SIGKILL runs no trap.
 SHREDDABLE_DIRS=""
 
+# The api-contract gate's scratch directory, which holds a git worktree of the
+# previous release at $API_TMPDIR/prev. Empty once the gate has removed both.
+API_TMPDIR=""
+
+# Removes API_TMPDIR with the worktree in it, then prunes the registration a
+# worktree add leaves in the repository when it is interrupted. The directory
+# holds source and no credentials, so a plain trash or rm is enough. Without a
+# worktree to remove or a registration to prune, git fails and that is fine; only
+# a directory that stays is reported.
+remove_api_tmpdir() {
+  [[ -n "$API_TMPDIR" ]] || return 0
+  local dir="$API_TMPDIR" failed=0
+  API_TMPDIR=""
+  git worktree remove --force "$dir/prev" >/dev/null 2>&1 || true
+  if command -v gio >/dev/null 2>&1; then
+    gio trash "$dir" 2>/dev/null || rm -rf "$dir" || failed=1
+  else
+    rm -rf "$dir" || failed=1
+  fi
+  git worktree prune >/dev/null 2>&1 || true
+  return "$failed"
+}
+
 # Tries every directory, since under set -e one that fails to shred would end the
 # trap before the rest. The seeded home goes through cleanup_smoke, which keeps
-# it under --no-cleanup; a gate's own directory is shredded under either.
+# it under --no-cleanup; a gate's own directory is shredded under either, and the
+# api-contract gate's is removed under either.
 cleanup_gate_dirs() {
   local dir failed=0
+  remove_api_tmpdir || failed=1
   while IFS= read -r dir; do
     [[ -n "$dir" ]] || continue
     if [[ "$dir" == "$SEEDED_HOME" ]]; then
@@ -330,7 +355,8 @@ gate_api_contract() {
   require_built_binary
   local last_tag tmpdir
   last_tag="${LAST_TAG:-$(last_release_tag)}"
-  tmpdir=$(mktemp -d -t xr-api-XXXXXX)
+  API_TMPDIR=$(mktemp -d -t xr-api-XXXXXX)
+  tmpdir="$API_TMPDIR"
 
   # Command surface diff
   if git worktree add --detach "$tmpdir/prev" "$last_tag" >/dev/null 2>&1; then
@@ -388,12 +414,7 @@ gate_api_contract() {
     gate_skip "cargo-semver-checks" "not installed (cargo binstall cargo-semver-checks)"
   fi
 
-  # $tmpdir held a git worktree of source, no creds; regular trash is fine.
-  if command -v gio >/dev/null 2>&1; then
-    gio trash "$tmpdir" 2>/dev/null || rm -rf "$tmpdir"
-  else
-    rm -rf "$tmpdir"
-  fi
+  remove_api_tmpdir
 }
 
 # Gate: smoke ----------------------------------------------------------------
