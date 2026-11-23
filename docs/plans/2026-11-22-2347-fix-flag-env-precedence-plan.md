@@ -848,3 +848,4 @@ pull request. No run sends a request to X.
   `arguments_for`; KTD20 and Scope Boundaries leave an empty clap-bound variable to clap; U3 and U4 name the module
   visibility, the readers of the five fields, the alias-variable read, and why `FormatSpelling` stays; a startup gate
   joins the Verification Contract. A3 to A6 confirmed, A4 and A6 left to the devex review for wording.
+- 2026-11-23: `/plan-devex-review` started, one round, as its own Opus process.
