@@ -16,13 +16,13 @@ All notable changes to this project will be documented in this file.
 - Add the app-only bearer token to the credentials `xr search-users` goes out under. With only a bearer stored it sends under it; a stored login still takes precedence.
 - Add `auth` to the error envelope of a request X refused over its credential, naming the app, scheme, and OAuth2 login it went out under, and give that refusal the step that gets the credential again: a 401, and a 403 whose problem type is `unsupported-authentication`. by @brettdavies in [#611](https://github.com/brettdavies/xurl-rs/pull/611)
 - Add `held` to the error envelope of an app name the store does not hold: the apps the store holds, in name order, empty when it holds none. by @brettdavies in [#612](https://github.com/brettdavies/xurl-rs/pull/612)
+- Add last-wins resolution to `--output`, `--json`, `--jsonl`, `--cursor`, and `--after`, typed or repeated, on either side of the command word: `xr --json --output yaml` answers in YAML where it was refused. by @brettdavies in [#623](https://github.com/brettdavies/xurl-rs/pull/623)
+- Add empty-value handling to `XURL_OUTPUT`, `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, and `XURL_AFTER`: an empty value reads as unset where it was refused.
+- Add the no-browser flow to a typed `xr auth oauth2 --step`, so `--no-browser` is no longer needed beside it.
 
 ### Changed
 
-- Change typed and repeated `--output`, `--json`, `--jsonl`, `--cursor`, and `--after` to resolve last-wins, across the command word, instead of refusing a repeat. by @brettdavies in [#623](https://github.com/brettdavies/xurl-rs/pull/623)
-- Change an empty `XURL_OUTPUT`, `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, or `XURL_AFTER` to read as unset.
-- Change the help of the five flags to name the variable without echoing its value, and the root help to state the precedence.
-- Change `xr auth oauth2 --step` to run the no-browser flow by itself, so `--no-browser` is no longer needed beside it.
+- Change the help of the five flags to name the variable without echoing its value, and the root help to state the precedence. by @brettdavies in [#623](https://github.com/brettdavies/xurl-rs/pull/623)
 
 ### Fixed
 
