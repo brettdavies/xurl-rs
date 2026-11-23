@@ -1130,3 +1130,5 @@ the dashboard cannot clear it.
 
 - Whether to post on clap-rs/clap#5591 how `xr` works around the defect (resolution by layer, the false-variable step,
   and the guards). It is outward-facing and optional, it does not block implementation, and it is Brett's call.
+- 2026-11-23: `/plan-eng-review` started as the skill, one round, as its own Opus process, by xurl-rs-prime's
+  call: the named review never ran on this plan, and the hand round's edits stay.
