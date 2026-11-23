@@ -17,14 +17,16 @@ execution: code
   data (KTD8). Each resolved setting carries the spelling that decided it and that spelling's source (KTD18). Clap keeps
   refusing conflicts between different settings, and one renderer names a variable as a variable (KTD12). Guards read
   clap's relationships, not a list of today's flags (KTD16).
-- **Authority:** R-IDs win on behavior and KTDs on mechanism. A unit overrides neither. KTD1 to KTD7 are settled and are
-  not reopened. KTD19, KTD20, the single check in KTD13, and the root help line and fixture moves in KTD17 are decisions
-  of xurl-rs-prime, the coordinating session, which owns the code calls.
+- **Authority:** R-IDs win on behavior and KTDs on mechanism. A unit overrides neither. KTD1 to KTD7 and KTD21 are
+  settled and are not reopened. KTD19, KTD20, the single check in KTD13, the root help line and fixture moves in KTD17,
+  and the details of KTD21 are decisions of xurl-rs-prime, the coordinating session, which owns the code calls.
 - **Execution profile:** one pull request from a `fix/` branch cut from `dev`, under the branch, commit, and review
   rules in `AGENTS.md` and the contributor's global instructions. It ships in `xr` 4.9.0 (KTD1).
 - **Stop conditions:** stop and report when the work needs a change under `crates/xdk`, a new flag, reason, action,
   envelope key, exit code, or environment variable (R12), when a golden fixture other than the 198 help fixtures
-  (`help.golden` and the 197 `help-*.golden`) moves, or when evidence contradicts KTD1 to KTD7.
+  (`help.golden` and the 197 `help-*.golden`) moves, when a help fixture moves outside the five flags' blocks and the
+  root `ENVIRONMENT VARIABLES` block other than `help-auth-oauth2.golden` in its `--step` and `--no-browser` blocks
+  (KTD21), or when evidence contradicts KTD1 to KTD7 or KTD21.
 - **Who finishes:** the implementing slot opens the pull request and runs its reviews. The prime merges it to `dev`.
   Release PR #622 is outside this plan.
 
@@ -232,16 +234,15 @@ the decision rules out.
   tree build to each of those parses. The rule is the one clap-rs/clap#6211 proposes for clap itself, that a value from
   the environment equal to the default is not explicit, kept to boolean flags, where the proposal of 2026-01-21 in
   clap#5591 also draws the line. uv does not need the step, since no boolean it reconciles stays bound in clap, and pays
-  for that with a copy of clap's boolish literals (see "What this plan takes from uv, and what it leaves").
+  for that with a copy of clap's boolish literals (see "What this plan takes from uv, and what it leaves"). In today's
+  tree the step changes no behavior (KTD11). It is there for a flag added later, and U5's fixture command proves it.
 - KTD11. **Every argv parse goes through one function.** `crates/xurl-cli/src/cli/parse.rs` owns the only calls that
   hand argv to clap. Each site passes the customization it needs: inert display flags, room for stray words,
-  `ignore_errors`. A source guard fails for a parse call anywhere else in production code. Once KTD8 lands, today's tree
-  has no boolean variable in a conflict, and one in a requirement: `auth oauth2 --step` `requires` `no_browser`, and on
-  `dev` `XURL_NO_BROWSER=0 xr --dry-run auth oauth2 --step 1` is accepted with `no_browser: false`, because the false
-  variable counts as given. After the step it is refused at exit 2 for the missing `--no-browser`, which R8 asks for.
-  That is the one behavior the funnel changes now. xurl-rs-prime decided it is a fix, filed under `### Fixed`, and not a
-  break, with no migration-guide row and no special case in the step: a false variable that satisfies a requirement is
-  clap#5591 itself, and correcting what the code got wrong is a fix. It is what makes KTD10 hold for a flag added later.
+  `ignore_errors`. A source guard fails for a parse call anywhere else in production code. Once KTD8 and KTD21 land,
+  today's tree has no boolean variable in a conflict, a requirement, or a group: of the eight booleans that stay bound,
+  only `auth oauth2 --no-browser` took part in one, through `--step`'s `requires = "no_browser"`, which KTD21 removes,
+  and production code reads `value_source` only for `CommandLine` and for `--app`, which is not boolean. So the funnel
+  and the step change no behavior of today's tree. They are what make KTD10 hold for a flag added later.
 - KTD12. **One function writes the conflict sentence, for clap's conflicts and for the resolver's.** It takes each side
   as an argument and its source (KTD18): a flag, or a variable. For a clap `ArgumentConflict` it reads the `InvalidArg`
   and `PriorArg` context, finds each argument in the failing command by comparing `Arg::to_string()`, and asks the
@@ -304,11 +305,12 @@ the decision rules out.
   `[env: ...]` line from five global flags, which every command's help prints. Each of the five flags names its variable
   in its short and long help in clap's bracket form (A6), and the root help's `ENVIRONMENT VARIABLES` block gains
   `XURL_AFTER` and states the precedence rule. 198 help fixtures carry the five lines and move: `help.golden`, the root
-  help, and the 197 `help-*.golden`. Each moves only inside those five flags' blocks, and `help.golden` also in its
-  `ENVIRONMENT VARIABLES` block and the precedence paragraph under it. xurl-rs-prime decides two points here.
-  `XURL_AFTER` gets its line in that block, since the line documents an existing variable and adds no surface: today
-  only clap's `[env: ...]` line advertises it, and `test_help_advertises_every_env_var_the_source_reads` fails for a
-  variable `env.rs` reads that `xr --help` does not name. And the 198 fixture moves are expected moves.
+  help, and the 197 `help-*.golden`. Each moves only inside those five flags' blocks, `help.golden` also in its
+  `ENVIRONMENT VARIABLES` block and the precedence paragraph under it, and `help-auth-oauth2.golden` also in its
+  `--step` and `--no-browser` blocks (KTD21). xurl-rs-prime decides two points here. `XURL_AFTER` gets its line in that
+  block, since the line documents an existing variable and adds no surface: today only clap's `[env: ...]` line
+  advertises it, and `test_help_advertises_every_env_var_the_source_reads` fails for a variable `env.rs` reads that
+  `xr --help` does not name. And the 198 fixture moves are expected moves.
 - KTD18. **A resolved setting carries the spelling that decided it and that spelling's source.** The resolver answers
   once per run with the value, the spelling, and the source: typed, a variable with its name, or the default. Every
   later reader takes that answer and none works a source out again: the conflict sentence names a side from it (KTD12),
@@ -338,6 +340,26 @@ the decision rules out.
   a container build that fails on a variable an `ARG` default leaves set and empty, and uv#19503 lets such a list
   variable be empty. A variable clap still binds keeps clap's reading of an empty value, and the single check in KTD13
   takes its `value_source` as clap gives it (Scope Boundaries). Governs R4.
+- KTD21. **A typed `--step` runs the no-browser flow of `auth oauth2`.** (session-settled: user-directed, Brett
+  2026-11-23, chosen over keeping `requires = "no_browser"` on `--step`: the browser sign-in is one command and never
+  reads `--step`, so a typed step names the no-browser flow by itself.) The details are xurl-rs-prime's calls:
+  - The browser sign-in never reads `--step` (`crates/xurl-cli/src/cli/commands/auth/signin.rs` L134-172). Steps exist
+    only in the no-browser flow, and `--no-browser` with no `--step` already runs step 1. `--step` drops
+    `requires = "no_browser"`, and the mode is no-browser when `--no-browser` reads true, when `--step` is typed, or
+    when stdout is not a terminal (`effective_no_browser` at `signin.rs` L83 gains the typed step). `--auth-url` keeps
+    `requires = "step"`.
+  - `xr auth oauth2 --step 1` with no `--no-browser` runs step 1, and `--step 2 --auth-url <url>` runs step 2.
+    `XURL_NO_BROWSER=0 xr auth oauth2 --step 1` runs step 1, since the typed flag beats the variable. In a terminal on
+    `dev` that invocation opens the browser and drops `--step` without a word, against the rule in
+    `docs/solutions/best-practices/oauth2-pkce-credential-handling-rust-cli.md` (line 215) that a flag which does not
+    apply is refused, not ignored.
+  - `--no-browser=false --step N`, both typed, is refused at exit 2 with `invalid-args`, naming both flags. It adds no
+    reason and no envelope key.
+  - The dry run reports `headless: true` for a typed step, and its `no_browser` key keeps echoing the input, as it does
+    under the stdout auto-switch. The recovery steps that spell `--no-browser --step 2` stay as they are, since they
+    remain valid.
+  - The help for `--step` and `--no-browser` states the implication, so `help-auth-oauth2.golden` moves in those two
+    blocks as well as in the five flags' blocks. It is the one help fixture allowed to move outside them.
 
 ### Assumptions
 
@@ -535,8 +557,8 @@ Left, each with its reason:
   completions may move with the flag descriptions.
 - Invocations that exit 2 today start to succeed. Scripts that relied on the refusal to detect a conflicting environment
   lose that signal.
-- One invocation accepted today is refused: `XURL_NO_BROWSER=0 xr auth oauth2 --step 1` exits 2 for the missing
-  `--no-browser`, since a false variable no longer satisfies `--step`'s requirement (KTD11, R8).
+- `xr auth oauth2 --step N` runs the no-browser flow without `--no-browser`, and `--no-browser=false --step N` is
+  refused at exit 2 (KTD21).
 - In-process runs through `run_with_overrides` and `run_with_hooks` stop reading the five variables from the process.
 - `AGENTS.md` and `crates/xurl-cli/README.md` both state that clap refuses `--output` beside an alias. Both sentences
   change (U6).
@@ -545,7 +567,8 @@ Left, each with its reason:
 
 U1 comes first, and U2 builds on its parse path. Neither changes a declared flag. U3 is the fix and depends on both. U4
 depends on U3 and shares its commit boundary: the alias variables leave clap in U3, and `output_intent` learns them in
-U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
+U4, so the suite is green only with both. U5 depends on U1 to U3. U7 depends on none of them and changes only
+`auth oauth2`. U6 is last.
 
 ---
 
@@ -593,9 +616,9 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   - A non-boolean option that takes a value, with its variable equal to its default: the binding stays.
   - A boolean flag declared on a subcommand: handled like a root one.
   - No bound variable set: the command comes back with every binding intact.
-  - Integration, through the binary: `XURL_NO_BROWSER=0 xr --dry-run auth oauth2 --step 1` exits 2 with `invalid-args`
-    for the missing `--no-browser`. On `dev` it exits 0 with a dry-run envelope, which is its observed failure.
-    `XURL_QUIET=0 xr schema --list` is no evidence: it exits 0 on `dev` too.
+  - No integration case through the binary: once KTD21 lands, no flag of today's tree behaves differently under the step
+    (KTD11), so the cases above and U5's fixture command are its proof. `XURL_QUIET=0 xr schema --list` is no evidence:
+    it exits 0 on `dev` too. The `XURL_NO_BROWSER=0` cases are U7's.
   - Source guard: a production file other than `parse.rs` that calls `try_get_matches_from`, `get_matches_from`,
     `try_parse_from`, `parse_from`, `try_update_from`, or `update_from`, or one of the entrypoints that read the
     process's own argv (`get_matches()`, `try_get_matches()`, `get_matches_mut()`, `::parse()`, `::try_parse()`), fails
@@ -745,7 +768,8 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   - Through the binary, once per variable: `XURL_JSON=1`, `XURL_JSONL=1`, `XURL_CURSOR=a`, and `XURL_AFTER=b` each take
     effect, which proves `env.rs` reads the real name.
   - Every diff in `help.golden` and the `help-*.golden` fixtures sits inside the five flags' blocks or the root
-    environment block, checked by script. `xr --help` names `XURL_AFTER`.
+    environment block, or, for `help-auth-oauth2.golden` alone, in its `--step` and `--no-browser` blocks (U7), checked
+    by script. `xr --help` names `XURL_AFTER`.
 - **Verification:** the acceptance examples above pass against the built binary run with `XURL_TOKEN_STORE` on a scratch
   path. `git diff --stat -- crates/xdk` is empty. No golden outside the 198 help fixtures moved. Outside `settings.rs`,
   no production code reads `cli.cursor`, `cli.after`, `cli.json`, `cli.jsonl`, or `cli.output`: on `dev` the readers are
@@ -880,6 +904,44 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   hook still pass.
 - **Verification:** both documents match what the built binary does for AE1 to AE18.
 
+### U7. A typed `--step` runs the no-browser flow
+
+- **Goal:** `xr auth oauth2 --step N` runs the no-browser flow without `--no-browser`, and a typed contradiction is
+  refused.
+- **Requirements:** R12. KTD21.
+- **Dependencies:** none.
+- **Files:**
+  - modify `crates/xurl-cli/src/cli/mod.rs` (`--step` drops `requires = "no_browser"`; the help of `--step` and
+    `--no-browser`)
+  - modify `crates/xurl-cli/src/cli/commands/auth/signin.rs` (the mode, the refusal of `--no-browser=false` beside a
+    typed `--step`, and the dry run's `headless`)
+  - modify `crates/xurl-cli/tests/oauth2_flow_tests.rs`
+  - re-bless `crates/xurl-cli/tests/golden/help-auth-oauth2.golden`
+- **Approach:**
+  1. `--step` drops `requires = "no_browser"`. `--auth-url` keeps `requires = "step"`.
+  2. `effective_no_browser` is `no_browser`, or a typed `--step`, or the stdout auto-switch.
+  3. When `--no-browser` is typed and reads false and `--step` is typed, the command refuses at exit 2 with
+     `invalid-args`, naming both flags, before any other check.
+  4. The help of `--step` says it runs the no-browser flow by itself, and the help of `--no-browser` says a typed
+     `--step` implies it.
+- **Execution note:** run the first two scenarios against `dev` first and quote the failure. On `dev`,
+  `xr --dry-run auth oauth2 --step 1` exits 2 for the missing `--no-browser`, and so does `--step 2 --auth-url <url>`,
+  while `--no-browser=false --step 1` is accepted.
+- **Patterns to follow:** the store and overrides that `step2_overrides` in `oauth2_flow_tests.rs` builds for a run with
+  an app that carries a client id. `common::xr_with_store` for a run with a variable set on the child.
+- **Test scenarios:** through the binary, with any variable set on the child.
+  - `xr --dry-run auth oauth2 --step 1`, no `--no-browser`: exit 0, `headless: true`, `no_browser: false`.
+  - `xr --dry-run auth oauth2 --step 2 --auth-url <url>`, no `--no-browser`: not refused for a missing `--no-browser`.
+  - `xr auth oauth2 --no-browser=false --step 1`: exit 2, `invalid-args`, the message names `--no-browser` and `--step`,
+    and the envelope has no key it lacks today.
+  - `XURL_NO_BROWSER=0 xr --dry-run auth oauth2 --step 1`: exit 0, `headless: true`. With stdout piped the auto-switch
+    already gives this on `dev`, so the case pins the rule and is not the observed failure.
+  - `xr auth oauth2 --auth-url <url>` without `--step`: still refused for the missing `--step`.
+  - `xr --dry-run auth oauth2 --no-browser --step 1`: unchanged, and a recovery step that spells `--no-browser --step 2`
+    still runs.
+- **Verification:** `help-auth-oauth2.golden` moves only in the five flags' blocks and the `--step` and `--no-browser`
+  blocks.
+
 ---
 
 ## Verification Contract
@@ -910,14 +972,14 @@ pull request. No run sends a request to X.
 - `crates/xdk` is unchanged, and the change adds no flag, reason, action, envelope key, exit code, or environment
   variable.
 - Only the 198 help fixtures moved (`help.golden` and the `help-*.golden`), each inside the five flags' blocks or the
-  root environment block.
+  root environment block, and `help-auth-oauth2.golden` also in its `--step` and `--no-browser` blocks (KTD21).
 - `AGENTS.md` and `crates/xurl-cli/README.md` state the rule in the present tense.
 - The pull request body's Changelog lists, under `xurl-rs` and nothing under `xdk-rs`: under Fixed, a variable no longer
-  refuses a typed flag of its own setting, a refusal that a variable causes names the variable, a boolean variable that
-  reads false is unset, and a false `XURL_NO_BROWSER` no longer satisfies `auth oauth2 --step`'s need for `--no-browser`
-  (KTD11); under Changed, typed and repeated format and page-token flags resolve last-wins, an empty `XURL_OUTPUT`,
-  `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, or `XURL_AFTER` is unset, and the five flags' help names its variable
-  without echoing the variable's value.
+  refuses a typed flag of its own setting, a refusal that a variable causes names the variable, and a boolean variable
+  that reads false is unset; under Changed, typed and repeated format and page-token flags resolve last-wins, an empty
+  `XURL_OUTPUT`, `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, or `XURL_AFTER` is unset, the five flags' help names its
+  variable without echoing the variable's value, and `auth oauth2 --step` runs the no-browser flow by itself, so
+  `--no-browser` is no longer needed beside it (KTD21).
 - The reviews the change needs have run and are recorded on the pull request: the code review, and the
   developer-experience review for changed flag behavior and output.
 - No probe code, scratch edit, or abandoned approach is left in the diff.
@@ -1109,9 +1171,9 @@ caller typed into the variable. No secret is read from these five variables.
 ```
 
 "Prior" is this plan as it stood before the review, since no earlier DX review covers this plan. Community stays at 6
-because the one lever, telling clap-rs/clap#5591 how `xr` solves the defect, is outward-facing and needs a person.
-Measurement: after implementation, `/devex-review` runs AE1, AE10, AE14, and `xr -h` against the built binary. No
-telemetry is proposed. No TODOs are proposed.
+because the one lever, telling clap-rs/clap#5591 how `xr` solves the defect, is outward-facing, and Brett decided on
+2026-11-23 that nobody posts there. Measurement: after implementation, `/devex-review` runs AE1, AE10, AE14, and `xr -h`
+against the built binary. No telemetry is proposed. No TODOs are proposed.
 
 ## Engineering Review
 
@@ -1345,7 +1407,7 @@ KTD9, KTD10, KTD11, R11, and A5 contracts.
 - A per-level probe or `Debug`-output read of `Arg.overrides` in place of U5's pair probe: `Debug` is no stable surface,
   and the probe stays on public API.
 - Splitting U5's walk into a nextest test group: not needed unless the measured time from D2 says otherwise.
-- The clap#5591 comment, carried from the devex review as a person's call.
+- The clap#5591 comment: nobody posts there (Brett, 2026-11-23).
 
 ### What already exists
 
@@ -1434,8 +1496,8 @@ Effort assumes the default ratios: tests ~50x, bug fix ~20x.
 
 ### Decisions only a person can make
 
-- Whether to post on clap-rs/clap#5591 how `xr` works around the defect, carried from the devex review. This review adds
-  none.
+- None open. Whether to post on clap-rs/clap#5591 how `xr` works around the defect, carried from the devex review, is
+  resolved: nobody posts (Brett, 2026-11-23). This review adds none.
 
 ## Review log
 
@@ -1463,11 +1525,16 @@ Effort assumes the default ratios: tests ~50x, bug fix ~20x.
 - 2026-11-23: `/plan-eng-review` ended as the skill, one round, FULL_REVIEW, scope accepted as-is with the original
   arrangement. Changed: KTD10 compares the parser's type with `TypeId::of::<bool>()`, since `AnyValueId::of` is
   crate-private; "Clap facts" gains that row and the negative-number row; U1 names the eleven parse sites exactly and
-  its guard adds clap's process-argv entrypoints; U3 rewrites the two `cli_tests.rs` tests that pin the removed
-  refusal, reads `XURL_OUTPUT` with `--output`'s own parser, and adds a `--cursor=--json` argv row; U4 replaces
+  its guard adds clap's process-argv entrypoints; U3 rewrites the two `cli_tests.rs` tests that pin the removed refusal,
+  reads `XURL_OUTPUT` with `--output`'s own parser, and adds a `--cursor=--json` argv row; U4 replaces
   `structured_intent` with the one argv reader and moves the `FormatSpelling::of` test; U5 exempts negative-number
   arguments, parses each override probe at a leaf clone, and quotes the walk's time under the 60 s period. The
   Engineering Review section holds the evidence. No outside voice ran.
+- 2026-11-23: Brett's two answers folded in. KTD21 and U7: a typed `--step` runs the no-browser flow of
+  `auth oauth2`, with xurl-rs-prime's calls on the details; KTD10 and KTD11 state that the false-variable step changes
+  no behavior of today's tree; the `XURL_NO_BROWSER` cases move from U1 to U7; the stop condition, KTD17, U3, and the
+  Definition of Done allow `help-auth-oauth2.golden` to move in its `--step` and `--no-browser` blocks; the Changelog
+  guidance swaps the `XURL_NO_BROWSER` Fixed bullet for a Changed bullet. Nobody posts on clap-rs/clap#5591.
 
 ## GSTACK REVIEW REPORT
 
@@ -1490,5 +1557,6 @@ rule, which clears only a review that found nothing: eng review required.
 
 **UNRESOLVED DECISIONS:**
 
-- - 1 unresolved from prior reviews: whether to post on clap-rs/clap#5591 how `xr` works around the defect, from the
-  devex review. It is outward-facing and optional, does not block implementation, and is Brett's call.
+- None. Resolved: whether to post on clap-rs/clap#5591 how `xr` works around the defect, from the devex review. Nobody
+  posts (Brett, 2026-11-23).
+- Resolved: a typed `--step` implies `--no-browser` (Brett, 2026-11-23), recorded as KTD21 and built in U7.
