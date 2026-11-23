@@ -1389,6 +1389,17 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-webhook-url-has-credentials",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "add",
+                "https://user:pw@example.com/webhook",
+            ],
+        ),
+        case(
             "dry-run-invalid-webhook-id",
             &[
                 "--output",

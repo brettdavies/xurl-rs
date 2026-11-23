@@ -407,3 +407,47 @@ fn validate_webhook_url_holds_the_rules_x_documents() {
         Ok(())
     );
 }
+
+#[test]
+fn validate_webhook_url_refuses_a_username_or_password() {
+    for url in [
+        "https://user@example.com/hook",
+        "https://:pw@example.com/hook",
+        "https://user:pw@example.com/hook",
+        "https://user:@example.com/hook",
+        "https://@example.com/hook",
+        "https://:@example.com/hook",
+        "https://user:pw@example.com",
+        "https://user:pw@example.com?at=1",
+        "https://user:pw@[2001:db8::1]/hook",
+        "https:///user:pw@example.com/hook",
+        "https://user%40mail:pw@example.com/hook",
+    ] {
+        assert_eq!(
+            validate_webhook_url(url),
+            Err("webhook-url-has-credentials"),
+            "{url}"
+        );
+    }
+}
+
+#[test]
+fn validate_webhook_url_takes_an_at_sign_outside_the_authority() {
+    for url in [
+        "https://example.com/a@b",
+        "https://example.com/hook?u=a@b",
+        "https://example.com/hook#a@b",
+        "https://example.com?u=a@b",
+        "https://example.com/hook/user:pw@host",
+    ] {
+        assert_eq!(validate_webhook_url(url), Ok(()), "{url}");
+    }
+}
+
+#[test]
+fn validate_webhook_url_names_the_port_before_the_credentials() {
+    assert_eq!(
+        validate_webhook_url("https://user:pw@example.com:8443/hook"),
+        Err("webhook-url-has-port")
+    );
+}

@@ -1234,6 +1234,118 @@ async fn add_refuses_a_url_x_would_refuse(#[case] url: &str, #[case] reason: &st
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
+const URL_SECRET: &str = "hunter2-marker";
+
+/// Every spelling of a username or password in a webhook URL's authority, the
+/// secret placed where each one carries it.
+#[rstest::rstest]
+#[case::username("https://hunter2-marker@example.com/webhooks/x")]
+#[case::password("https://:hunter2-marker@example.com/webhooks/x")]
+#[case::both("https://user:hunter2-marker@example.com/webhooks/x")]
+#[case::username_and_empty_password("https://hunter2-marker:@example.com/webhooks/x")]
+#[case::empty_username("https://@example.com/webhooks/x")]
+#[case::empty_both("https://:@example.com/webhooks/x")]
+#[case::extra_slash("https:///user:hunter2-marker@example.com/webhooks/x")]
+#[case::host_only("https://user:hunter2-marker@example.com")]
+#[tokio::test]
+async fn add_refuses_a_url_with_credentials_and_never_repeats_them(#[case] url: &str) {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for format in ["json", "text"] {
+        let (code, stdout, stderr) = run(
+            &store,
+            &server.uri(),
+            &["--output", format, "webhooks", "add", url],
+        )
+        .await;
+
+        assert_eq!(code, 1, "{format}: {stderr}");
+        assert!(stdout.is_empty(), "{format}: {stdout}");
+        assert!(!stderr.contains(URL_SECRET), "{format}: {stderr}");
+        if format == "json" {
+            let envelope = error_envelope(&stderr);
+            assert_eq!(envelope["reason"], "validation", "{envelope}");
+            assert_eq!(
+                envelope["rule"], "webhook-url-has-credentials",
+                "{envelope}"
+            );
+            assert!(envelope.get("value").is_none(), "{envelope}");
+        } else {
+            assert!(stderr.contains("username or password"), "{stderr}");
+        }
+    }
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[rstest::rstest]
+#[case::username("https://hunter2-marker@example.com/webhooks/x")]
+#[case::password("https://:hunter2-marker@example.com/webhooks/x")]
+#[case::both("https://user:hunter2-marker@example.com/webhooks/x")]
+#[case::username_and_empty_password("https://hunter2-marker:@example.com/webhooks/x")]
+#[case::empty_username("https://@example.com/webhooks/x")]
+#[case::empty_both("https://:@example.com/webhooks/x")]
+#[case::extra_slash("https:///user:hunter2-marker@example.com/webhooks/x")]
+#[case::host_only("https://user:hunter2-marker@example.com")]
+#[tokio::test]
+async fn add_dry_run_refuses_a_url_with_credentials_and_never_repeats_them(#[case] url: &str) {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for format in ["json", "text"] {
+        let (code, stdout, stderr) = run(
+            &store,
+            &server.uri(),
+            &["--output", format, "--dry-run", "webhooks", "add", url],
+        )
+        .await;
+
+        assert_eq!(code, 0, "{format}: {stderr}");
+        assert!(!stdout.contains(URL_SECRET), "{format}: {stdout}");
+        assert!(!stderr.contains(URL_SECRET), "{format}: {stderr}");
+        if format == "json" {
+            let report: serde_json::Value =
+                serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+            assert_eq!(report["status"], "dry_run", "{report}");
+            assert_eq!(report["would_succeed"], false, "{report}");
+            assert_eq!(report["exit_code"], 1, "{report}");
+            assert_eq!(report["reason"], "validation", "{report}");
+            assert_eq!(report["rule"], "webhook-url-has-credentials", "{report}");
+            assert!(report.get("value").is_none(), "{report}");
+        } else {
+            assert!(stdout.contains("username or password"), "{stdout}");
+        }
+    }
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn add_takes_an_at_sign_in_the_path_and_the_query() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/webhooks"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": webhook()})),
+        )
+        .expect(2)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for url in ["https://example.com/a@b", "https://example.com/hook?u=a@b"] {
+        let (code, _stdout, stderr) = run(
+            &store,
+            &server.uri(),
+            &["--output", "json", "webhooks", "add", url],
+        )
+        .await;
+        assert_eq!(code, 0, "{url}: {stderr}");
+    }
+}
+
 // ── replay from a checkpoint ─────────────────────────────────────────
 
 fn now_secs() -> u64 {

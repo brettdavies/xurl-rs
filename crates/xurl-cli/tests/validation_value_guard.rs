@@ -285,4 +285,11 @@ async fn a_url_that_may_carry_a_credential_is_not_named() {
         None,
     )
     .await;
+    assert_refusal(
+        "webhooks add",
+        &["https://user:secret@example.com/x"],
+        "webhook-url-has-credentials",
+        None,
+    )
+    .await;
 }

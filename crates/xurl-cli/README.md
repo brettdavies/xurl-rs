@@ -526,8 +526,8 @@ Three things have to be in place, in this order:
    Tailscale Funnel. `xr` opens no tunnel. A port another process holds answers with reason `address-in-use` and the
    same invocation on `--port 0`.
 2. **The URL registered.** `xr webhooks add <URL>` registers it and prints the webhook's id. X sends its check to the
-   URL before it answers, so the listener has to be up and exposed first. A URL that is not HTTPS, or that names a port,
-   is refused before any request.
+   URL before it answers, so the listener has to be up and exposed first. A URL that is not HTTPS, that names a port, or
+   that carries a username or password is refused before any request.
 3. **Something subscribed to it.** `xr webhooks subscriptions add <WEBHOOK_ID>` subscribes the signed-in account's
    activity. `xr webhooks stream-links add <WEBHOOK_ID>` delivers the posts your filtered-stream rules match.
 

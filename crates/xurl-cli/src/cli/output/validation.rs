@@ -116,6 +116,9 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
         "webhook-url-has-port" => {
             "The webhook URL names a port; X takes one without a port.".to_string()
         }
+        "webhook-url-has-credentials" => {
+            "The webhook URL carries a username or password; register it without them.".to_string()
+        }
         "invalid-replay-time" => "A replay time is 12 digits, yyyymmddhhmm in UTC.".to_string(),
         "empty-source-name" => "The source name is empty.".to_string(),
         "empty-source-region" => "The source region is empty.".to_string(),

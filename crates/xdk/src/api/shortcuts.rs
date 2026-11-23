@@ -1197,13 +1197,15 @@ pub fn validate_user_id(input: &str) -> std::result::Result<(), &'static str> {
     Ok(())
 }
 
-/// Validates a webhook URL against the spec's length bounds and the two
-/// rules X's webhook documentation gives: the URL uses HTTPS, and it names
-/// no port.
+/// Validates a webhook URL against the spec's length bounds, the two rules
+/// X's webhook documentation gives (the URL uses HTTPS, and it names no
+/// port), and a third: it carries no username or password, which would go to
+/// X as part of the URL.
 ///
 /// # Errors
 /// Returns the kebab-case reason: `empty-webhook-url`, `webhook-url-too-long`,
-/// `webhook-url-not-https`, `webhook-url-has-port`.
+/// `webhook-url-not-https`, `webhook-url-has-port`,
+/// `webhook-url-has-credentials`.
 pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> {
     if url.is_empty() {
         return Err("empty-webhook-url");
@@ -1214,9 +1216,9 @@ pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> 
     let Some(rest) = url.strip_prefix("https://") else {
         return Err("webhook-url-not-https");
     };
-    if url::Url::parse(url).is_err() {
+    let Ok(parsed) = url::Url::parse(url) else {
         return Err("webhook-url-not-https");
-    }
+    };
     // The authority as written: `Url` drops a port that is the scheme's
     // default, and X refuses one that is spelled out.
     let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
@@ -1227,6 +1229,11 @@ pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> 
     };
     if has_port {
         return Err("webhook-url-has-port");
+    }
+    // `Url` reports no userinfo for `https://@host`, and sees one in
+    // `https:///user:pw@host`, where the written authority is empty.
+    if authority.contains('@') || !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err("webhook-url-has-credentials");
     }
     Ok(())
 }
