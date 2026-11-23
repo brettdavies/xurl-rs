@@ -1,7 +1,7 @@
 args: ["skill", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6864
+stdout_len: 6907
 stderr_len: 0
 --- stdout ---
 Refresh an existing skill-bundle install in place.
@@ -35,7 +35,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

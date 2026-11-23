@@ -70,12 +70,16 @@ on an endpoint that accepts both, and the Bearer drives the call only when no lo
 names it. Multi-app is supported in the token store; `xr auth status` enumerates them.
 
 An app named with `--app` (or `XURL_APP`) is one the store holds, or the run is refused: a name the store does not hold
-exits 77 with reason `token-store` before any request goes out, with the name in `value`, and no other app's credential
-(nor `XURL_BEARER_TOKEN`) stands in for it. An empty name is the default app. A `--dry-run` answers the same refusal
-with `would_succeed: false` and no `auth` key. `Error::AppNotFound` carries the name and the apps the store holds, and
-store commands return it too. A store file that could not be loaded holds no apps to check the name against: the name is
-not refused there, the stored credentials are out of reach, and `XURL_BEARER_TOKEN`, when set, serves the run as it does
-without `--app`.
+exits 77 with reason `token-store` before any request goes out, with the name in `value` and the apps the store holds
+in `held`, and no other app's credential (nor `XURL_BEARER_TOKEN`) stands in for it. The `message` ends with
+`(from XURL_APP)` when `XURL_APP` gave the name, no `--app` overrode it, and the command was not given the name as an
+argument of its own (a store command such as `auth default <name>` reads that one): `OutputConfig::app_from_env`
+carries that, read from clap's value source, so the library's `Error::AppNotFound` stays free of it. An empty name is
+the default app.
+A `--dry-run` answers the same refusal with `would_succeed: false` and no `auth` key. `Error::AppNotFound` carries the
+name and the apps the store holds, and store commands return it too. A store file that could not be loaded holds no apps
+to check the name against: the name is not refused there, the stored credentials are out of reach, and
+`XURL_BEARER_TOKEN`, when set, serves the run as it does without `--app`.
 
 On exit 77 the error names what to do next. Read it from the envelope rather than guessing:
 
@@ -141,8 +145,9 @@ fits `--rate-limit-max-wait` (60 seconds unless set).
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`, and `api-error` on a 408) says nothing was wrong with the
 request. `fix-input` (`not-found`, `invalid-request`, `validation-failed`, `io`, `forbidden` for a token endpoint's 403,
-`token-store` for an app or login name the store refuses, and the skill verbs' machine-state reasons) says the same
-invocation fails again until its input or the state it read changes. Under `token-store`, it carries `xr auth status`,
+`api-error` for a token endpoint answer with no OAuth error code, `token-store` for an app or login name the store
+refuses, and the skill verbs' machine-state reasons) says the same invocation fails again until its input or the state
+it read changes. Under `token-store`, it carries `xr auth status`,
 which lists what the store holds. Under `address-in-use`, a port another process holds, it carries `listen` again on
 `--port 0`: a `command`, or a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t`
 given before a command word that takes it, it carries the invocation with the flag after the word, and for an old `xr
@@ -153,13 +158,15 @@ secret `--secret` names: the OAuth1 credentials under `--secret oauth1`, the app
 oauth2 --step 2` whose redirect URL did not parse, or whose saved flow belongs to another stored app, it carries a
 `template` that runs step 2 again with the URL, which holds an authorization code, left as `<redirect-url>`. For a 401
 on the status read after `xr media upload` finished, it carries the command that resumes the wait as a `template`, to
-run once the credential works, since reading again under the same credential fails the same way. A 403 from the token
-endpoint on that read, which a refresh during the wait meets, carries the same template, to run once `TOKEN_URL` and the
-proxy are fixed. For a 403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the
-token endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other
-status) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the
-invocation with `--force`, under the `--app` the refusal's `app` key names: it is never a `command`, so an agent that
-runs every command it is handed cannot confirm a deletion by accident. `run-command` names the sibling skill verb that
+run once the credential works, since reading again under the same credential fails the same way. So does an answer from
+the token endpoint on that read, which a refresh during the wait meets, whose JSON `error` is none of the six codes of
+RFC 6749 section 5.2 (`REFUSAL_CODES` in `crates/xdk/src/auth/token_endpoint.rs`), other than a 404, a 408, a 429, or a
+5xx: the template runs once `TOKEN_URL` and the proxy are fixed, and `docs` names the README section on the token
+endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other status)
+names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and
+carries a `template`, the invocation with `--force`, under the `--app` the refusal's `app` key names: it is never a
+`command`, so an agent that runs every command it is handed cannot confirm a deletion by accident. `run-command` names
+the sibling skill verb that
 repairs `destination-not-empty` or `not-installed`. Under `destination-not-empty` from `skill update` itself, whose
 directory holds something other than the bundle, the step is `fix-input` and `refused_dir` names the directory, since
 nothing but the caller moves what `xr` did not install.

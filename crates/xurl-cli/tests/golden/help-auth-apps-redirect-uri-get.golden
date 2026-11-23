@@ -1,7 +1,7 @@
 args: ["auth", "apps", "redirect-uri", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6941
+stdout_len: 6984
 stderr_len: 0
 --- stdout ---
 Show the effective redirect URI, its source, and the stored value
@@ -25,7 +25,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

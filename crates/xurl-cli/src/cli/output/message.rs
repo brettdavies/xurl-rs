@@ -34,11 +34,15 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Validation { rule, value } => {
             super::validation::sentence(rule, value.as_deref()).unwrap_or_else(|| error.to_string())
         }
-        Error::TokenEndpointForbidden { body } if matches!(body.trim(), "" | "{}") => {
+        Error::TokenEndpointForbidden { body } if is_empty(body) => {
             "the token endpoint answered 403 with an empty body".to_string()
+        }
+        Error::TokenEndpointUnexpected { status, body } if is_empty(body) => {
+            format!("the token endpoint answered {status} with an empty body")
         }
         Error::Api { .. }
         | Error::TokenEndpointForbidden { .. }
+        | Error::TokenEndpointUnexpected { .. }
         | Error::ProcessingTimeout { .. }
         | Error::AddressInUse { .. }
         | Error::MediaProcessingFailed { .. } => error.to_string(),
@@ -64,6 +68,12 @@ pub(crate) fn render(error: &Error) -> String {
         // prints its own fragment rather than failing to compile downstream.
         _ => error.to_string(),
     }
+}
+
+/// Whether an answer's body says nothing: no bytes, or the `{}` an empty body
+/// is carried as.
+fn is_empty(body: &str) -> bool {
+    matches!(body.trim(), "" | "{}")
 }
 
 /// The message `xr` prints for `error` when `step` rides with it. An

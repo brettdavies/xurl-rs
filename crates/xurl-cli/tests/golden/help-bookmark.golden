@@ -1,7 +1,7 @@
 args: ["bookmark", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6994
+stdout_len: 7037
 stderr_len: 0
 --- stdout ---
 Bookmark a post
@@ -34,7 +34,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

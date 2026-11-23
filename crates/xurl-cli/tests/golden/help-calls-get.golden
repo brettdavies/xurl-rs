@@ -1,7 +1,7 @@
 args: ["calls", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7136
+stdout_len: 7179
 stderr_len: 0
 --- stdout ---
 Show an X call: its title, join policy, host, and who is in it
@@ -34,7 +34,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

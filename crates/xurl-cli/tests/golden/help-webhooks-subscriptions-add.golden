@@ -1,7 +1,7 @@
 args: ["webhooks", "subscriptions", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7225
+stdout_len: 7268
 stderr_len: 0
 --- stdout ---
 Subscribe your account's activity to a webhook
@@ -36,7 +36,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 
