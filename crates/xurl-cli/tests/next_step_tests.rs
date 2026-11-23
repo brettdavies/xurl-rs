@@ -219,7 +219,7 @@ async fn a_name_the_store_does_not_hold_points_at_the_apps_it_holds() {
     assert_eq!(v["reason"], "token-store", "{v}");
     assert_eq!(
         v["next_step"],
-        serde_json::json!({"action": "fix-input", "command": "xr auth status"}),
+        serde_json::json!({"action": "fix-input", "command": "xr --output json auth status"}),
         "{v}"
     );
 }
@@ -236,7 +236,7 @@ async fn a_credential_lookup_on_an_unloadable_store_keeps_its_command() {
     assert_eq!(v["reason"], "auth-required", "{v}");
     assert_eq!(
         v["next_step"],
-        serde_json::json!({"action": "inspect-store", "command": "xr auth status", "docs": STORE_DOCS}),
+        serde_json::json!({"action": "inspect-store", "command": "xr --output json auth status", "docs": STORE_DOCS}),
         "{v}"
     );
 }
@@ -426,7 +426,8 @@ async fn a_refusal_naming_a_store_entry_carries_the_status_command(
     #[case] held: Held,
     #[case] args: &[&str],
 ) {
-    let step = serde_json::json!({"action": "fix-input", "command": "xr auth status"});
+    let step =
+        serde_json::json!({"action": "fix-input", "command": "xr --output json auth status"});
     let tmp = TempDir::new().expect("tempdir");
     seed_store_write(held, &tmp);
     let (code, real, _) = store_write(held, &tmp, args, false).await;
@@ -756,7 +757,7 @@ async fn a_credential_step_serves_the_invocation_it_answers(#[case] args: &[&str
             assert_eq!(answer["auth"]["username"], login, "{command}: {answer}");
         }
         Some("sign-in") => assert!(
-            command.starts_with(&format!("xr auth oauth2 {login} ")),
+            command.starts_with(&format!("xr --output json auth oauth2 {login} ")),
             "the sign-in stores the login under another name: {command}"
         ),
         other => panic!("{argv:?}: unexpected step {other:?}: {step}"),

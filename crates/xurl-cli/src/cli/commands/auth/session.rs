@@ -294,7 +294,7 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> CommandResu
                         "no default app set; pass --app or run 'xr auth default <name>' interactively"
                             .to_string(),
                     ),
-                    next_step: Some(NextStep::name_default_app()),
+                    next_step: Some(out.carry(NextStep::name_default_app())),
                     ..ErrorBody::default()
                 },
             );

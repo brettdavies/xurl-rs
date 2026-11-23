@@ -261,6 +261,7 @@ async fn run_inner(
     )))
     .with_app_from_env(app_from_env(&cli, &matches));
     crate::cli::panic_hook::publish(&out);
+    let invocation = crate::cli::rerun::explicit_invocation(&args_vec, &cli);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
     if let Some(ref cmd) = cli.command {
@@ -372,7 +373,8 @@ async fn run_inner(
         }
         Classified::Raw => {}
     }
-    if let Some(misplaced) = crate::cli::misplaced_flags::misplaced(&cli, &args_vec) {
+    let explicit_args: Vec<OsString> = invocation.iter().map(OsString::from).collect();
+    if let Some(misplaced) = crate::cli::misplaced_flags::misplaced(&cli, &explicit_args) {
         return render_misplaced_flags(&misplaced, &args_vec, &out, stderr);
     }
 
@@ -413,11 +415,12 @@ async fn run_inner(
     // turns them into the stderr lines the flags call for, for this dispatch
     // and this thread only.
     let diagnostics = Diagnostics::new(out.clone());
-    let invocation = || -> Vec<String> {
-        args_vec
-            .iter()
-            .map(|a| a.to_string_lossy().into_owned())
-            .collect()
+    let recovery = Recovery {
+        snapshot: &snapshot,
+        args: &args_vec,
+        invocation: &invocation,
+        structured,
+        media: &media,
     };
     let dispatched = crate::cli::commands::run(
         cli,
@@ -427,7 +430,7 @@ async fn run_inner(
         auth,
         overrides,
         hooks,
-        &invocation(),
+        &invocation,
     )
     .with_subscriber(diagnostics)
     .await;
@@ -441,7 +444,7 @@ async fn run_inner(
         }
         Err(Failure::Unconfirmed(ctx)) => {
             let app = ctx.get("app").and_then(serde_json::Value::as_str);
-            let next_step = NextStep::confirm(&invocation(), app);
+            let next_step = NextStep::confirm(&invocation, app);
             out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR, next_step);
             EXIT_GENERAL_ERROR
         }
@@ -450,13 +453,7 @@ async fn run_inner(
             EXIT_GENERAL_ERROR
         }
         Err(Failure::DryRunRefusal { ctx, error }) => {
-            let hint = recovery_hint(
-                &error,
-                &snapshot,
-                &naming_dry_run(&args_vec),
-                structured,
-                &media,
-            );
+            let hint = recovery.hint(&error);
             out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref());
             EXIT_SUCCESS
         }
@@ -473,7 +470,7 @@ async fn run_inner(
             let code = error.exit_code();
             let hint =
                 crate::cli::hints::resume_after_upload_hint(&error, &media_id, waited, &media)
-                    .or_else(|| recovery_hint(&error, &snapshot, &args_vec, structured, &media));
+                    .or_else(|| recovery.hint(&error));
             out.print_error_after_upload(stderr, &error, code, hint.as_ref(), &media_id);
             code
         }
@@ -483,7 +480,7 @@ async fn run_inner(
                 &snapshot,
                 &error,
                 &credential,
-                &invocation_words(&args_vec),
+                &invocation,
                 structured,
             );
             match hint {
@@ -495,14 +492,12 @@ async fn run_inner(
                     );
                     out.print_rejected(stderr, &error, code, &hint, auth);
                 }
-                None => print_recovered(
-                    &out, stderr, &error, &snapshot, &args_vec, structured, &media,
-                ),
+                None => recovery.print(&out, stderr, &error),
             }
             code
         }
         Err(Failure::Error(e)) => {
-            print_recovered(&out, stderr, &e, &snapshot, &args_vec, structured, &media);
+            recovery.print(&out, stderr, &e);
             e.exit_code()
         }
     };
@@ -511,83 +506,62 @@ async fn run_inner(
     code
 }
 
-/// `args` with `--dry-run` named. `XURL_DRY_RUN` selects a dry run with no flag
-/// in argv, and a step built from argv would then rerun the invocation as a
-/// real run.
-fn naming_dry_run(args: &[OsString]) -> Vec<OsString> {
-    let named = args
-        .iter()
-        .skip(1)
-        .map_while(|arg| arg.to_str().filter(|arg| *arg != "--"))
-        .any(|arg| arg == "--dry-run" || arg.starts_with("--dry-run="));
-    let mut named_args = args.to_vec();
-    if !named {
-        named_args.insert(args.len().min(1), OsString::from("--dry-run"));
-    }
-    named_args
-}
-
-/// The words of an invocation, lossily as text.
-fn invocation_words(args: &[OsString]) -> Vec<String> {
-    args.iter()
-        .map(|a| a.to_string_lossy().into_owned())
-        .collect()
-}
-
-/// Prints `error`, with the step [`recovery_hint`] chooses when it chooses one.
-fn print_recovered(
-    out: &OutputConfig,
-    stderr: &mut dyn Write,
-    error: &xdk::error::Error,
-    snapshot: &xdk::store::snapshot::StoreSnapshot,
-    args: &[OsString],
+/// What a recovery hint is chosen from: the store as this run loaded it, the
+/// invocation as given and as [`explicit_invocation`] writes it, and the media
+/// command's credential.
+struct Recovery<'a> {
+    snapshot: &'a xdk::store::snapshot::StoreSnapshot,
+    args: &'a [OsString],
+    invocation: &'a [String],
     structured: bool,
-    media: &crate::cli::hints::MediaCredential,
-) {
-    let code = error.exit_code();
-    match recovery_hint(error, snapshot, args, structured, media) {
-        Some(hint) => out.print_error_with_hint(stderr, error, code, &hint),
-        None => out.print_error(stderr, error, code),
-    }
+    media: &'a crate::cli::hints::MediaCredential,
 }
 
-/// The recovery hint for a library error, chosen from the store as this
-/// run loaded it and the invocation as given. A dry run's refusal takes the
-/// same hint its real run would.
-fn recovery_hint(
-    error: &xdk::error::Error,
-    snapshot: &xdk::store::snapshot::StoreSnapshot,
-    args: &[OsString],
-    structured: bool,
-    media: &crate::cli::hints::MediaCredential,
-) -> Option<crate::cli::hints::Hint> {
-    let invocation = invocation_words(args);
-    if let Some(missing) = crate::cli::credential_step::missing_credential(error) {
-        return Some(crate::cli::credential_step::no_credential_hint(
-            missing,
+impl Recovery<'_> {
+    /// Prints `error`, with the step [`Self::hint`] chooses when it chooses one.
+    fn print(&self, out: &OutputConfig, stderr: &mut dyn Write, error: &xdk::error::Error) {
+        let code = error.exit_code();
+        match self.hint(error) {
+            Some(hint) => out.print_error_with_hint(stderr, error, code, &hint),
+            None => out.print_error(stderr, error, code),
+        }
+    }
+
+    /// The recovery hint for a library error. A dry run's refusal takes the
+    /// same hint its real run would, and a step that runs the invocation
+    /// again names `--dry-run` because the invocation does.
+    fn hint(&self, error: &xdk::error::Error) -> Option<crate::cli::hints::Hint> {
+        let Self {
             snapshot,
-            &invocation,
+            args,
+            invocation,
             structured,
-        ));
+            media,
+        } = *self;
+        if let Some(missing) = crate::cli::credential_step::missing_credential(error) {
+            return Some(crate::cli::credential_step::no_credential_hint(
+                missing, snapshot, invocation, structured,
+            ));
+        }
+        crate::cli::hints::unloadable_store_hint(snapshot, error)
+            .or_else(|| crate::cli::hints::store_name_hint(error))
+            .or_else(|| crate::cli::hints::enrollment_hint(error))
+            .or_else(|| crate::cli::hints::resume_wait_hint(error, media))
+            .or_else(|| crate::cli::hints::address_in_use_hint(error, invocation))
+            .or_else(|| crate::cli::hints::no_signing_secret_hint(snapshot, error, invocation))
+            .or_else(|| crate::cli::hints::sign_in_again_hint(error, invocation))
+            .or_else(|| crate::cli::hints::redirect_url_again_hint(error, invocation))
+            .or_else(|| crate::cli::hints::pending_app_hint(snapshot, error, invocation))
+            .or_else(|| crate::cli::hints::sign_in_fault_hint(error))
+            .or_else(|| {
+                crate::cli::hints::refresh_refused_hint(snapshot, error, invocation, structured)
+            })
+            .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
+            .or_else(|| {
+                crate::cli::credential_step::mismatch_hint(snapshot, error, invocation, structured)
+            })
+            .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
     }
-    crate::cli::hints::unloadable_store_hint(snapshot, error)
-        .or_else(|| crate::cli::hints::store_name_hint(error))
-        .or_else(|| crate::cli::hints::enrollment_hint(error))
-        .or_else(|| crate::cli::hints::resume_wait_hint(error, media))
-        .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))
-        .or_else(|| crate::cli::hints::no_signing_secret_hint(snapshot, error, &invocation))
-        .or_else(|| crate::cli::hints::sign_in_again_hint(error, &invocation))
-        .or_else(|| crate::cli::hints::redirect_url_again_hint(error, &invocation))
-        .or_else(|| crate::cli::hints::pending_app_hint(snapshot, error, &invocation))
-        .or_else(|| crate::cli::hints::sign_in_fault_hint(error))
-        .or_else(|| {
-            crate::cli::hints::refresh_refused_hint(snapshot, error, &invocation, structured)
-        })
-        .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
-        .or_else(|| {
-            crate::cli::credential_step::mismatch_hint(snapshot, error, &invocation, structured)
-        })
-        .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
 }
 
 /// The credential words of `media upload` and `media status`, the commands
@@ -827,15 +801,16 @@ fn render_misplaced_flags(
         "{named} {verb} before the command word, where only a raw request reads {pronoun}."
     );
     let (message, next_step) = match &misplaced.moved {
-        Some(moved) => (
-            format!("{problem} Run: {moved}"),
-            NextStep::fix_input_with(moved.clone()),
-        ),
+        Some(moved) => {
+            let step = out.carry(NextStep::fix_input_with(moved.clone()));
+            let run = step.command.as_deref().unwrap_or(moved);
+            (format!("{problem} Run: {run}"), step)
+        }
         None => {
             let help = invoked_help(args);
             (
                 format!("{problem} Try '{help}'."),
-                NextStep::show_help(help),
+                out.carry(NextStep::show_help(help)),
             )
         }
     };
@@ -898,6 +873,8 @@ fn render_schema_refusal(
             } else {
                 format!("it has {}", known.join(", "))
             };
+            let step = out.carry(NextStep::fix_input_template(template));
+            let template = step.template.clone().unwrap_or_default();
             out.emit_error_envelope(
                 stderr,
                 ErrorBody {
@@ -908,7 +885,7 @@ fn render_schema_refusal(
                     )),
                     path: Some(path),
                     known_properties: Some(known),
-                    next_step: Some(NextStep::fix_input_template(template)),
+                    next_step: Some(step),
                     ..ErrorBody::default()
                 },
             );
@@ -930,13 +907,14 @@ fn render_schema_refusal(
         }
     };
     let (message, next_step) = match run {
-        Some(run) => (
-            format!("{problem} Run: {run}"),
-            NextStep::fix_input_with(run),
-        ),
+        Some(run) => {
+            let step = out.carry(NextStep::fix_input_with(run));
+            let run = step.command.clone().unwrap_or_default();
+            (format!("{problem} Run: {run}"), step)
+        }
         None => (
             format!("{problem} Try 'xr schema --help'."),
-            NextStep::show_help("xr schema --help".to_string()),
+            out.carry(NextStep::show_help("xr schema --help".to_string())),
         ),
     };
     out.emit_error_envelope(
@@ -1066,7 +1044,7 @@ fn render_unknown_command(
             message: Some(message),
             command: Some(word.to_string()),
             suggestion: suggestion.name().map(str::to_string),
-            next_step: Some(NextStep::show_help(format!("{target} --help"))),
+            next_step: Some(out.carry(NextStep::show_help(format!("{target} --help")))),
             ..ErrorBody::default()
         },
     );

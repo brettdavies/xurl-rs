@@ -2,7 +2,7 @@ args: ["--output", "json", "skill", "update", "--all"]
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1
-stdout_len: 3516
+stdout_len: 3586
 stderr_len: 0
 --- stdout ---
 {
@@ -35,7 +35,7 @@ stderr_len: 0
       "reason": "not-installed",
       "next_step": {
         "action": "run-command",
-        "command": "xr skill install codex"
+        "command": "xr --output json skill install codex"
       }
     },
     {
@@ -49,7 +49,7 @@ stderr_len: 0
       "reason": "not-installed",
       "next_step": {
         "action": "run-command",
-        "command": "xr skill install cursor"
+        "command": "xr --output json skill install cursor"
       }
     },
     {
@@ -63,7 +63,7 @@ stderr_len: 0
       "reason": "not-installed",
       "next_step": {
         "action": "run-command",
-        "command": "xr skill install factory"
+        "command": "xr --output json skill install factory"
       }
     },
     {
@@ -77,7 +77,7 @@ stderr_len: 0
       "reason": "not-installed",
       "next_step": {
         "action": "run-command",
-        "command": "xr skill install kiro"
+        "command": "xr --output json skill install kiro"
       }
     },
     {
@@ -91,7 +91,7 @@ stderr_len: 0
       "reason": "not-installed",
       "next_step": {
         "action": "run-command",
-        "command": "xr skill install opencode"
+        "command": "xr --output json skill install opencode"
       }
     }
   ],

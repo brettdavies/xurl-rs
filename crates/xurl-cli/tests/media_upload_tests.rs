@@ -110,7 +110,7 @@ async fn a_wait_past_its_deadline_ends_with_processing_timeout_and_a_resume_comm
     assert_eq!(v["media_id"], "777", "got: {v}");
     assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
     assert_eq!(
-        v["next_step"]["command"], "xr media status 777 --wait=4",
+        v["next_step"]["command"], "xr --output json media status 777 --wait=4",
         "got: {v}"
     );
     let calls = status_calls(&server).await;
@@ -388,7 +388,7 @@ async fn an_upload_wait_past_its_deadline_leaves_stdout_empty() {
     assert_eq!(v["media_id"], "777", "got: {v}");
     assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
     assert_eq!(
-        v["next_step"]["command"], "xr media status 777 --wait=2",
+        v["next_step"]["command"], "xr --output json media status 777 --wait=2",
         "a wait whose deadline ran out resumes for twice as long: {v}"
     );
     assert_eq!(
@@ -455,8 +455,8 @@ async fn a_status_read_that_fails_says_what_failed_in_text(
 /// run once the credential works is the resumed wait, as a template: an agent
 /// that runs every `command` it is handed does not send a read X will refuse.
 #[rstest::rstest]
-#[case::default_credential(&[], "xr media status 777 --wait=60")]
-#[case::own_login(&["--app", "myapp", "-u", "alice"], "xr --app myapp media status 777 --wait=60 -u alice")]
+#[case::default_credential(&[], "xr --output json media status 777 --wait=60")]
+#[case::own_login(&["--app", "myapp", "-u", "alice"], "xr --output json --app myapp media status 777 --wait=60 -u alice")]
 #[tokio::test(flavor = "multi_thread")]
 async fn a_status_read_whose_credential_x_refused_resumes_once_it_works(
     #[case] flags: &[&str],
@@ -504,8 +504,8 @@ async fn a_refused_credential_after_an_upload_says_in_text_how_to_resume() {
 /// inviting another upload, whose file X would bill for again. The new wait
 /// has the deadline of the one that failed, which had not run out.
 #[rstest::rstest]
-#[case::default_wait(&[], "xr media status 777 --wait=60")]
-#[case::own_wait(&["--wait=300"], "xr media status 777 --wait=300")]
+#[case::default_wait(&[], "xr --output json media status 777 --wait=60")]
+#[case::own_wait(&["--wait=300"], "xr --output json media status 777 --wait=300")]
 #[tokio::test(flavor = "multi_thread")]
 async fn a_status_read_x_failed_resumes_the_wait(#[case] wait: &[&str], #[case] command: &str) {
     let mut args = vec!["--output", "json"];
@@ -541,17 +541,17 @@ async fn a_status_read_x_failed_prints_the_resume_command_in_text() {
 #[rstest::rstest]
 #[case::own_app_and_login(
     &["--app", "myapp", "--auth", "oauth2", "-u", "alice"],
-    "xr --app myapp media status 777 --wait=60 --auth oauth2 -u alice",
+    "xr --output json --app myapp media status 777 --wait=60 --auth oauth2 -u alice",
     None,
 )]
 #[case::joined_spellings(
     &["--app=myapp", "--username=alice"],
-    "xr --app myapp media status 777 --wait=60 -u alice",
+    "xr --output json --app myapp media status 777 --wait=60 -u alice",
     None,
 )]
 #[case::header(
     &["-u", "alice", "-H", "X-Trace: secret-123"],
-    "xr media status 777 --wait=60 -u alice -H 'X-Trace: <value>'",
+    "xr --output json media status 777 --wait=60 -u alice -H 'X-Trace: <value>'",
     Some("secret-123"),
 )]
 #[tokio::test(flavor = "multi_thread")]
@@ -601,7 +601,8 @@ async fn an_upload_wait_past_its_deadline_resumes_under_its_credential() {
     let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
     assert_eq!(v["reason"], "processing-timeout", "got: {v}");
     assert_eq!(
-        v["next_step"]["command"], "xr --app myapp media status 777 --wait=2 -u alice",
+        v["next_step"]["command"],
+        "xr --output json --app myapp media status 777 --wait=2 -u alice",
         "got: {v}"
     );
 }
@@ -642,7 +643,7 @@ async fn a_status_wait_past_its_deadline_resumes_under_its_credential() {
     assert_eq!(v["reason"], "processing-timeout", "got: {v}");
     assert_eq!(
         v["next_step"]["template"],
-        "xr --app myapp media status 777 --wait=2 --auth oauth2 -H 'X-Trace: <value>'",
+        "xr --output json --app myapp media status 777 --wait=2 --auth oauth2 -H 'X-Trace: <value>'",
         "got: {v}"
     );
     assert_eq!(v["next_step"].get("command"), None, "never both: {v}");
@@ -741,7 +742,7 @@ async fn a_status_read_the_network_dropped_resumes_the_wait() {
     assert!(message.starts_with(AFTER_UPLOAD), "says what failed: {v}");
     assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
     assert_eq!(
-        v["next_step"]["command"], "xr media status 777 --wait=60",
+        v["next_step"]["command"], "xr --output json media status 777 --wait=60",
         "got: {v}"
     );
     assert_eq!(v["next_step"].get("docs"), None, "X never answered: {v}");
@@ -791,26 +792,26 @@ async fn a_failure_before_the_upload_finished_keeps_retry(#[case] failing: &str)
 #[case::with_reset(
     Some("1767225599"),
     &[],
-    Some("xr --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60"),
+    Some("xr --output json --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60"),
     None,
 )]
-#[case::without_reset(None, &[], None, Some("xr media status 777 --wait=60"))]
+#[case::without_reset(None, &[], None, Some("xr --output json media status 777 --wait=60"))]
 #[case::own_login(
     Some("1767225599"),
     &["--app", "myapp", "-u", "alice"],
-    Some("xr --app myapp --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60 -u alice"),
+    Some("xr --output json --app myapp --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60 -u alice"),
     None,
 )]
 #[case::own_rate_limit_wait(
     None,
     &["--wait-on-rate-limit", "--rate-limit-max-wait=5"],
     None,
-    Some("xr --wait-on-rate-limit --rate-limit-max-wait=5 media status 777 --wait=60"),
+    Some("xr --output json --wait-on-rate-limit --rate-limit-max-wait=5 media status 777 --wait=60"),
 )]
 #[case::own_rate_limit_wait_and_reset(
     Some("1767225599"),
     &["--wait-on-rate-limit", "--rate-limit-max-wait=5"],
-    Some("xr --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60"),
+    Some("xr --output json --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60"),
     None,
 )]
 #[tokio::test(flavor = "multi_thread")]
@@ -868,7 +869,7 @@ async fn a_rate_limited_status_read_waits_no_longer_than_its_reset() {
     let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
     let command = v["next_step"]["command"].as_str().expect("a command");
     let ceiling: u64 = command
-        .strip_prefix("xr --wait-on-rate-limit --rate-limit-max-wait=")
+        .strip_prefix("xr --output json --wait-on-rate-limit --rate-limit-max-wait=")
         .and_then(|rest| rest.strip_suffix(" media status 777 --wait=60"))
         .and_then(|secs| secs.parse().ok())
         .unwrap_or_else(|| panic!("the ceiling is the only value that varies: {command}"));
@@ -918,12 +919,12 @@ async fn a_rate_limited_status_read_says_in_text_how_to_resume(
 #[case::rate_limited(
     ResponseTemplate::new(429).insert_header("x-rate-limit-reset", "1767225599"),
     "wait-and-retry",
-    "xr --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60 -u alice -H 'X-Trace: <value>'"
+    "xr --output json --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60 -u alice -H 'X-Trace: <value>'"
 )]
 #[case::refused(
     ResponseTemplate::new(401),
     "fix-input",
-    "xr media status 777 --wait=60 -u alice -H 'X-Trace: <value>'"
+    "xr --output json media status 777 --wait=60 -u alice -H 'X-Trace: <value>'"
 )]
 #[tokio::test(flavor = "multi_thread")]
 async fn a_header_makes_the_step_after_a_429_or_a_401_a_template(

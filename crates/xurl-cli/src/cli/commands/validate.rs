@@ -292,7 +292,7 @@ pub fn run_validate(
                     reason: Reason::Io,
                     exit_code: EXIT_GENERAL_ERROR,
                     message: Some(reason),
-                    next_step: Some(NextStep::fix_input(None)),
+                    next_step: Some(out.carry(NextStep::fix_input(None))),
                     ..ErrorBody::default()
                 },
             );
@@ -308,7 +308,7 @@ pub fn run_validate(
                 "reason": Reason::InvalidJson,
                 "exit_code": EXIT_VALIDATION_FAILED,
                 "message": format!("input is not valid JSON: {e}"),
-                "next_step": NextStep::show_help("xr validate --help".to_string()),
+                "next_step": out.carry(NextStep::show_help("xr validate --help".to_string())),
             });
             out.print_response(stderr, &payload);
             return EXIT_VALIDATION_FAILED;
@@ -332,7 +332,7 @@ pub fn run_validate(
                 "unknown schema {schema:?}; pass one of {} or omit --schema for auto-detection",
                 known.join(", ")
             ),
-            "next_step": NextStep::show_help("xr validate --help".to_string()),
+            "next_step": out.carry(NextStep::show_help("xr validate --help".to_string())),
         });
         out.print_response(stderr, &payload);
         return EXIT_VALIDATION_FAILED;
@@ -356,7 +356,7 @@ pub fn run_validate(
                 "schema": schema,
                 "valid": false,
                 "message": msg,
-                "next_step": NextStep::fix_input(None),
+                "next_step": out.carry(NextStep::fix_input(None)),
             });
             out.print_response(stderr, &payload);
             EXIT_VALIDATION_FAILED

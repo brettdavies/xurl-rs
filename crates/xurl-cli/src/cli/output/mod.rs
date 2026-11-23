@@ -234,6 +234,13 @@ impl OutputConfig {
         self
     }
 
+    /// `step` with this run's output format on it: the only way a step reaches
+    /// a document.
+    #[must_use]
+    pub fn carry(&self, step: crate::cli::hints::NextStep) -> crate::cli::rerun::CarriedStep {
+        crate::cli::rerun::carry(step, &self.format)
+    }
+
     /// `body` with its message saying `XURL_APP` gave the app it refuses, when
     /// it did. Only the refusal of an app the store does not hold carries
     /// `held`, so no other error's message changes.
@@ -385,7 +392,7 @@ impl OutputConfig {
         exit_code: i32,
         hint: &crate::cli::hints::Hint,
     ) {
-        let body = error_body_with_step(error, exit_code, &hint.next_step);
+        let body = error_body_with_step(error, exit_code, &self.carry(hint.next_step.clone()));
         self.emit_body_with_hint(err, body, hint);
     }
 
@@ -401,7 +408,7 @@ impl OutputConfig {
     ) {
         let body = ErrorBody {
             auth: Some(credential),
-            ..error_body_with_step(error, exit_code, &hint.next_step)
+            ..error_body_with_step(error, exit_code, &self.carry(hint.next_step.clone()))
         };
         self.emit_body_with_hint(err, body, hint);
     }
@@ -446,7 +453,7 @@ impl OutputConfig {
             ));
         }
         if let Some(hint) = hint {
-            body.next_step = Some(hint.next_step.clone());
+            body.next_step = Some(self.carry(hint.next_step.clone()));
         }
         self.emit_error_envelope(err, body);
         if self.format.is_structured() || self.quiet {
@@ -468,7 +475,7 @@ impl OutputConfig {
         let hint = crate::cli::hints::general_hint(error, "");
         if self.format.is_structured() {
             let body = ErrorBody {
-                next_step: hint.map(|hint| hint.next_step),
+                next_step: hint.map(|hint| self.carry(hint.next_step.clone())),
                 backtrace,
                 ..error_body(error, xdk::error::EXIT_GENERAL_ERROR)
             };
@@ -501,7 +508,7 @@ impl OutputConfig {
             self.print_error_with_hint(err, error, exit_code, hint);
             return;
         }
-        let mut body = error_body_with_step(error, exit_code, &hint.next_step);
+        let mut body = error_body_with_step(error, exit_code, &self.carry(hint.next_step.clone()));
         if let Some(reason) = reason {
             // `rule` names the input rule under `reason: validation`; a
             // refusal with a reason of its own carries that reason alone.
@@ -715,7 +722,9 @@ impl OutputConfig {
             _ => &[],
         };
         let body = match hint {
-            Some(hint) => error_body_with_step(error, exit_code, &hint.next_step),
+            Some(hint) => {
+                error_body_with_step(error, exit_code, &self.carry(hint.next_step.clone()))
+            }
             None => error_body(error, exit_code),
         };
         self.print_refused_dry_run(out, ctx, body, advice);
@@ -770,7 +779,7 @@ impl OutputConfig {
             validate_only: get_bool("validate_only"),
             webhook_id: get_str("webhook_id"),
             user_id: get_str("user_id"),
-            next_step: Some(next_step),
+            next_step: Some(self.carry(next_step)),
             ..ErrorBody::default()
         };
         let text = match &body.command {
@@ -952,7 +961,10 @@ fn invalid_args_body(message: &str, separator: &str, command: &str) -> ErrorBody
         reason: Reason::InvalidArgs,
         exit_code: xdk::error::EXIT_USAGE_ERROR,
         message: Some(format!("{message}{separator}Try '{help}'.")),
-        next_step: Some(crate::cli::hints::NextStep::show_help(help)),
+        next_step: Some(crate::cli::rerun::carry(
+            crate::cli::hints::NextStep::show_help(help),
+            &OutputFormat::Text,
+        )),
         ..ErrorBody::default()
     }
 }
@@ -962,7 +974,7 @@ fn invalid_args_body(message: &str, separator: &str, command: &str) -> ErrorBody
 fn error_body_with_step(
     error: &Error,
     exit_code: i32,
-    step: &crate::cli::hints::NextStep,
+    step: &crate::cli::rerun::CarriedStep,
 ) -> ErrorBody {
     ErrorBody {
         message: Some(message::render_with_step(error, step)),

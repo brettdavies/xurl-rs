@@ -122,13 +122,7 @@ pub(super) async fn oauth2(
                 return Err(Failure::from(error));
             }
             Err(_) => None,
-            Ok(()) => client_credentials_missing(
-                &auth,
-                app_explicit,
-                invocation,
-                out.format.is_structured(),
-                false,
-            ),
+            Ok(()) => client_credentials_missing(&auth, app_explicit, invocation, out),
         }
     };
     if let Some(body) = refusal {
@@ -205,7 +199,10 @@ pub(super) async fn oauth2(
                             url,
                             instructions: format!(
                                 "Open the URL in a browser, authorize, then run '{}'",
-                                step_two(username_arg, &app, "<redirect-url>")
+                                crate::cli::rerun::name_format(
+                                    &step_two(username_arg, &app, "<redirect-url>"),
+                                    &out.format
+                                )
                             ),
                         };
                         out.print_response(stdout, &document.into_value());
@@ -325,13 +322,7 @@ fn dry_run_answer(
         Err(error) if !step2 => return Err(Failure::DryRunRefusal { ctx, error }),
         Err(_) => {}
         Ok(()) => {
-            if let Some(body) = client_credentials_missing(
-                auth,
-                app_explicit,
-                invocation,
-                out.format.is_structured(),
-                true,
-            ) {
+            if let Some(body) = client_credentials_missing(auth, app_explicit, invocation, out) {
                 out.print_dry_run_error_body(stdout, &ctx, body);
                 return Ok(());
             }
@@ -544,15 +535,16 @@ pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult
 /// exported in the environment counts regardless of how the app was
 /// selected. When another app does carry credentials the hint names it, and
 /// runs `invocation` again from its first step under that app; otherwise the
-/// hint is registration, whose values only the caller has. A dry run's hint
-/// reruns the sign-in under `--dry-run`.
+/// hint is registration, whose values only the caller has. `invocation` names
+/// `--dry-run` when the run is one, so a dry run's hint reruns the sign-in as
+/// a rehearsal.
 fn client_credentials_missing(
     auth: &Auth,
     app_explicit: bool,
     invocation: &[String],
-    structured: bool,
-    dry_run: bool,
+    out: &OutputConfig,
 ) -> Option<ErrorBody> {
+    let structured = out.format.is_structured();
     if !auth.client_id().is_empty() {
         return None;
     }
@@ -583,11 +575,7 @@ fn client_credentials_missing(
             NextStep::register_app(),
         ),
     };
-    let next_step = if dry_run {
-        next_step.under_dry_run()
-    } else {
-        next_step
-    };
+    let next_step = out.carry(next_step);
     // The text derives from the built value, so the prose and the
     // machine-readable step cannot name different commands.
     let message = match next_step.display_invocation() {

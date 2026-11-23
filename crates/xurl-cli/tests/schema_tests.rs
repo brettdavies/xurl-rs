@@ -198,7 +198,10 @@ fn a_path_that_names_no_property_carries_a_template_that_works() {
     );
     assert_eq!(envelope["next_step"]["action"], "fix-input");
     let template = envelope["next_step"]["template"].as_str().unwrap();
-    assert_eq!(template, "xr schema post --path public_metrics.<property>");
+    assert_eq!(
+        template,
+        "xr --output json schema post --path public_metrics.<property>"
+    );
 
     let filled = template.replace("<property>", "like_count");
     let words: Vec<&str> = filled.split_whitespace().skip(1).collect();
@@ -570,7 +573,10 @@ fn envelope_as_a_word_is_refused_with_the_flag_as_its_step() {
     assert_eq!(envelope["reason"], "invalid-args");
     assert_eq!(envelope["command"], "envelope");
     assert_eq!(envelope["next_step"]["action"], "fix-input");
-    assert_eq!(envelope["next_step"]["command"], "xr schema --envelope");
+    assert_eq!(
+        envelope["next_step"]["command"],
+        "xr --output json schema --envelope"
+    );
 }
 
 #[test]
@@ -853,11 +859,20 @@ fn a_mistyped_word_gets_the_refusal_xr_help_gives_it() {
 #[rstest]
 #[case(
     "webhooks-subscriptions-count",
-    "xr schema webhooks subscriptions count"
+    "xr --output json schema webhooks subscriptions count"
 )]
-#[case("redirect-uri-get", "xr schema auth apps redirect-uri get")]
-#[case("broadcasts-scheduled-remove", "xr schema broadcasts scheduled cancel")]
-#[case("broadcasts-sources-rename", "xr schema broadcasts sources update")]
+#[case(
+    "redirect-uri-get",
+    "xr --output json schema auth apps redirect-uri get"
+)]
+#[case(
+    "broadcasts-scheduled-remove",
+    "xr --output json schema broadcasts scheduled cancel"
+)]
+#[case(
+    "broadcasts-sources-rename",
+    "xr --output json schema broadcasts sources update"
+)]
 fn an_old_name_is_refused_with_the_words_that_work(#[case] old: &str, #[case] run: &str) {
     let (code, envelope) = schema_refusal(&[old]);
     assert_eq!(code, Some(2));

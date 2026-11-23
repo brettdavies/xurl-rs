@@ -105,7 +105,7 @@ async fn a_401_under_a_login_names_it_and_signs_in_again() {
         envelope["next_step"],
         json!({
             "action": "sign-in",
-            "command": format!("xr auth oauth2 {SAMPLE} --no-browser --step 1 --app {SAMPLE}"),
+            "command": format!("xr --output json auth oauth2 {SAMPLE} --no-browser --step 1 --app {SAMPLE}"),
         }),
         "{envelope}"
     );
@@ -127,7 +127,7 @@ async fn a_401_under_oauth1_keys_names_them_and_stores_a_pair_again() {
         json!({
             "action": "fix-input",
             "template": format!(
-                "xr auth oauth1 --app {SAMPLE} --consumer-key <consumer-key> --consumer-secret-file <path> --access-token-file <path> --token-secret-file <path>"
+                "xr --output json auth oauth1 --app {SAMPLE} --consumer-key <consumer-key> --consumer-secret-file <path> --access-token-file <path> --token-secret-file <path>"
             ),
         }),
         "{envelope}"
@@ -149,7 +149,7 @@ async fn a_401_under_a_stored_bearer_token_names_it_and_stores_one_again() {
         envelope["next_step"],
         json!({
             "action": "fix-input",
-            "template": format!("xr auth app --app {SAMPLE} --bearer-token-file <path>"),
+            "template": format!("xr --output json auth app --app {SAMPLE} --bearer-token-file <path>"),
         }),
         "{envelope}"
     );
@@ -198,7 +198,7 @@ async fn a_401_under_a_named_app_names_that_app() {
     );
     assert_eq!(
         envelope["next_step"]["command"],
-        format!("xr auth oauth2 alice --no-browser --step 1 --app {OTHER}"),
+        format!("xr --output json auth oauth2 alice --no-browser --step 1 --app {OTHER}"),
         "{envelope}"
     );
 }
