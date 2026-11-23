@@ -353,8 +353,9 @@ the decision rules out.
     `dev` that invocation opens the browser and drops `--step` without a word, against the rule in
     `docs/solutions/best-practices/oauth2-pkce-credential-handling-rust-cli.md` (line 215) that a flag which does not
     apply is refused, not ignored.
-  - `--no-browser=false --step N`, both typed, is refused at exit 2 with `invalid-args`, naming both flags. It adds no
-    reason and no envelope key.
+  - `--no-browser=false --step N`, both typed, is refused at exit 2 with `invalid-args`, naming both flags, and its dry
+    run answers `would_succeed: false`, as the sign-in's other argument refusals do. It adds no reason and no envelope
+    key.
   - The dry run reports `headless: true` for a typed step, and its `no_browser` key keeps echoing the input, as it does
     under the stdout auto-switch. The recovery steps that spell `--no-browser --step 2` stay as they are, since they
     remain valid.
@@ -565,10 +566,12 @@ Left, each with its reason:
 
 ### Sequencing
 
-U1 comes first, and U2 builds on its parse path. Neither changes a declared flag. U3 is the fix and depends on both. U4
-depends on U3 and shares its commit boundary: the alias variables leave clap in U3, and `output_intent` learns them in
-U4, so the suite is green only with both. U5 depends on U1 to U3. U7 depends on none of them and changes only
-`auth oauth2`. U6 is last.
+U7 comes first. It depends on no other unit and changes only `auth oauth2`, and U1 needs it: U1's false-variable step
+removes the binding of `XURL_NO_BROWSER=0`, so while `--step` still declares `requires = "no_browser"`,
+`XURL_NO_BROWSER=0 xr auth oauth2 --step 1`, which exits 0 on 4.8.0, exits 2 for a missing `--no-browser` (KTD11). U1
+follows, and U2 builds on its parse path. Neither changes a declared flag. U3 is the fix and depends on both. U4 depends
+on U3 and shares its commit boundary: the alias variables leave clap in U3, and `output_intent` learns them in U4, so
+the suite is green only with both. U5 depends on U1 to U3. U6 is last.
 
 ---
 
@@ -579,7 +582,7 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U7 depends on 
 - **Goal:** every argv parse in production code goes through one function that first removes the binding of any boolean
   flag whose variable reads as the flag's absent value.
 - **Requirements:** R8, R11. KTD10, KTD11.
-- **Dependencies:** none.
+- **Dependencies:** U7, so that the step changes no behavior of today's tree (KTD11, Sequencing).
 - **Files:**
   - create `crates/xurl-cli/src/cli/parse.rs`, a `pub mod` under the doc-hidden `cli` module so the guards in
     `crates/xurl-cli/tests/` can call the step, with a doc comment on each public item (`#![deny(missing_docs)]` in
@@ -915,13 +918,25 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U7 depends on 
     `--no-browser`)
   - modify `crates/xurl-cli/src/cli/commands/auth/signin.rs` (the mode, the refusal of `--no-browser=false` beside a
     typed `--step`, and the dry run's `headless`)
+  - modify `crates/xurl-cli/src/cli/runner.rs` and `crates/xurl-cli/src/cli/commands/auth/mod.rs`, which builds
+    `Oauth2Args`, so the sign-in learns whether `--no-browser` was typed (step 3)
   - modify `crates/xurl-cli/tests/oauth2_flow_tests.rs`
+  - modify `crates/xurl-cli/tests/auth_remote_tests.rs`: `cli_step_without_no_browser_fails` asserts that
+    `xr auth oauth2 --step 1` is refused naming `--no-browser`, the requirement this unit removes, and is rewritten in
+    place to assert that the run is no longer refused for a missing `--no-browser`
   - re-bless `crates/xurl-cli/tests/golden/help-auth-oauth2.golden`
 - **Approach:**
   1. `--step` drops `requires = "no_browser"`. `--auth-url` keeps `requires = "step"`.
   2. `effective_no_browser` is `no_browser`, or a typed `--step`, or the stdout auto-switch.
-  3. When `--no-browser` is typed and reads false and `--step` is typed, the command refuses at exit 2 with
-     `invalid-args`, naming both flags, before any other check.
+  3. When `--no-browser` is typed and reads false and `--step` is typed, the command refuses with `invalid-args`, naming
+     both flags, before any other check. Typed means clap's `value_source` for `no_browser` is `CommandLine`.
+     `Oauth2Args.no_browser` is a `bool`, which cannot tell a typed `--no-browser=false` from the default, and no
+     command receives the matches, so the runner reads the source from the matches it keeps, as `app_from_env` reads
+     `--app`'s, and the fact reaches `Oauth2Args` beside `no_browser`. The refusal takes the route the sign-in's other
+     argument refusals take (`auth_url_refusal`): the real run exits 2 through `refused_argument`, and a dry run answers
+     at exit 0 with `would_succeed: false`, `reason` `invalid-args`, and `exit_code` 2 through
+     `print_dry_run_invalid_args`, as § "Output formats" in `AGENTS.md` requires of a sign-in argument the real run
+     refuses.
   4. The help of `--step` says it runs the no-browser flow by itself, and the help of `--no-browser` says a typed
      `--step` implies it.
 - **Execution note:** run the first two scenarios against `dev` first and quote the failure. On `dev`,
@@ -934,13 +949,17 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U7 depends on 
   - `xr --dry-run auth oauth2 --step 2 --auth-url <url>`, no `--no-browser`: not refused for a missing `--no-browser`.
   - `xr auth oauth2 --no-browser=false --step 1`: exit 2, `invalid-args`, the message names `--no-browser` and `--step`,
     and the envelope has no key it lacks today.
+  - `xr --dry-run auth oauth2 --no-browser=false --step 1`: exit 0, `would_succeed: false`, `reason` `invalid-args`,
+    `exit_code` 2.
+  - `xr auth oauth2 --step 1` with no `--no-browser` and no `--dry-run`: no longer refused for a missing `--no-browser`
+    (`cli_step_without_no_browser_fails`, rewritten).
   - `XURL_NO_BROWSER=0 xr --dry-run auth oauth2 --step 1`: exit 0, `headless: true`. With stdout piped the auto-switch
     already gives this on `dev`, so the case pins the rule and is not the observed failure.
   - `xr auth oauth2 --auth-url <url>` without `--step`: still refused for the missing `--step`.
   - `xr --dry-run auth oauth2 --no-browser --step 1`: unchanged, and a recovery step that spells `--no-browser --step 2`
     still runs.
-- **Verification:** `help-auth-oauth2.golden` moves only in the five flags' blocks and the `--step` and `--no-browser`
-  blocks.
+- **Verification:** `help-auth-oauth2.golden` moves only in the `--step` and `--no-browser` blocks, and U3 later moves
+  it in the five flags' blocks. `completions/` is regenerated when the two blocks' first lines move it.
 
 ---
 
@@ -952,7 +971,7 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U7 depends on 
 | Doc tests         | `cargo test --doc --workspace`                                                                                                                                            | U1 to U4         |
 | Lint and format   | `cargo clippy -- -D warnings`, `cargo fmt --check`                                                                                                                        | every unit       |
 | Help fixtures     | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests`, then the scripted diff check                                                                             | U3               |
-| Completions       | `scripts/generate-completions.sh`, committed when it changes                                                                                                              | U3               |
+| Completions       | `scripts/generate-completions.sh`, committed when it changes                                                                                                              | U3, U7           |
 | Local CI mirror   | `scripts/hooks/pre-push`                                                                                                                                                  | before the push  |
 | Built binary      | each acceptance example run against the built `xr` with `XURL_TOKEN_STORE` on a scratch path                                                                              | U2 to U4         |
 | Library untouched | `git diff --stat origin/dev -- crates/xdk` prints nothing                                                                                                                 | the pull request |
@@ -1499,6 +1518,42 @@ Effort assumes the default ratios: tests ~50x, bug fix ~20x.
 - None open. Whether to post on clap-rs/clap#5591 how `xr` works around the defect, carried from the devex review, is
   resolved: nobody posts (Brett, 2026-11-23). This review adds none.
 
+## Document Review
+
+One round of `/compound-engineering:ce-doc-review`, non-interactive, full depth (the plan changes how typed `--json` and
+`--output` combine, a CLI contract callers rely on), with the coherence, feasibility, scope, and adversarial lenses
+applied in one context against the code on `dev` at `e34e16a` and clap_builder 4.6.7's source. Every question was
+answered from that evidence; each answer is below with what it rests on. The cross-model pass did not run.
+
+- **DR1. A test pins the requirement U7 removes.** `cli_step_without_no_browser_fails`
+  (`crates/xurl-cli/tests/auth_remote_tests.rs:1126`) runs `xr auth oauth2 --step 1` and asserts a refusal naming
+  `--no-browser`. Under the zero-broken-tests rule in `AGENTS.md` the suite would go red at U7, as the eng review's T1
+  found for KTD2. Answer: U7 rewrites it in place to assert the run is no longer refused for a missing `--no-browser`.
+- **DR2. U7 cannot see a typed `--no-browser=false` from what the sign-in receives.** `Oauth2Args.no_browser` is a
+  `bool` (`signin.rs:26`), so the default and a typed false are the same value, and commands receive no matches
+  (`value_source` is read only in `runner.rs:940` and `misplaced_flags.rs`). Answer: typed means `value_source` is
+  `CommandLine`, read from the matches the runner keeps, as `app_from_env` reads `--app`'s, and carried to `Oauth2Args`.
+  A scan of the invocation words was not chosen: it is a second argv reader, which KTD9 and A2 design out.
+- **DR3. U7's refusal joins the dry-run contract.** `AGENTS.md` § "Output formats" makes `would_succeed` false for a
+  sign-in whose arguments the real run refuses, and `crates/xurl-cli/README.md` (line 896) says the dry run checks the
+  `--step` and `--auth-url` arguments. `auth_url_refusal` already answers that way through `print_dry_run_invalid_args`
+  (`signin.rs:314`). Answer: the contradiction takes the same route, and U7 gains the dry-run scenario.
+- **DR4. U1 needs U7 first.** `--no-browser` declares `default_value_t = false` under `FalseyValueParser`
+  (`mod.rs:3838-3847`), so U1's step removes the binding of `XURL_NO_BROWSER=0`, and with `--step`'s
+  `requires = "no_browser"` (`mod.rs:3849`) still declared, a run that exits 0 on 4.8.0 (Reality rows) exits 2. KTD11
+  already conditions "changes no behavior" on KTD21 landing. Answer: Sequencing puts U7 first, and U1 lists it as a
+  dependency.
+- **DR5. Completions can move in U7.** U7 rewrites the help of `--step` and `--no-browser`, and completions carry each
+  flag's first help line. The completions freshness gate runs only on the pull request (`AGENTS.md` § "Testing").
+  Answer: the Completions gate applies to U3 and U7.
+
+Checked and left as written: the five flags carry no short form or alias (KTD9's argv read holds), clap's conflict usage
+line leaves out both conflicting arguments (`build_conflict_err_usage` in `parser/validator.rs`), so a variable side's
+flag does not reach the usage line (R7), no other bound boolean takes part in a relationship (KTD11), and the 198 help
+fixtures and the root help's precedence sentence sit where KTD17 and U3 say.
+
+Decisions only a person can make: none.
+
 ## Review log
 
 - 2026-11-22: plan written. Pending: `/plan-eng-review`, `/plan-devex-review`, `/compound-engineering:ce-doc-review`.
@@ -1530,12 +1585,18 @@ Effort assumes the default ratios: tests ~50x, bug fix ~20x.
   `structured_intent` with the one argv reader and moves the `FormatSpelling::of` test; U5 exempts negative-number
   arguments, parses each override probe at a leaf clone, and quotes the walk's time under the 60 s period. The
   Engineering Review section holds the evidence. No outside voice ran.
-- 2026-11-23: Brett's two answers folded in. KTD21 and U7: a typed `--step` runs the no-browser flow of
-  `auth oauth2`, with xurl-rs-prime's calls on the details; KTD10 and KTD11 state that the false-variable step changes
-  no behavior of today's tree; the `XURL_NO_BROWSER` cases move from U1 to U7; the stop condition, KTD17, U3, and the
-  Definition of Done allow `help-auth-oauth2.golden` to move in its `--step` and `--no-browser` blocks; the Changelog
-  guidance swaps the `XURL_NO_BROWSER` Fixed bullet for a Changed bullet. Nobody posts on clap-rs/clap#5591.
+- 2026-11-23: Brett's two answers folded in. KTD21 and U7: a typed `--step` runs the no-browser flow of `auth oauth2`,
+  with xurl-rs-prime's calls on the details; KTD10 and KTD11 state that the false-variable step changes no behavior of
+  today's tree; the `XURL_NO_BROWSER` cases move from U1 to U7; the stop condition, KTD17, U3, and the Definition of
+  Done allow `help-auth-oauth2.golden` to move in its `--step` and `--no-browser` blocks; the Changelog guidance swaps
+  the `XURL_NO_BROWSER` Fixed bullet for a Changed bullet. Nobody posts on clap-rs/clap#5591.
 - 2026-11-23: `/compound-engineering:ce-doc-review` started, one round, non-interactive, as its own Opus process.
+- 2026-11-23: `/compound-engineering:ce-doc-review` ended, one round, full depth, in one context. Changed: U7 rewrites
+  `cli_step_without_no_browser_fails`, reads a typed `--no-browser` from the parse's value source, and refuses
+  `--no-browser=false --step N` through the sign-in's argument-refusal route, so its dry run answers
+  `would_succeed: false`, with a dry-run scenario; KTD21 states that dry run; Sequencing puts U7 before U1, which lists
+  it as a dependency; the Completions gate applies to U7. The Document Review section holds the evidence. No cross-model
+  pass ran. No decision is left for a person.
 
 ## GSTACK REVIEW REPORT
 
