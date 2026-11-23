@@ -1219,19 +1219,23 @@ pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> 
     let Ok(parsed) = url::Url::parse(url) else {
         return Err("webhook-url-not-https");
     };
-    // The authority as written: `Url` drops a port that is the scheme's
-    // default, and X refuses one that is spelled out.
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    // The authority as written, past the slashes a URL parser skips after the
+    // scheme: `Url` drops a port that is the scheme's default, and X refuses
+    // one that is spelled out.
+    let authority = rest
+        .trim_start_matches(['/', '\\'])
+        .split(['/', '?', '#'])
+        .next()
+        .unwrap_or_default();
     let host_and_port = authority.rsplit('@').next().unwrap_or_default();
     let has_port = match host_and_port.rsplit_once(']') {
         Some((_, after_bracket)) => after_bracket.starts_with(':'),
         None => host_and_port.contains(':'),
     };
-    if has_port {
+    if has_port || parsed.port().is_some() {
         return Err("webhook-url-has-port");
     }
-    // `Url` reports no userinfo for `https://@host`, and sees one in
-    // `https:///user:pw@host`, where the written authority is empty.
+    // `Url` reports no userinfo for `https://@host`; the written authority does.
     if authority.contains('@') || !parsed.username().is_empty() || parsed.password().is_some() {
         return Err("webhook-url-has-credentials");
     }

@@ -1214,6 +1214,11 @@ async fn listen_on_a_held_port_in_text_suggests_a_free_port_or_stopping_the_hold
 #[case::plain_http("http://example.com/webhooks/x", "webhook-url-not-https")]
 #[case::not_a_url("example.com/webhooks/x", "webhook-url-not-https")]
 #[case::a_port("https://example.com:8443/webhooks/x", "webhook-url-has-port")]
+#[case::a_port_after_an_extra_slash("https:///example.com:8443/webhooks/x", "webhook-url-has-port")]
+#[case::the_default_port_after_an_extra_slash(
+    "https:///example.com:443/webhooks/x",
+    "webhook-url-has-port"
+)]
 #[tokio::test]
 async fn add_refuses_a_url_x_would_refuse(#[case] url: &str, #[case] reason: &str) {
     let server = MockServer::start().await;

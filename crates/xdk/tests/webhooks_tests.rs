@@ -445,6 +445,23 @@ fn validate_webhook_url_takes_an_at_sign_outside_the_authority() {
 }
 
 #[test]
+fn validate_webhook_url_reads_past_the_slashes_a_parser_skips() {
+    for url in [
+        "https:///example.com:8443/hook",
+        "https:///example.com:443/hook",
+        "https://\\example.com:8443/hook",
+        "https:////[2001:db8::1]:8443/hook",
+    ] {
+        assert_eq!(
+            validate_webhook_url(url),
+            Err("webhook-url-has-port"),
+            "{url}"
+        );
+    }
+    assert_eq!(validate_webhook_url("https:///example.com/hook"), Ok(()));
+}
+
+#[test]
 fn validate_webhook_url_names_the_port_before_the_credentials() {
     assert_eq!(
         validate_webhook_url("https://user:pw@example.com:8443/hook"),
