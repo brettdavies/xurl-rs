@@ -574,6 +574,8 @@ pub(crate) fn make_client(cfg: &Config, auth: Auth) -> Result<Client> {
 /// `overrides` carries the environment the run resolved at its entrypoint, so
 /// nothing below this call reads the process. `invocation` is the argv the run
 /// was parsed from, for a refusal whose step runs the same command again.
+/// `no_browser_typed` says `--no-browser` stood on the command line, which the
+/// sign-in's `bool` cannot.
 ///
 /// # Errors
 ///
@@ -588,6 +590,7 @@ pub(crate) async fn run(
     overrides: &xdk::config::EnvOverrides,
     hooks: &crate::cli::runner::RunHooks,
     invocation: &[String],
+    no_browser_typed: bool,
 ) -> CommandResult<()> {
     let mut cfg = Config::from_overrides(overrides);
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
@@ -641,6 +644,7 @@ pub(crate) async fn run(
                 stderr,
                 hooks,
                 invocation,
+                no_browser_typed,
             };
             run_subcommand(cmd, run).await
         }
@@ -675,6 +679,8 @@ struct Run<'a> {
     hooks: &'a crate::cli::runner::RunHooks,
     /// The words the run was invoked with, program word first.
     invocation: &'a [String],
+    /// Whether `--no-browser` stood on the command line of `xr auth oauth2`.
+    no_browser_typed: bool,
 }
 
 /// Runs raw curl-style mode.

@@ -6077,7 +6077,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;auth;oauth2' {
             [CompletionResult]::new('--no-browser', '--no-browser', [CompletionResultType]::ParameterName, 'Enable manual two-step flow for headless machines (SSH, containers)')
-            [CompletionResult]::new('--step', '--step', [CompletionResultType]::ParameterName, 'Step number: 1 (generate auth URL) or 2 (complete exchange)')
+            [CompletionResult]::new('--step', '--step', [CompletionResultType]::ParameterName, 'Step of the no-browser flow: 1 (generate auth URL) or 2 (complete exchange)')
             [CompletionResult]::new('--auth-url', '--auth-url', [CompletionResultType]::ParameterName, 'Redirect URL from browser (step 2). Use ''-'' to read from stdin (recommended on shared machines)')
             [CompletionResult]::new('--scopes', '--scopes', [CompletionResultType]::ParameterName, 'Request only these comma-separated scopes, plus offline.access (default: every scope)')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')

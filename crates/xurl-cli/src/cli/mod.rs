@@ -3828,13 +3828,14 @@ pub enum AuthCommands {
     Oauth2 {
         /// Enable manual two-step flow for headless machines (SSH, containers)
         ///
-        /// Auto-engages when stdout is not a TTY (piped runs, CI) so headless
-        /// callers receive the auth URL instead of a silent `open::that` spawn
-        /// that nothing will see. The `XURL_NO_BROWSER` env var sets this by
-        /// default on machines that should never attempt to open a browser.
-        /// Honours `1` / `true` / `yes` / `on` as truthy and `0` / `false` /
-        /// `no` / `off` / empty as falsey (the same `FalseyValueParser` shape
-        /// used by every other env-backed boolean flag).
+        /// A typed `--step` implies it. Auto-engages when stdout is not a TTY
+        /// (piped runs, CI) so headless callers receive the auth URL instead
+        /// of a silent `open::that` spawn that nothing will see. The
+        /// `XURL_NO_BROWSER` env var sets this by default on machines that
+        /// should never attempt to open a browser. Honours `1` / `true` /
+        /// `yes` / `on` as truthy and `0` / `false` / `no` / `off` / empty as
+        /// falsey (the same `FalseyValueParser` shape used by every other
+        /// env-backed boolean flag).
         #[arg(
             long,
             env = "XURL_NO_BROWSER",
@@ -3845,8 +3846,12 @@ pub enum AuthCommands {
             require_equals = true,
         )]
         no_browser: bool,
-        /// Step number: 1 (generate auth URL) or 2 (complete exchange)
-        #[arg(long, requires = "no_browser", value_parser = clap::value_parser!(u8).range(1..=2))]
+        /// Step of the no-browser flow: 1 (generate auth URL) or 2 (complete exchange)
+        ///
+        /// A typed step runs the no-browser flow by itself, so `--no-browser`
+        /// is not needed beside it; `--no-browser=false` beside a step is
+        /// refused.
+        #[arg(long, value_parser = clap::value_parser!(u8).range(1..=2))]
         step: Option<u8>,
         /// Redirect URL from browser (step 2). Use '-' to read from stdin (recommended on shared machines)
         #[arg(long = "auth-url", requires = "step")]

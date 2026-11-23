@@ -432,6 +432,7 @@ async fn run_inner(
         overrides,
         hooks,
         &invocation,
+        no_browser_typed(&matches),
     )
     .with_subscriber(diagnostics)
     .await;
@@ -939,6 +940,19 @@ fn app_from_env(cli: &Cli, matches: &clap::ArgMatches) -> Option<String> {
     let name = cli.app.as_deref()?;
     let from_env = matches.value_source("app") == Some(clap::parser::ValueSource::EnvVariable);
     (from_env && !given_as_argument(matches, name)).then(|| name.to_string())
+}
+
+/// Whether `--no-browser` was typed on `xr auth oauth2`. The sign-in reads a
+/// `bool`, which cannot tell a typed `false` from the default.
+fn no_browser_typed(matches: &clap::ArgMatches) -> bool {
+    if matched_path(matches) != "auth oauth2" {
+        return false;
+    }
+    let mut leaf = matches;
+    while let Some((_, sub)) = leaf.subcommand() {
+        leaf = sub;
+    }
+    leaf.value_source("no_browser") == Some(clap::parser::ValueSource::CommandLine)
 }
 
 /// Whether any argument of the matched command other than `--app` carries `name`.

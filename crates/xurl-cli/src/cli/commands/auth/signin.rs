@@ -19,12 +19,13 @@ use xdk::store::TokenStore;
 /// The command a usage error of `xr auth oauth2` closes on the help of.
 const OAUTH2_COMMAND: &str = "xr auth oauth2";
 
-/// Arguments of `xr auth oauth2`: whether to suppress the browser, which
-/// manual step to run, the redirect URL that step 2 exchanges, the scopes to
-/// request instead of every one, the username label for the saved token, and
-/// the words the run was invoked with.
+/// Arguments of `xr auth oauth2`: whether to suppress the browser and whether
+/// `--no-browser` was typed, which manual step to run, the redirect URL that
+/// step 2 exchanges, the scopes to request instead of every one, the username
+/// label for the saved token, and the words the run was invoked with.
 pub(super) struct Oauth2Args<'a> {
     pub(super) no_browser: bool,
+    pub(super) no_browser_typed: bool,
     pub(super) step: Option<u8>,
     pub(super) auth_url: Option<String>,
     pub(super) scopes: Option<Vec<String>>,
@@ -43,6 +44,7 @@ pub(super) async fn oauth2(
 ) -> CommandResult<()> {
     let Oauth2Args {
         no_browser,
+        no_browser_typed,
         step,
         auth_url,
         scopes,
@@ -62,6 +64,15 @@ pub(super) async fn oauth2(
             "username": username,
         })
     };
+    if no_browser_typed && !no_browser && step.is_some() {
+        let message = "--no-browser=false cannot be used with --step: a typed --step runs the \
+                       no-browser flow.";
+        if dry_run {
+            out.print_dry_run_invalid_args(stdout, &dry_run_ctx(), message, " ", OAUTH2_COMMAND);
+            return Ok(());
+        }
+        return Err(refused_argument(message, out, stderr));
+    }
     if let Some(scopes) = scopes
         && let Err(error) = auth.with_oauth2_scopes(&scopes)
     {
@@ -74,13 +85,8 @@ pub(super) async fn oauth2(
             Failure::refused(error)
         });
     }
-    // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
-    // harness) and the user did not pass `--no-browser` (or set
-    // `XURL_NO_BROWSER`). Opening a browser the caller can't see would
-    // silently strand the flow, so promote to the remote two-step
-    // path and surface the auth URL on stdout.
-    let auto_engage_no_browser = !no_browser && !std::io::stdout().is_terminal();
-    let effective_no_browser = no_browser || auto_engage_no_browser;
+    let effective_no_browser =
+        runs_no_browser_flow(no_browser, step, std::io::stdout().is_terminal());
     // The interactive flow reads neither `--step` nor `--auth-url`.
     let refused = if effective_no_browser {
         auth_url_refusal(step, auth_url.as_deref()).map(str::to_string)
@@ -273,6 +279,14 @@ pub(super) async fn oauth2(
         }
     }
     Ok(())
+}
+
+/// Whether the sign-in runs the no-browser flow: it was asked for, a typed
+/// `--step` names it, or stdout is no terminal. Opening a browser nobody can
+/// see (a piped run, CI, an agent harness) would strand the flow, so the
+/// auth URL goes to stdout instead.
+fn runs_no_browser_flow(no_browser: bool, step: Option<u8>, stdout_is_terminal: bool) -> bool {
+    no_browser || step.is_some() || !stdout_is_terminal
 }
 
 /// What a dry run of `xr auth oauth2` knows of the run it stands for.
@@ -596,7 +610,20 @@ fn client_credentials_missing(
 
 #[cfg(test)]
 mod tests {
-    use super::step_two;
+    use super::{runs_no_browser_flow, step_two};
+
+    #[test]
+    fn a_typed_step_names_the_no_browser_flow_on_a_terminal() {
+        assert!(runs_no_browser_flow(false, Some(1), true));
+        assert!(runs_no_browser_flow(false, Some(2), true));
+    }
+
+    #[test]
+    fn the_browser_flow_runs_only_on_a_terminal_with_neither_flag() {
+        assert!(!runs_no_browser_flow(false, None, true));
+        assert!(runs_no_browser_flow(true, None, true));
+        assert!(runs_no_browser_flow(false, None, false));
+    }
 
     #[test]
     fn step_two_carries_the_name_and_app_step_one_was_given() {

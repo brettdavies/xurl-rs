@@ -4924,7 +4924,7 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l no-browser -d 'Enable manual two-step flow for headless machines (SSH, containers)' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l step -d 'Step number: 1 (generate auth URL) or 2 (complete exchange)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l step -d 'Step of the no-browser flow: 1 (generate auth URL) or 2 (complete exchange)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l auth-url -d 'Redirect URL from browser (step 2). Use \'-\' to read from stdin (recommended on shared machines)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l scopes -d 'Request only these comma-separated scopes, plus offline.access (default: every scope)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
