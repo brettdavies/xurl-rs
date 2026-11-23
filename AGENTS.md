@@ -236,15 +236,33 @@ once it runs; or, after a 401 or a 429 with no reset on the status read after `x
 once the credential works or the window passes. A new error picks an existing action where one fits, and does not ship
 without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
 
-A step that runs `xr` answers in the output format the failed run did. `NextStep` has no `Serialize`, and every
-envelope field that holds a step holds a `CarriedStep`, which only `OutputConfig::carry` makes: it puts the format
-after the program word of each step but `show-help`, spelled as the run chose it: `--json` or `--jsonl` when that flag,
-`XURL_JSON`, or `XURL_JSONL` chose it, `--output <format>` otherwise, since clap refuses `--output` beside either alias.
-A step built by running the invocation again also keeps `--dry-run` and `--app` as flags: `explicit_invocation` writes
-what `XURL_DRY_RUN` and `XURL_APP` chose after the program word, so the step runs the same in a shell without the
-variable; the sign-in that answers a refused `auth oauth2 --step 2` is such a step. Any other step that signs in or
-stores a credential is not a rehearsal and takes no `--dry-run`, and a sign-in names the app the run used, the default
-one included. `crates/xurl-cli/src/cli/rerun.rs` holds the tables.
+A step that runs `xr` answers in the output format the failed run did. `NextStep` has no `Serialize`, and every envelope
+field that holds a step holds a `CarriedStep`, which only `OutputConfig::carry` makes: it puts the format after the
+program word of each step but `show-help`, spelled as the run chose it: `--json` or `--jsonl` when that flag,
+`XURL_JSON`, or `XURL_JSONL` decided the format, `--output <format>` otherwise. A step built by running the invocation
+again also keeps `--dry-run` and `--app` as flags: `explicit_invocation` writes what `XURL_DRY_RUN` and `XURL_APP` chose
+after the program word, so the step runs the same in a shell without the variable; the sign-in that answers a refused
+`auth oauth2 --step 2` is such a step. Any other step that signs in or stores a credential is not a rehearsal and takes
+no `--dry-run`, and a sign-in names the app the run used, the default one included. `crates/xurl-cli/src/cli/rerun.rs`
+holds the tables.
+
+Two settings resolve by layer in `crates/xurl-cli/src/cli/settings.rs`: the output format (`--output`, `--json`,
+`--jsonl`) and the page token (`--cursor`, `--after`). A typed spelling beats every variable of its setting, and of
+several typed spellings the last wins, across the command word too, which the resolver reads from argv. With none typed,
+two variables that name a value are refused with both named, and one decides. A boolean variable that reads false
+(`XURL_JSON=0`) and an empty variable name no value. `crates/xurl-cli/src/cli/env.rs` reads `XURL_JSON`, `XURL_JSONL`,
+`XURL_CURSOR`, and `XURL_AFTER` into `FlagEnv`, which `run_with_env` takes as data beside `XURL_OUTPUT` on
+`EnvOverrides`, and none of the five binds in clap, since clap counts a value read from the environment as typed. A
+variable that decides a setting is then checked against the arguments clap declares in conflict with its spelling, so
+`XURL_CURSOR` beside `--page` is refused, and a refusal that has a variable on a side names it as an environment
+variable and carries a `tip:` line that says which edit clears it. A refusal is `invalid-args` at exit 2, in the format
+the caller named, which `output_intent` reads from the same layers and never refuses. Every parse of argv goes through
+`crates/xurl-cli/src/cli/parse.rs`, which removes the binding of a boolean flag whose variable reads as the flag's
+absent value, so a false variable is unset for the flags that keep a binding;
+`crates/xurl-cli/tests/parse_path_guard.rs` fails for a parse anywhere else. A flag with a second spelling and a
+variable goes in the settings table with no `env =` and overrides every spelling of its setting;
+`crates/xurl-cli/tests/flag_env_guard.rs` fails for a variable bound to an overriding flag, for an override outside the
+table, and for a conflict between a flag and a variable whose refusal leaves the variable unnamed.
 
 `--dry-run` sends nothing and changes no stored credential on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
@@ -435,11 +453,11 @@ The line between the crates holds on four rules; a change that crosses one belon
    `xdk::auth`, `xdk::store`, `xdk::config`, `xdk::webhooks`); it never writes to stdout or stderr and never opens a
    browser. It reads the process environment in one place, `EnvOverrides::from_env`, which takes the client variables
    (`CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`,
-   `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, the skill hosts'
-   config- and base-directory variables (named in `crates/xurl-cli/src/cli/skill_install/skill.json`), and the `PATH`
-   and `PATHEXT` that find a `webhooks listen` program are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the
-   loopback OAuth2 callback listener, binding the webhook receiver, and reading or writing `~/.xurl/auth.yml` are
-   network and file I/O, and belong to the library.
+   `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`, `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, `XURL_AFTER`,
+   `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, the skill hosts' config- and base-directory variables (named in
+   `crates/xurl-cli/src/cli/skill_install/skill.json`), and the `PATH` and `PATHEXT` that find a `webhooks listen`
+   program are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the loopback OAuth2 callback listener, binding
+   the webhook receiver, and reading or writing `~/.xurl/auth.yml` are network and file I/O, and belong to the library.
 3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, `webhooks`,
    and `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming
    the `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests

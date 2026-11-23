@@ -785,7 +785,13 @@ xr schema --all                                # Every command's default view; s
 xr --output json whoami                        # Raw JSON, no color
 xr --output jsonl search "topic"               # The document on one line
 export XURL_OUTPUT=json                          # Default to JSON
+xr whoami --jsonl                                # A typed format flag wins: JSONL
 ```
+
+A typed `--output`, `--json`, or `--jsonl` wins over `XURL_OUTPUT`, `XURL_JSON`, and `XURL_JSONL`, and of several typed
+the last wins; `--cursor` and `--after` and their variables follow the same rule. Two variables for one setting, and a
+variable beside a typed flag it conflicts with (`XURL_CURSOR` with `--page`), are refused at exit 2 with the variable
+named, and `XURL_JSON=0` is unset.
 
 Shortcut commands print X's response under the names the vendored spec gives its keys. Where X still sends a key in its
 legacy post vocabulary, the key is renamed to the spec's spelling and its value is left as X sent it:
@@ -1024,9 +1030,9 @@ caller finishes or decides on first, and never both: a template holds angle-brac
 fill; under `confirm`, the invocation that destroys once it runs; or, after a 401 or a 429 with no reset on the status
 read after `xr media upload`, the resumed wait to run once the credential works or the window passes. A step that runs
 `xr` names the output format the failed run answered in, after `xr`, spelled as the run chose it: `--json` or `--jsonl`
-when that flag, `XURL_JSON`, or `XURL_JSONL` chose it, `--output <format>` otherwise, since clap refuses `--output`
-beside either alias. Following it prints the document the caller is parsing; a `show-help` step names none, since help
-text has one form. A step that runs the invocation again names `--app` and `--dry-run` as flags when
+when that flag, `XURL_JSON`, or `XURL_JSONL` decided the format, `--output <format>` otherwise. Following it prints the
+document the caller is parsing; a `show-help` step names none, since help text has one form. A step that runs the
+invocation again names `--app` and `--dry-run` as flags when
 `XURL_APP` or `XURL_DRY_RUN` chose them, so it runs the same in a shell without the variable. One whose recovery is not
 an `xr` invocation carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry` except on
 that status read, `retry`, `fix-input`, `report-issue`, and `inspect-store` when a store command is what failed. Some
