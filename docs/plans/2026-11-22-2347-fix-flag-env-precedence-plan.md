@@ -780,3 +780,5 @@ pull request. No run sends a request to X.
 ## Review log
 
 - 2026-11-22: plan written. Pending: `/plan-eng-review`, `/plan-devex-review`, `/compound-engineering:ce-doc-review`.
+- 2026-11-22: uv #17321 prior art folded in at `f43ef76`, with A1 and A2 recorded as KTD19 and KTD20 by xurl-rs-prime.
+- 2026-11-23: `/plan-eng-review` started, one round, as its own Opus process.
