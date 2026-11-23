@@ -350,6 +350,12 @@ async fn a_forward_url_it_cannot_send_to_is_refused_before_anything_binds(#[case
 #[case::add_no_colon(&["webhooks", "add"], "https//user:s3cr3t@example.com/", "example.com/")]
 #[case::add_no_scheme(&["webhooks", "add"], "user:s3cr3t@example.com/?next=https://x", "example.com/?next=https://x")]
 #[case::add_at_in_path(&["webhooks", "add"], "https://example.com/@hook", "https://example.com/@hook")]
+#[case::add_extra_slash(&["webhooks", "add"], "https:///user:s3cr3t@example.com/hook", "example.com/hook")]
+#[case::add_slash_backslash(&["webhooks", "add"], "https://\\user:s3cr3t@example.com/hook", "example.com/hook")]
+#[case::forward_extra_slash(&["webhooks", "listen", "--forward"], "http:///user:s3cr3t@127.0.0.1:9/x", "127.0.0.1:9/x")]
+#[case::add_tab_after_scheme(&["webhooks", "add"], "https://\t/user:s3cr3t@example.com/hook", "example.com/hook")]
+#[case::add_newline_in_scheme(&["webhooks", "add"], "https:/\n/user:s3cr3t@example.com/hook", "example.com/hook")]
+#[case::forward_tab_after_scheme(&["webhooks", "listen", "--forward"], "http://\t/user:s3cr3t@127.0.0.1:9/x", "127.0.0.1:9/x")]
 #[tokio::test]
 async fn a_dry_run_never_prints_a_url_credential(
     #[case] command: &[&str],
