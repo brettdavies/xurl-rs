@@ -28,6 +28,15 @@ printf 'store=%s default=%s dev_without_oauth2=%s prod_without_oauth2=%s args=%s
   "$(yq '.default_app' "$store" 2>/dev/null)" \
   "$(yq '.apps.bird_dev.oauth2_tokens == null' "$store" 2>/dev/null)" \
   "$(yq '.apps.bird_prod.oauth2_tokens == null' "$store" 2>/dev/null)" "$*" >>"$STUB_XR_LOG"
+line="$store $*"
+if [[ -n "${STUB_XR_FAIL:-}" && "$line" == $STUB_XR_FAIL ]]; then
+  echo "stub: refused by the test" >&2
+  exit 1
+fi
+if [[ -n "${STUB_XR_HANG:-}" && "$line" == $STUB_XR_HANG ]]; then
+  : >"$STUB_XR_LOG.hung"
+  exec sleep 30
+fi
 app=""
 args=("$@")
 for ((i = 0; i < ${#args[@]}; i++)); do
@@ -194,6 +203,76 @@ named_store() {
   STUB_OP_FAIL=1 preflight smoke
   [ "$status" -ne 0 ]
   [ -z "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-preflight-*')" ]
+}
+
+# gate_dirs_left: the directories a gate made under TMPDIR that no gate removed.
+gate_dirs_left() {
+  find "$T/home/tmp" -maxdepth 1 \( -name 'xr-preflight-*' -o -name 'xr-smoke-empty-*' -o -name 'xr-multi-fresh-*' -o -name 'xr-api-empty-*' \)
+}
+
+@test "a smoke gate whose command fails partway shreds its own directory and the home it seeded" {
+  STUB_XR_FAIL='*/xr-smoke-empty-*' preflight smoke
+  [ "$status" -ne 0 ]
+  grep -q "^store=$T/home/tmp/xr-smoke-empty-[^/]*/\.xurl/auth\.yml .*args=search rust " "$T/xr.log"
+  [ -z "$(gate_dirs_left)" ]
+}
+
+@test "a gate that fails partway still shreds its own directory under --no-cleanup, and keeps only the home it seeded" {
+  STUB_XR_FAIL='*/xr-smoke-empty-*' preflight --no-cleanup smoke
+  [ "$status" -ne 0 ]
+  grep -q "^store=$T/home/tmp/xr-smoke-empty-[^/]*/\.xurl/auth\.yml " "$T/xr.log"
+  [ -z "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-smoke-empty-*')" ]
+  [ -f "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-preflight-*')/.xurl/auth.yml" ]
+}
+
+@test "a multi-app gate whose command fails partway shreds the store it seeded and leaves the --smoke-home it was given" {
+  named_store "$T/home/named"
+  echo keep >"$T/home/named/notes.txt"
+  cp -p "$T/home/named/.xurl/auth.yml" "$T/before.yml"
+  STUB_XR_FAIL='*/xr-multi-fresh-*/.xurl/auth.yml auth oauth1 *' preflight --smoke-home "$T/home/named" multi-app
+  [ "$status" -ne 0 ]
+  grep -q "^store=$T/home/tmp/xr-multi-fresh-[^/]*/\.xurl/auth\.yml .*args=auth oauth1 " "$T/xr.log"
+  [ -z "$(gate_dirs_left)" ]
+  cmp "$T/before.yml" "$T/home/named/.xurl/auth.yml"
+  [ ! -e "$T/home/named/.xurl/auth.yml.bak" ]
+  [ "$(cat "$T/home/named/notes.txt")" = keep ]
+}
+
+# A `git` that only adds a worktree, as an empty directory: the gate adds one
+# in the repository under test, and a stub keeps the run from touching it.
+@test "an api-contract gate whose command fails partway shreds its own directory" {
+  cat >"$T/bin/git" <<EOF
+#!/usr/bin/env bash
+[[ "\$1 \$2" == "worktree add" ]] || { echo "stub git: \$*" >&2; exit 99; }
+mkdir -p "\$4"
+EOF
+  chmod +x "$T/bin/git"
+  preflight --tag v0.0.0 api-contract
+  [ "$status" -ne 0 ]
+  [ -d "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-api-??????')/prev" ]
+  grep -q '^cargo .* build --release --bin xr$' "$T/xr.log"
+  [ -z "$(gate_dirs_left)" ]
+}
+
+# The run gets its own session, so the signal reaches the whole group and not
+# the test runner. SIGINT is left out: a background job of this shell starts with
+# it ignored, and bash cannot trap what it inherited as ignored.
+@test "a SIGTERM that ends a gate mid-run shreds the directory it made and the home it seeded" {
+  command -v setsid >/dev/null || skip "setsid is not installed"
+  cd "$REPO_ROOT"
+  HOME="$T/home" TMPDIR="$T/home/tmp" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" PATH="$T/bin:$PATH" \
+    STUB_XR_LOG="$T/xr.log" STUB_OP_LOG="$T/op.log" STUB_XR_HANG='*/xr-smoke-empty-*' \
+    setsid bash -c 'echo $$ >"$1"; shift; exec bash scripts/release/preflight.sh "$@"' _ "$T/pgid" smoke >"$T/out" 2>&1 &
+  run_pid=$!
+  for _ in $(seq 100); do
+    [ -e "$T/xr.log.hung" ] && break
+    sleep 0.1
+  done
+  [ -e "$T/xr.log.hung" ]
+  [ -n "$(gate_dirs_left)" ]
+  kill -TERM -- "-$(cat "$T/pgid")"
+  wait "$run_pid" || true
+  [ -z "$(gate_dirs_left)" ]
 }
 
 # TMPDIR outside /tmp and $HOME is where macOS keeps it. Each home a gate made

@@ -132,8 +132,8 @@ the vendored spec naming a field the API does not send. It never runs under the 
 `crates/xdk/tests/live_smoke.rs` refuses without an explicit opt-in because each run spends paid reads: it runs only
 when `XURL_LIVE_SMOKE=1` and `XURL_TOKEN_STORE` names the store file, and it never opens `~/.xurl/auth.yml` on its own.
 `preflight.sh smoke` hands it the store inside the home the gate seeded from 1Password, or inside the one `--smoke-home`
-names. Exit shreds only a home the gate seeded. The test is the named exception on the process-read allowlist of
-`env_mutation_guard.rs`, because it reads the operator's configuration.
+names. Exit shreds the home the gate seeded, never one `--smoke-home` names. The test is the named exception on the
+process-read allowlist of `env_mutation_guard.rs`, because it reads the operator's configuration.
 
 ## Sign-in
 
