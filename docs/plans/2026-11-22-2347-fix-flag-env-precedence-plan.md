@@ -238,7 +238,9 @@ the decision rules out.
   has no boolean variable in a conflict, and one in a requirement: `auth oauth2 --step` `requires` `no_browser`, and on
   `dev` `XURL_NO_BROWSER=0 xr --dry-run auth oauth2 --step 1` is accepted with `no_browser: false`, because the false
   variable counts as given. After the step it is refused at exit 2 for the missing `--no-browser`, which R8 asks for.
-  That is the one behavior the funnel changes now. It is what makes KTD10 hold for a flag added later.
+  That is the one behavior the funnel changes now. xurl-rs-prime decided it is a fix, filed under `### Fixed`, and not a
+  break, with no migration-guide row and no special case in the step: a false variable that satisfies a requirement is
+  clap#5591 itself, and correcting what the code got wrong is a fix. It is what makes KTD10 hold for a flag added later.
 - KTD12. **One function writes the conflict sentence, for clap's conflicts and for the resolver's.** It takes each side
   as an argument and its source (KTD18): a flag, or a variable. For a clap `ArgumentConflict` it reads the `InvalidArg`
   and `PriorArg` context, finds each argument in the failing command by comparing `Arg::to_string()`, and asks the
@@ -298,14 +300,14 @@ the decision rules out.
   defect uv#19313 fixes reaches uv as a user's report. The walks are what this plan adds to uv's tests, and mlxcel #2664
   is the same defect returning where a guard covered overrides only.
 - KTD17. **Help names each variable in prose, and the help fixtures are re-blessed.** Dropping `env =` removes clap's
-  `[env: ...]` line from five global flags, which every command's help prints. Each of the five flags' long help names
-  its variable, and the root help's `ENVIRONMENT VARIABLES` block gains `XURL_AFTER` and states the precedence rule. 198
-  help fixtures carry the five lines and move: `help.golden`, the root help, and the 197 `help-*.golden`. Each moves
-  only inside those five flags' blocks, and `help.golden` also in its `ENVIRONMENT VARIABLES` block. xurl-rs-prime
-  decides two points here. `XURL_AFTER` gets its line in that block, since the line documents an existing variable and
-  adds no surface: today only clap's `[env: ...]` line advertises it, and
-  `test_help_advertises_every_env_var_the_source_reads` fails for a variable `env.rs` reads that `xr --help` does not
-  name. And the 198 fixture moves are expected moves.
+  `[env: ...]` line from five global flags, which every command's help prints. Each of the five flags names its variable
+  in its short and long help in clap's bracket form (A6), and the root help's `ENVIRONMENT VARIABLES` block gains
+  `XURL_AFTER` and states the precedence rule. 198 help fixtures carry the five lines and move: `help.golden`, the root
+  help, and the 197 `help-*.golden`. Each moves only inside those five flags' blocks, and `help.golden` also in its
+  `ENVIRONMENT VARIABLES` block and the precedence paragraph under it. xurl-rs-prime decides two points here.
+  `XURL_AFTER` gets its line in that block, since the line documents an existing variable and adds no surface: today
+  only clap's `[env: ...]` line advertises it, and `test_help_advertises_every_env_var_the_source_reads` fails for a
+  variable `env.rs` reads that `xr --help` does not name. And the 198 fixture moves are expected moves.
 - KTD18. **A resolved setting carries the spelling that decided it and that spelling's source.** The resolver answers
   once per run with the value, the spelling, and the source: typed, a variable with its name, or the default. Every
   later reader takes that answer and none works a source out again: the conflict sentence names a side from it (KTD12),
@@ -353,16 +355,36 @@ review's call and its evidence.
   subject of a resolver refusal fixed: the variable that decided the setting is the subject
   (`the environment variable 'XURL_CURSOR' cannot be used with '--page <N>'`), and the other sides follow in clap's
   order. The quoting matches clap's own sentence, and uv names the same side by kind. The wording itself is a
-  developer-experience call and `/plan-devex-review` may change it.
+  developer-experience call and `/plan-devex-review` may change it. Devex review: the first line stands as the eng
+  review fixed it, and every refusal with a variable side gains one `tip:` line in clap's own form, the two-space indent
+  and blank lines clap gives `tip: to pass '--bogus' as a value, use '-- --bogus'`, placed after the first line and
+  before the usage line. The tip names the edit that clears the refusal, because a caller that inherited the variable
+  cannot see where it came from: `tip: unset 'XURL_PAGE', or leave out '--cursor <TOKEN>'` for a variable beside a typed
+  flag, `tip: unset one of 'XURL_CURSOR' and 'XURL_AFTER'` for two variables, and
+  `tip: unset all but one of 'XURL_OUTPUT', 'XURL_JSON', and 'XURL_JSONL'` for three. Sides follow the settings table's
+  order when no variable decided the setting (R5), so AE11 reads
+  `the environment variable 'XURL_OUTPUT' cannot be used with the environment variable 'XURL_JSON'`. Two typed flags get
+  no tip, as clap gives none today. The tip is message text in the existing `invalid-args` envelope, so R12 holds.
 - A5. A variable that names an invalid value is refused only when it decides the setting, and the message names the
   variable with the possible values: `XURL_OUTPUT=toml xr schema --list` exits 2 naming `XURL_OUTPUT`. Eng review:
   confirmed, on A3's evidence. The message keeps the shape of clap's invalid-value sentence with the variable as its
-  subject, `invalid value 'toml' for the environment variable 'XURL_OUTPUT'`, then clap's `[possible values: ...]`
-  line, and the envelope stays `invalid-args` with no new key (R12).
+  subject, `invalid value 'toml' for the environment variable 'XURL_OUTPUT'`, then clap's `[possible values: ...]` line,
+  and the envelope stays `invalid-args` with no new key (R12). Devex review: the refusal renders as JSON, as clap's
+  refusal of the same value renders on 4.8.0 and as the `--output` help promises ("refused at exit 2 with a JSON
+  envelope"): KTD15's variable layer reads `XURL_OUTPUT` through `rendering_format` in `classify.rs`, which maps a value
+  that names no format to JSON. No tip line: the possible-values line is the fix.
 - A6. The per-flag `[env: ...]` line is a fair trade for KTD8. The prose that replaces it also states when the variable
   applies, which the line never did. Eng review: no engineering objection. The 198 fixture moves are mechanical and U3
   checks them by script, and the `[env: X=value]` echo of a set variable's value is what the trade gives up. Whether the
-  prose serves a reader is `/plan-devex-review`'s call.
+  prose serves a reader is `/plan-devex-review`'s call. Devex review: prose alone does not serve. `xr -h` prints each
+  flag's `[env: XURL_X=]` inline after its first help line, and the 13 flags that keep a binding go on doing so, so
+  prose placed in long help would leave five flags with no variable in `-h` and break a reader's or agent's scan for
+  `env: XURL_`. Each of the five flags therefore declares `help` and `long_help` explicitly. The short help is today's
+  first line with "(P2 alias)" dropped, a label no reader can decode, and ends in clap's bracket form without the value
+  echo: ``Shorthand for `--output json` [env: XURL_JSON]``. The long help keeps today's text, adds one sentence on when
+  the variable applies, and ends in the same bracket as its own paragraph, where clap prints its own. The sentences are
+  fixed in U3 step 6. Writing the bracket through `help` and `long_help` attributes keeps it out of the field's doc
+  comment, so rustdoc never reads it as a link.
 
 ### Clap facts
 
@@ -597,10 +619,12 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
 - **Test scenarios:**
   - Covers AE6. `XURL_PAGE=2 xr --after 5 schema --list`, through the binary.
   - Covers AE10. `XURL_PAGE=2 xr --cursor abc schema --list`, through the binary.
-  - Both runs pin exit 2 and the whole first line of the message, in A4's wording (KTD16).
+  - Both runs pin exit 2, the whole first line of the message in A4's wording (KTD16), and A4's `tip:` line, which sits
+    before the usage line.
   - `XURL_PAGE=2 xr schema --list --cursor abc`, with the flag after the command word: the same refusal, and the help
     pointer names `xr schema --help`.
-  - `xr --cursor a --page 2 schema --list`, both typed: clap's sentence unchanged, both sides as flags.
+  - `xr --cursor a --page 2 schema --list`, both typed: clap's sentence unchanged, both sides as flags, and no `tip:`
+    line.
   - A conflict with two prior arguments, one typed and one from a variable (fixture command, injected sources): each
     side is named by its own source.
   - An `exclusive` argument's conflict, which carries no prior argument (fixture): the subject is named by its source
@@ -646,8 +670,30 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   5. The output resolver takes over `Cli::effective_output`'s role and `effective_output` is removed. It ranks an alias
      above `--output`, which KTD2's last-wins contradicts (AE8 and AE12). Its one caller, the `OutputConfig`
      construction in `runner.rs`, reads the resolver.
-  6. Each of the five flags' long help names its variable and when it applies. `ROOT_HELP` gains `XURL_AFTER`, and its
-     "Flags override env vars" line states the rule in R2 to R6.
+  6. Each of the five flags declares `help` and `long_help` (A6). The short help ends in `[env: <VAR>]`. The long help
+     is today's text, then the sentence named here, then `[env: <VAR>]` as its last paragraph.
+     - `--output`: short help is today's first paragraph, then `[env: XURL_OUTPUT]`. Long-help sentence:
+       `Read from XURL_OUTPUT only when no --output, --json, or --jsonl is typed.`
+     - `--json`: short help ``Shorthand for `--output json` [env: XURL_JSON]``. Long-help sentence:
+       `Read from XURL_JSON only when no --output, --json, or --jsonl is typed; XURL_JSON=0 is unset.`
+     - `--jsonl`: short help ``Shorthand for `--output jsonl` [env: XURL_JSONL]``. Long-help sentence:
+       `Read from XURL_JSONL only when no --output, --json, or --jsonl is typed; XURL_JSONL=0 is unset.`
+     - `--cursor`: short help is today's first paragraph, then `[env: XURL_CURSOR]`. Long-help sentence:
+       `Read from XURL_CURSOR only when neither --cursor nor --after is typed.`
+     - `--after`: short help ``Documented alias for `--cursor` [env: XURL_AFTER]``. Long-help sentence:
+       `Read from XURL_AFTER only when neither --cursor nor --after is typed.`
+     - `ROOT_HELP` gains `XURL_AFTER  Page token, one setting with XURL_CURSOR (same as --after)` after the
+       `XURL_CURSOR` line. The sentence `Flags override env vars when both are set.` becomes the paragraph below, and
+       the `NO_COLOR` and `--no-pager` sentences after it stay as they are.
+
+       ```text
+       A typed flag wins over its env var. --output, --json, and --jsonl outrank
+       XURL_OUTPUT, XURL_JSON, and XURL_JSONL; --cursor and --after outrank
+       XURL_CURSOR and XURL_AFTER; and of several typed, the last wins. Two env
+       vars for one setting are refused, as is an env var beside a typed flag it
+       conflicts with (XURL_PAGE with --cursor). XURL_JSON=0 counts as unset.
+       ```
+
 - **Execution note:** write the acceptance tests first and run them against `dev`. Each example this unit covers fails
   there, and the failure output goes in the pull request.
 - **Patterns to follow:** `from_process` in `env.rs` for a variable read by literal name, which
@@ -669,10 +715,11 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
     `a`, and `XURL_CURSOR=a` with `--after b` sends `b` (KTD8).
   - The resolved answer, as a unit test per setting: a typed spelling answers with that spelling and the typed source, a
     variable answers with its spelling and its name, and neither answers the default (KTD18).
-  - Through the binary, AE5, AE11, AE15, and AE18 each pin exit 2 and the whole first line of the message, in A4's
-    wording (KTD16).
+  - Through the binary, AE5, AE11, AE15, and AE18 each pin exit 2, the whole first line of the message in A4's wording
+    (KTD16), and A4's `tip:` line. `XURL_OUTPUT=json XURL_JSON=1 XURL_JSONL=1 xr schema --list` pins the three-variable
+    tip.
   - `XURL_JSON=1 xr --output text schema --list` answers in text.
-  - `XURL_OUTPUT=toml xr schema --list` exits 2 naming `XURL_OUTPUT` and the possible values.
+  - `XURL_OUTPUT=toml xr schema --list` exits 2 naming `XURL_OUTPUT` and the possible values, in a JSON envelope (A5).
     `XURL_OUTPUT=toml xr --json schema --list` exits 0 in JSON (A3, A5).
   - `XURL_OUTPUT=` with nothing typed answers in text, and `XURL_CURSOR=` alone sends no page token (KTD20).
   - `XURL_OUTPUT=json XURL_JSON=1 xr --output yaml schema --list` exits 0 in YAML (A3).
@@ -710,9 +757,10 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
      flags after the fact, goes.
   4. The doc comments in `rerun.rs` that explain the spelling by clap's refusal describe the present rule: the step
      repeats the spelling that decided the format. Once a typed spelling beats every variable, `--output <format>`
-     reruns in any environment, so the refusal no longer forces the spelling. `FormatSpelling` stays because R9 and the
-     #621 contract in `AGENTS.md` keep the caller's spelling, and dropping it would widen this change; no golden fixture
-     pins an alias-spelled step, and `crates/xurl-cli/tests/rerun_env_tests.rs` is where that contract is tested.
+     reruns in any environment, so the refusal no longer forces the spelling. `FormatSpelling` stays because R9 and
+     the #621 contract in `AGENTS.md` keep the caller's spelling, and dropping it would widen this change; no golden
+     fixture pins an alias-spelled step, and `crates/xurl-cli/tests/rerun_env_tests.rs` is where that contract is
+     tested.
 - **Patterns to follow:** the existing `output_intent` chain, and the `carry` tests in `rerun.rs`.
 - **Test scenarios:**
   - Covers AE13, AE14, AE17.
@@ -738,21 +786,21 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
 - **Files:**
   - create `crates/xurl-cli/tests/flag_env_guard.rs`
 - **Approach:**
-  1. Override walk. Probe each ordered pair of flags: type the first and then the second, and see whether the first
-     lost its command-line value. Clap copies a global argument with its relationships into every command, so pairs of
-     two globals are probed once, at the root, and each command probes only the pairs that hold one of its own
-     arguments. Per command, the 18 globals alone give 306 ordered pairs, about 61,000 parses over the tree. Each probe
-     starts from `arguments_for(path)` in `crates/xurl-cli/tests/common/invoke.rs`, so a required positional or group
-     does not fail it, and a probe that fails for any reason but the pair itself fails the walk, naming the command and
-     clap's error, rather than counting as no override. A participant that holds a clap `env` binding fails the walk,
-     with a message that names the argument and points at the settings table in `settings.rs`. Every override pair must
-     sit inside one setting of that table, and every setting's spellings must override one another.
+  1. Override walk. Probe each ordered pair of flags: type the first and then the second, and see whether the first lost
+     its command-line value. Clap copies a global argument with its relationships into every command, so pairs of two
+     globals are probed once, at the root, and each command probes only the pairs that hold one of its own arguments.
+     Per command, the 18 globals alone give 306 ordered pairs, about 61,000 parses over the tree. Each probe starts from
+     `arguments_for(path)` in `crates/xurl-cli/tests/common/invoke.rs`, so a required positional or group does not fail
+     it, and a probe that fails for any reason but the pair itself fails the walk, naming the command and clap's error,
+     rather than counting as no override. A participant that holds a clap `env` binding fails the walk, with a message
+     that names the argument and points at the settings table in `settings.rs`. Every override pair must sit inside one
+     setting of that table, and every setting's spellings must override one another.
   2. Conflict walk. With the reader from U3, pair every flag with every variable-backed argument it conflicts with,
      where variable-backed means a clap binding or a spelling in the settings table, so the variables the resolver owns
      are in the set (KTD13). A pair of two globals runs once, under `schema --list`, and a pair that holds a command's
-     own argument runs at that command with `arguments_for(path)`. Each pair runs through the binary with the flag
-     typed and the variable set, and must exit 2 with a message that names the variable as a variable and not its flag.
-     Where the variable-backed argument is boolean, a second run with the variable false must not be refused.
+     own argument runs at that command with `arguments_for(path)`. Each pair runs through the binary with the flag typed
+     and the variable set, and must exit 2 with a message that names the variable as a variable and not its flag. Where
+     the variable-backed argument is boolean, a second run with the variable false must not be refused.
   3. Fixture. A `clap::Command` built in the test holds a non-multiple group of three flags that each bind a variable,
      an `exclusive` flag, and an override pair in which one side binds a variable. The reader must report the group's
      six ordered pairs and the exclusive flag against every other argument. The override probe must find the pair, and
@@ -766,9 +814,8 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
      value the walks in `crates/xurl-cli/tests/common/invoke.rs` use when it declares none. A variable takes the same
      value its flag would, and a boolean variable takes `1` for true and `0` for false.
 - **Patterns to follow:** `TREE`, `command_at`, and `arguments_for` in `crates/xurl-cli/tests/common/invoke.rs` for a
-  tree built once and an invocation that parses at each command.
-  `crates/xurl-cli/tests/help_claims_guard.rs` for a walk that reads clap's declarations. `common::xr()` for a spawn
-  with variables set on the child.
+  tree built once and an invocation that parses at each command. `crates/xurl-cli/tests/help_claims_guard.rs` for a walk
+  that reads clap's declarations. `common::xr()` for a spawn with variables set on the child.
 - **Test scenarios:**
   - On `xr`'s tree the override walk finds the pairs of the two settings and no participant with a binding.
   - On `xr`'s tree the conflict walk finds `--cursor` and `--after` against `XURL_PAGE`, and `--page` against
@@ -791,7 +838,19 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   - modify `crates/xurl-cli/README.md` (the environment section near `export XURL_OUTPUT=json`, and the sentence that
     says clap refuses `--output` beside an alias)
 - **Approach:** present tense, no history. A contributor adding a flag learns from `AGENTS.md` that a variable-backed
-  flag with a second spelling goes in the settings table.
+  flag with a second spelling goes in the settings table. The README's machine-readable block, which recommends
+  `export XURL_OUTPUT=json`, gains the line a reader runs next, so the rule is shown where the export is:
+
+  ```bash
+  export XURL_OUTPUT=json                          # Default to JSON
+  xr whoami --jsonl                                # A typed format flag wins: JSONL
+  ```
+
+  `--jsonl` and not `--output`, because 4.8.0 already lets a typed `--output` beat `XURL_OUTPUT`; the alias beside the
+  variable is the case it refuses.
+
+  The README states the rest in one sentence after the block: two variables for one setting, and a variable beside a
+  typed flag it conflicts with, are refused at exit 2 naming the variable, and `XURL_JSON=0` is unset.
 - **Test scenarios:** Test expectation: none -- prose only. `crates/xurl-cli/tests/recipe_guard.rs` and the markdown
   hook still pass.
 - **Verification:** both documents match what the built binary does for AE1 to AE18.
@@ -828,24 +887,246 @@ pull request. No run sends a request to X.
 - Only the 198 help fixtures moved (`help.golden` and the `help-*.golden`), each inside the five flags' blocks or the
   root environment block.
 - `AGENTS.md` and `crates/xurl-cli/README.md` state the rule in the present tense.
-- The pull request body's Changelog lists the fix and the last-wins change under `xurl-rs`, and nothing under `xdk-rs`.
+- The pull request body's Changelog lists, under `xurl-rs` and nothing under `xdk-rs`: under Fixed, a variable no longer
+  refuses a typed flag of its own setting, a refusal that a variable causes names the variable, a boolean variable that
+  reads false is unset, and a false `XURL_NO_BROWSER` no longer satisfies `auth oauth2 --step`'s need for `--no-browser`
+  (KTD11); under Changed, typed and repeated format and page-token flags resolve last-wins, an empty `XURL_OUTPUT`,
+  `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, or `XURL_AFTER` is unset, and the five flags' help names its variable
+  without echoing the variable's value.
 - The reviews the change needs have run and are recorded on the pull request: the code review, and the
   developer-experience review for changed flag behavior and output.
 - No probe code, scratch edit, or abandoned approach is left in the diff.
 
 ---
 
+## Developer Experience Review
+
+One round of `/plan-devex-review`, mode DX POLISH, product type CLI tool. The review answered its own questions from the
+code on `dev` at `c82407b`, the 4.8.0 binary run offline on a scratch store, `AGENTS.md`, the README, and two
+`docs/solutions` entries. Each answer and its evidence is recorded here. Web research and an outside voice did not run,
+since the review ran in one context. The DX table below covers the developer journey only. A4, A5, A6, U3 step 6, U6,
+and the Definition of Done carry the plan changes this review made.
+
+### Developer persona
+
+```text
+Who:       an AI coding agent driving xr unattended, often inside a wrapper or a shell profile that exports XURL_*
+Context:   the README's machine-readable block recommends `export XURL_OUTPUT=json`; the skill bundle's dry-run gate
+           appends `--output json`; the agent then types `--json` or `--cursor` from `xr --help`
+Tolerance: one refused call it can repair from the message; it cannot see where an inherited variable came from
+Expects:   a typed flag beats the environment, a refusal names what to change, and the step it is handed runs
+```
+
+Evidence: `AGENTS.md` § "Output formats" (structured output for agents), README line 787, the 2026-10-29 devex review's
+persona for `xr` ("AI coding agent reading --help unattended"), and
+`docs/solutions/best-practices/cli-wrapper-flags-before-double-dash-env-aliases-bash32-2026-09-30.md`, which records a
+wrapper having to neutralize `XURL_JSON` because the variable acted as a flag.
+
+### Developer perspective
+
+Observed on 4.8.0, except where marked predicted. My shell profile has `export XURL_OUTPUT=json`, as the README
+suggests. The help lists `--json` as shorthand, so I run `xr --json whoami`. Exit 2:
+`the argument '--json' cannot be used with '--output <OUTPUT>'`. I never typed `--output`. The envelope's step is
+`xr --help`, which says "Flags override env vars when both are set", the opposite of what just happened. I drop `--json`
+and it works. Predicted: without the export in view, as when a CI job or a wrapper sets it, I retry the same call or
+strip flags at random. With `XURL_PAGE=2` inherited and `--cursor abc` typed, the refusal names `--page <N>`, so I hunt
+for a `--page` in my own argv that is not there.
+
+After this plan: `xr --json whoami` answers in JSON. `XURL_PAGE=2 xr --cursor abc schema --list` answers
+`the argument '--cursor <TOKEN>' cannot be used with the environment variable 'XURL_PAGE'`, followed by
+`tip: unset 'XURL_PAGE', or leave out '--cursor <TOKEN>'`.
+
+### Benchmark
+
+The clock runs from a shell holding a format or page-token variable to the first call with a typed flag that answers as
+typed. Times are estimates, not measured sessions.
+
+| Tool                | Typed flag beside its own env var      | Conflict names the env var                    | Evidence                                |
+| ------------------- | -------------------------------------- | --------------------------------------------- | --------------------------------------- |
+| uv, after uv#19313  | flag wins, both env vars of a pair off | yes, `` `UV_FROZEN` (environment variable) `` | source read for this plan (KTD8, KTD12) |
+| clap default        | flag wins for one argument             | no: names the flag the env var binds          | clap-rs/clap#5591, 4.8.0 output         |
+| `xr` 4.8.0          | refused when the flag is an alias      | no                                            | observed: AE1 to AE11                   |
+| `xr` with this plan | flag wins, last typed wins             | yes, with a `tip:` line naming the edit       | AE1 to AE18, A4                         |
+
+Target: Champion. Today an agent needs one refused call, a diagnosis, and a second call (estimated); with this plan it
+needs one call. Answered by the review: the plan already reaches the target, so no new vehicle.
+
+### Magical moment
+
+The flag the caller typed is the one that counts, and a refusal names the variable to unset. It is delivered through
+existing commands: AE1 and AE14 show the first, and A4's tip line the second. No new surface (R12).
+
+### Journey map
+
+| Stage       | Developer does                                  | Friction found                                      | Status                                |
+| ----------- | ----------------------------------------------- | --------------------------------------------------- | ------------------------------------- |
+| Discover    | reads `xr --help` and `xr -h`                   | prose-only help would drop five variables from `-h` | fixed: A6, U3 step 6                  |
+| Install     | none new                                        | none                                                | ok                                    |
+| Hello world | `export XURL_OUTPUT=json`, then `xr --json ...` | refused naming an untyped flag                      | fixed by the plan (AE1)               |
+| Real usage  | wrapper appends `--output json`; pages a list   | repeat refused; `--cursor` beside `--after` refused | fixed by the plan (KTD2, KTD5, KTD19) |
+| Debug       | reads the refusal                               | no fix line when a variable causes it               | fixed: A4 tip line                    |
+| Upgrade     | reads the 4.9.0 changelog                       | DoD listed two of six observable changes            | fixed: Definition of Done             |
+
+### First-time confusion report
+
+```text
+Persona: AI agent, XURL_OUTPUT=json inherited from a CI job
+T+0:00  runs `xr --json whoami`; exit 2 naming '--output <OUTPUT>'            -> fixed by the plan (AE1)
+T+0:20  follows next_step `xr --help`; reads "Flags override env vars"        -> fixed: U3 step 6 rule text
+T+0:40  scans `xr -h` for `env: XURL_` to find the culprit                    -> fixed: A6 keeps the bracket in -h
+T+1:00  sets XURL_PAGE=2 elsewhere, types --cursor; refusal names --page      -> fixed by the plan (AE10) and A4 tip
+T+1:30  XURL_OUTPUT=toml typo; reads possible values in a JSON envelope       -> kept: A5
+```
+
+### Decisions this review made
+
+| ID   | Question                                    | Answer                                                                   | Evidence                                                                                     |
+| ---- | ------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| DX1  | Product type                                | CLI tool                                                                 | the plan's surface is flags, help, and refusals                                              |
+| DX2  | Persona                                     | unattended AI agent, with a human scripter second                        | above                                                                                        |
+| DX3  | TTHW target                                 | Champion: one call                                                       | benchmark above                                                                              |
+| DX4  | Mode                                        | DX POLISH                                                                | a fix to an existing CLI; the stop conditions forbid new surface                             |
+| DX5  | A4 wording                                  | eng review's first line, plus one `tip:` line                            | clap's `tip:` form on 4.8.0's `--bogus` refusal; an inherited variable has no visible origin |
+| DX6  | A6 help form                                | `[env: VAR]` bracket in short and long help, plus one long-help sentence | `xr -h` on `dev` prints `[env: XURL_X=]` inline for 18 flags                                 |
+| DX7  | "(P2 alias)" in `--json` and `--jsonl` help | dropped                                                                  | the blocks move anyway, and the label names an internal tier                                 |
+| DX8  | Root help precedence paragraph              | the text in U3 step 6                                                    | the line on `dev` contradicts AE1 on 4.8.0                                                   |
+| DX9  | Invalid `XURL_OUTPUT` rendering             | JSON, through `rendering_format`                                         | 4.8.0's `XURL_OUTPUT=toml` refusal; the `--output` help sentence                             |
+| DX10 | README teaching                             | `export` line followed by `xr whoami --jsonl`                            | the Learn by Doing principle; README line 787                                                |
+| DX11 | Changelog content                           | six bullets, listed in the Definition of Done                            | System-Wide Impact lists each one as observable                                              |
+
+### NOT in scope
+
+- `--page`'s help calls it "Documented alias for `--cursor`" while it is a refusal trap. Its block does not move here,
+  and changing it would move all 198 fixtures in a block outside the five (stop condition).
+- `XURL_PAGE` is missing from the root `ENVIRONMENT VARIABLES` block. `--page` keeps its `[env: XURL_PAGE=]` line, so
+  the agentic guard passes, and the line is not part of this fix.
+- A `value` key on `invalid-args` for a refused variable value (R12: no new envelope key).
+- A `next_step` other than `show-help` for a refusal caused by a variable (R12: no new action). The tip line carries the
+  fix as message text instead.
+- The skill bundle's dry-run gate neutralizes `XURL_JSON`. That stays harmless after the fix. Whether to drop it is up
+  to the skill repo's owner.
+
+### What already exists
+
+- clap's `tip:` line layout, which `render_invalid_args` already passes through (`--bogus` on 4.8.0).
+- `rendering_format` in `classify.rs`, which already picks JSON for a value that names no format.
+- `[env: XURL_X=]` lines on the 13 flags that keep a binding, which give the five flags their shape.
+- `examples.rs` lines 105 and 341, `XURL_OUTPUT=json xr search ...`, which stay true.
+- `test_help_advertises_every_env_var_the_source_reads`, which holds the root help to `env.rs`.
+
+### Error path matrix (agent-ready-v1)
+
+```text
+Path                                   | Class | what | fix  | recovery | code | context | trace | redaction | channel | Cap
+typed flag + clap-bound var (AE10)     | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+two vars of one setting (AE15, AE11)   | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+invalid var value (A5, XURL_OUTPUT)    | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+false-variable probe fails (KTD10)     | unexp | N/A  | N/A  | N/A      | N/A  | N/A     | N/A   | N/A       | N/A     | none
+```
+
+Before this review, the first two rows were `CAP6:fix`. The only fix line they showed was `Try 'xr --help'`, and an
+agent that inherited the variable had no edit to make. The tip line in A4 closes that gap. The probe in KTD10 parses one
+argument on a command built in process. A rejected value keeps its binding, so clap reports it as `invalid-args`.
+Nothing else can fail there, so the step adds no new unexpected path. A panic anywhere still ends at the existing
+`internal` envelope. Redaction: no message echoes a variable's value, except the invalid value A5 names, which the
+caller typed into the variable. No secret is read from these five variables.
+
+### Implementation tasks
+
+- [ ] **T1 (P1, human: ~1h / CC: ~10min)**: `conflict_source.rs` writes A4's `tip:` line for each refusal with a
+  variable side, before the usage line. Surfaced by: Pass 3, CAP6 fix. Files:
+  `crates/xurl-cli/src/cli/conflict_source.rs`. Verify: the U2 and U3 binary tests that pin the tip.
+- [ ] **T2 (P1, human: ~1h / CC: ~10min)**: the five flags declare `help` and `long_help` per U3 step 6. Surfaced by:
+  Pass 4, A6. Files: `crates/xurl-cli/src/cli/mod.rs`. Verify:
+  `xr -h | rg 'env: XURL_(OUTPUT|JSON|JSONL|CURSOR|AFTER)\]'` prints five lines, and the fixture diff script passes.
+- [ ] **T3 (P2, human: ~15min / CC: ~3min)**: `ROOT_HELP` precedence paragraph and `XURL_AFTER` line per U3 step 6.
+  Surfaced by: Pass 4, DX8. Files: `crates/xurl-cli/src/cli/mod.rs`. Verify: `help.golden` diff.
+- [ ] **T4 (P2, human: ~15min / CC: ~3min)**: README example and sentence per U6. Surfaced by: Pass 4, DX10. Files:
+  `crates/xurl-cli/README.md`. Verify: run the two lines on a scratch store with a mock or `--dry-run`.
+- [ ] **T5 (P2, human: ~10min / CC: ~2min)**: the PR body's Changelog per the Definition of Done. Surfaced by: Pass 5.
+  Files: the PR body. Verify: six bullets under `xurl-rs`.
+- [ ] **T6 (P2, human: ~10min / CC: ~2min)**: test that `XURL_OUTPUT=toml` renders its refusal as JSON. Surfaced by:
+  Pass 3, A5. Files: `crates/xurl-cli/tests/flag_env_precedence_tests.rs`. Verify: seen failing first, like every new
+  test.
+
+## DX Review Scorecard
+
+```text
++====================================================================+
+|              DX PLAN REVIEW - SCORECARD                            |
++====================================================================+
+| Dimension            | Score  | Prior  | Trend                     |
+|----------------------|--------|--------|---------------------------|
+| Getting Started      |  9/10  |  8/10  | up: A6 keeps -h discovery |
+| API/CLI/SDK          |  8/10  |  8/10  | flat                      |
+| Error Messages       |  8/10  |  6/10  | up: CAP6 fix closed (A4)  |
+| Documentation        |  8/10  |  6/10  | up: help text, README     |
+| Upgrade Path         |  8/10  |  6/10  | up: full changelog        |
+| Dev Environment      |  8/10  |  8/10  | flat                      |
+| Community            |  6/10  |  6/10  | flat                      |
+| DX Measurement       |  7/10  |  6/10  | up: boomerang named       |
++--------------------------------------------------------------------+
+| TTHW                 | 1 call | 2 calls + diagnosis (estimated)    |
+| Competitive Rank     | Champion                                    |
+| Magical Moment       | designed, via existing commands (AE1, A4)   |
+| Product Type         | CLI tool                                    |
+| Mode                 | POLISH                                      |
+| Overall DX           |  8/10  |  6/10  | up                        |
++====================================================================+
+| Zero Friction      | covered (AE1)                                 |
+| Learn by Doing     | covered (README example)                      |
+| Fight Uncertainty  | covered (tip line, rule paragraph)            |
+| Opinionated + Escape Hatches | covered (typed flag beats variable) |
+| Code in Context    | covered                                       |
+| Magical Moments    | covered                                       |
+| Agents Are Users   | covered (-h bracket, JSON envelope)           |
++====================================================================+
+```
+
+"Prior" is this plan as it stood before the review, since no earlier DX review covers this plan. Community stays at 6
+because the one lever, telling clap-rs/clap#5591 how `xr` solves the defect, is outward-facing and needs a person.
+Measurement: after implementation, `/devex-review` runs AE1, AE10, AE14, and `xr -h` against the built binary. No
+telemetry is proposed. No TODOs are proposed.
+
 ## Review log
 
 - 2026-11-22: plan written. Pending: `/plan-eng-review`, `/plan-devex-review`, `/compound-engineering:ce-doc-review`.
 - 2026-11-22: uv #17321 prior art folded in at `f43ef76`, with A1 and A2 recorded as KTD19 and KTD20 by xurl-rs-prime.
 - 2026-11-23: `/plan-eng-review` started, one round, as its own Opus process.
-- 2026-11-23: `/plan-eng-review` ended, one round. The skill was not installed in the session, so the round ran by hand
-  over architecture, gates, and tests against the code on `dev` and the 4.8.0 binary. Changed: KTD10 finds a boolean by
-  its parser's type, since seven of eight bound booleans are `Set`, and analyses once per run; KTD11 and System-Wide
-  Impact name the `XURL_NO_BROWSER=0` requirement the step changes, and U1 tests it in place of `XURL_QUIET=0`, which
-  passes on `dev`; the U1 guard skips whole-file test modules; U5 probes global pairs once and starts each probe from
-  `arguments_for`; KTD20 and Scope Boundaries leave an empty clap-bound variable to clap; U3 and U4 name the module
-  visibility, the readers of the five fields, the alias-variable read, and why `FormatSpelling` stays; a startup gate
-  joins the Verification Contract. A3 to A6 confirmed, A4 and A6 left to the devex review for wording.
+- 2026-11-23: `/plan-eng-review` round ran by hand; the skill was not registered. It covered architecture, gates, and
+  tests against the code on `dev` and the 4.8.0 binary. Changed: KTD10 finds a boolean by its parser's type, since seven
+  of eight bound booleans are `Set`, and analyses once per run; KTD11 and System-Wide Impact name the
+  `XURL_NO_BROWSER=0` requirement the step changes, and U1 tests it in place of `XURL_QUIET=0`, which passes on `dev`;
+  the U1 guard skips whole-file test modules; U5 probes global pairs once and starts each probe from `arguments_for`;
+  KTD20 and Scope Boundaries leave an empty clap-bound variable to clap; U3 and U4 name the module visibility, the
+  readers of the five fields, the alias-variable read, and why `FormatSpelling` stays; a startup gate joins the
+  Verification Contract. A3 to A6 confirmed, A4 and A6 left to the devex review for wording.
 - 2026-11-23: `/plan-devex-review` started, one round, as its own Opus process.
+- 2026-11-23: `/plan-devex-review` ended, one round, mode DX POLISH, persona an unattended AI agent. Changed: A4 adds a
+  `tip:` line in clap's form to every refusal with a variable side, and fixes the sides' order for R5; A5 renders an
+  invalid `XURL_OUTPUT` as JSON through `rendering_format`; A6 keeps clap's `[env: VAR]` bracket in short and long help
+  and drops "(P2 alias)"; U3 step 6 fixes the five flags' help, the root help precedence paragraph, and the `XURL_AFTER`
+  line; U2 and U3 pin the tip and the JSON rendering; U6 adds a README example with a typed alias beside the export; the
+  Definition of Done lists six Changelog bullets. The Developer Experience Review section holds the evidence. No web
+  research or outside voice ran.
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger                    | Why                             | Runs | Status      | Findings                                                 |
+| -------------- | -------------------------- | ------------------------------- | ---- | ----------- | -------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`         | Scope & strategy                | 0    | —           | —                                                        |
+| Outside Review | codex (skipped)            | Independent 2nd opinion         | 0    | skipped     | not run: the review ran in one context with no subagents |
+| Eng Review     | `/plan-eng-review` by hand | Architecture & tests (required) | 1    | done (plan) | recorded in the Review log; not in the gstack log        |
+| Design Review  | `/plan-design-review`      | UI/UX gaps                      | 0    | —           | no UI                                                    |
+| DX Review      | `/plan-devex-review`       | Developer experience gaps       | 1    | issues_open | score: 6/10 → 8/10, TTHW: 2 calls + diagnosis → 1 call   |
+
+**OUTSIDE COVERAGE:** codex, plan-review phase, skipped: the review ran in one context with no subagents. No outside
+findings.
+
+**VERDICT:** DX review done, with one decision left for a person. The eng review ran by hand outside the gstack log, so
+the dashboard cannot clear it.
+
+**UNRESOLVED DECISIONS:**
+
+- Whether to post on clap-rs/clap#5591 how `xr` works around the defect (resolution by layer, the false-variable step,
+  and the guards). It is outward-facing and optional, it does not block implementation, and it is Brett's call.
