@@ -1669,15 +1669,15 @@ async fn listen_without_a_signing_secret_names_the_secret_to_store() {
             no_secret.as_path(),
             &[][..],
             "fix-input",
-            Some("xr auth apps update myapp --client-secret-file <path>"),
+            Some("xr --output json auth apps update myapp --client-secret-file <path>"),
         ),
         (
             oauth2_only.as_path(),
             &["--secret", "oauth1"][..],
             "fix-input",
             Some(
-                "xr auth oauth1 --app myapp --consumer-key <key> --consumer-secret-file <path> \
-                 --access-token-file <path> --token-secret-file <path>",
+                "xr --output json auth oauth1 --app myapp --consumer-key <key> \
+                 --consumer-secret-file <path> --access-token-file <path> --token-secret-file <path>",
             ),
         ),
         (empty.as_path(), &[][..], "register-app", None),

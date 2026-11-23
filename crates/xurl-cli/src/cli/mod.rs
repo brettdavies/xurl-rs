@@ -10,6 +10,7 @@ pub(crate) mod credential_step;
 mod failure;
 pub mod hints;
 mod misplaced_flags;
+pub mod rerun;
 pub mod runner;
 pub(crate) mod shutdown;
 

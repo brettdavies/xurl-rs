@@ -33,7 +33,7 @@ fn json_of(text: &str) -> Value {
 }
 
 fn refusal_step() -> Value {
-    json!({"action": "fix-input", "command": "xr auth status"})
+    json!({"action": "fix-input", "command": "xr --output json auth status"})
 }
 
 #[rstest::rstest]

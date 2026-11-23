@@ -2,7 +2,7 @@ args: ["--output", "json", "skill", "install", "claude_code"]
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1
-stdout_len: 651
+stdout_len: 665
 stderr_len: 0
 --- stdout ---
 {
@@ -17,7 +17,7 @@ stderr_len: 0
   "message": "{{SKILL_HOME}}/.claude/skills/xurl-rs already holds files, so nothing was cloned. `xr skill update claude_code` replaces a clone of the bundle there and refuses anything else.",
   "next_step": {
     "action": "run-command",
-    "command": "xr skill update claude_code"
+    "command": "xr --output json skill update claude_code"
   }
 }
 

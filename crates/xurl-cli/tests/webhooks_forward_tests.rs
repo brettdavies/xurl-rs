@@ -226,9 +226,10 @@ async fn a_failed_forward_is_reported_on_stderr_and_changes_nothing_else() {
     let template = failed["next_step"]["template"]
         .as_str()
         .expect("a template");
-    let window =
-        regex::Regex::new(r"^xr webhooks replay <WEBHOOK_ID> --from (\d{12}) --to (\d{12})$")
-            .unwrap();
+    let window = regex::Regex::new(
+        r"^xr --output jsonl webhooks replay <WEBHOOK_ID> --from (\d{12}) --to (\d{12})$",
+    )
+    .unwrap();
     let found = window.captures(template).expect("the replay template");
     let received_at = failed["received_at"].as_str().expect("the arrival time");
     let minute: String = received_at[..16]

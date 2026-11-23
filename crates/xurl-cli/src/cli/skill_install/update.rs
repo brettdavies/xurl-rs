@@ -32,9 +32,10 @@ fn compute_update_envelope(
     host: SkillHost,
     dry_run: bool,
     skill_env: &SkillEnv,
+    out: &OutputConfig,
 ) -> InstallEnvelope {
     update_envelope(host, dry_run, skill_env)
-        .with_next_step()
+        .with_next_step(out)
         .with_message()
 }
 
@@ -148,7 +149,7 @@ fn remove_legacy_copy(legacy: Option<&Path>) -> Result<(), InstallError> {
 
 /// The envelope for a host `--all` passes over because nothing is installed
 /// there. Carries exit code 0: a host with no installation is not a failure.
-fn skipped_envelope(host: SkillHost, skill_env: &SkillEnv) -> InstallEnvelope {
+fn skipped_envelope(host: SkillHost, skill_env: &SkillEnv, out: &OutputConfig) -> InstallEnvelope {
     let (url, dest_template) = resolve_host(host);
     let install_dir = skill_env
         .destination(host)
@@ -170,7 +171,7 @@ fn skipped_envelope(host: SkillHost, skill_env: &SkillEnv) -> InstallEnvelope {
         message: None,
         next_step: None,
     }
-    .with_next_step()
+    .with_next_step(out)
 }
 
 /// Whether a host currently has something to update, at its destination or
@@ -188,7 +189,7 @@ pub fn run_update(
     stdout: &mut dyn Write,
     skill_env: &SkillEnv,
 ) -> i32 {
-    let env = compute_update_envelope(host, dry_run, skill_env);
+    let env = compute_update_envelope(host, dry_run, skill_env, out);
     let rendered = render_envelope(&env, &out.format);
     emit_envelope(stdout, &rendered, &out.format);
     if env.status == STATUS_ERROR {
@@ -216,9 +217,9 @@ pub fn run_update_multi(
             .iter()
             .map(|h| {
                 if is_installed(*h, skill_env) {
-                    compute_update_envelope(*h, dry_run, skill_env)
+                    compute_update_envelope(*h, dry_run, skill_env, out)
                 } else {
-                    skipped_envelope(*h, skill_env)
+                    skipped_envelope(*h, skill_env, out)
                 }
             })
             .collect();
@@ -242,6 +243,15 @@ mod tests {
 
     fn first_host() -> SkillHost {
         SkillHost::ALL[0]
+    }
+
+    fn plain() -> OutputConfig {
+        OutputConfig::new(
+            OutputFormat::Text,
+            false,
+            false,
+            crate::cli::ColorChoice::Never,
+        )
     }
 
     /// A skill environment with only `HOME`, at `home`.
@@ -275,7 +285,7 @@ mod tests {
         let (host, legacy) = host_with_legacy_copy(&home);
 
         assert!(is_installed(host, &at(&home)));
-        let env = compute_update_envelope(host, true, &at(&home));
+        let env = compute_update_envelope(host, true, &at(&home), &plain());
         assert_eq!(env.legacy_install_dir.as_deref(), legacy.to_str());
         assert!(legacy.exists(), "a dry run removes nothing");
     }
@@ -283,7 +293,7 @@ mod tests {
     #[test]
     fn update_dry_run_reports_the_update_action_and_would_succeed() {
         let home = TempDir::new().expect("tempdir");
-        let env = compute_update_envelope(first_host(), true, &at(&home));
+        let env = compute_update_envelope(first_host(), true, &at(&home), &plain());
 
         assert_eq!(env.action, "skill-update");
         assert_eq!(env.status, "dry_run");
@@ -295,14 +305,14 @@ mod tests {
     #[test]
     fn update_dry_run_marks_an_absent_destination_absent() {
         let home = TempDir::new().expect("tempdir");
-        let env = compute_update_envelope(first_host(), true, &at(&home));
+        let env = compute_update_envelope(first_host(), true, &at(&home), &plain());
 
         assert_eq!(env.destination_status, "absent");
     }
 
     #[test]
     fn update_dry_run_without_home_names_the_reason_the_real_run_fails_for() {
-        let env = compute_update_envelope(first_host(), true, &SkillEnv::default());
+        let env = compute_update_envelope(first_host(), true, &SkillEnv::default(), &plain());
 
         assert_eq!(env.action, "skill-update");
         assert_eq!(env.status, "dry_run");
@@ -332,7 +342,7 @@ mod tests {
     #[test]
     fn skipped_envelope_carries_the_not_installed_reason_and_a_zero_exit() {
         let home = TempDir::new().expect("tempdir");
-        let env = skipped_envelope(first_host(), &at(&home));
+        let env = skipped_envelope(first_host(), &at(&home), &plain());
 
         assert_eq!(env.action, "skill-update");
         assert_eq!(env.status, "skipped");

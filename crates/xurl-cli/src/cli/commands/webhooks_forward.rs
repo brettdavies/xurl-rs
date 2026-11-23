@@ -364,7 +364,7 @@ fn write_record(
             }
         }
         Err(cause) => {
-            let next_step = NextStep::replay_window(received_secs);
+            let next_step = out.carry(NextStep::replay_window(received_secs));
             if out.format.is_structured() {
                 let record = json!({
                     "status": "forward-failed",

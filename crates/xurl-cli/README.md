@@ -567,7 +567,7 @@ X's deliveries wait for room rather than being dropped.
 
   ```json
   {"status":"forwarded","target":"url","attempts":1,"http_status":200,"elapsed_ms":4,"received_at":"2026-10-22T15:04:10Z","event_sha256":"3f9a…"}
-  {"status":"forward-failed","target":"program","attempts":4,"cause":"the program exited with 3","received_at":"2026-10-22T15:04:10Z","event_sha256":"3f9a…","side_effects":"printed, not delivered","next_step":{"action":"run-command","template":"xr webhooks replay <WEBHOOK_ID> --from 202610221504 --to 202610221505"}}
+  {"status":"forward-failed","target":"program","attempts":4,"cause":"the program exited with 3","received_at":"2026-10-22T15:04:10Z","event_sha256":"3f9a…","side_effects":"printed, not delivered","next_step":{"action":"run-command","template":"xr --output json webhooks replay <WEBHOOK_ID> --from 202610221504 --to 202610221505"}}
   ```
 
   A program's record carries `exit_status` where a URL's carries `http_status`. A failed record's step is the replay of
@@ -1022,8 +1022,13 @@ help to read: `xr post --help` for a usage error under `post`, and the help of t
 a value you do not recognize as your default branch. A step carries a `command`, runnable verbatim, or a `template` the
 caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
 fill; under `confirm`, the invocation that destroys once it runs; or, after a 401 or a 429 with no reset on the status
-read after `xr media upload`, the resumed wait to run once the credential works or the window passes. One whose recovery
-is not an `xr` invocation carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry` except on
+read after `xr media upload`, the resumed wait to run once the credential works or the window passes. A step that runs
+`xr` names the output format the failed run answered in, after `xr`, spelled as the run chose it: `--json` or `--jsonl`
+when that flag, `XURL_JSON`, or `XURL_JSONL` chose it, `--output <format>` otherwise, since clap refuses `--output`
+beside either alias. Following it prints the document the caller is parsing; a `show-help` step names none, since help
+text has one form. A step that runs the invocation again names `--app` and `--dry-run` as flags when
+`XURL_APP` or `XURL_DRY_RUN` chose them, so it runs the same in a shell without the variable. One whose recovery is not
+an `xr` invocation carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry` except on
 that status read, `retry`, `fix-input`, `report-issue`, and `inspect-store` when a store command is what failed. Some
 `fix-input` steps carry an invocation: `listen` again on a free port, under `address-in-use`; the invocation with `-u`,
 `--auth`, or `-t` moved after the command word it came before, and the `xr schema` invocation that works for an old name

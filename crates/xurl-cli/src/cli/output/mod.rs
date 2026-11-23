@@ -31,6 +31,7 @@ use serde_json::Value;
 
 use crate::cli::ColorChoice;
 use crate::cli::envelope::{DryRunAuth, Envelope, ErrorBody, Reason};
+use crate::cli::rerun::FormatSpelling;
 use delimited::write_flattened;
 use xdk::error::Error;
 
@@ -145,6 +146,9 @@ pub struct OutputConfig {
     /// refusal of that name says where it came from. The runner sets it via
     /// [`Self::with_app_from_env`].
     pub app_from_env: Option<String>,
+    /// How the run's flags spelled `format`, which a step repeats. The runner sets it via
+    /// [`Self::with_format_spelling`].
+    pub format_spelling: FormatSpelling,
     /// The warnings a structured run has kept for its one document on
     /// stderr, shared by every clone of this config.
     pub warnings: WarningLog,
@@ -205,6 +209,7 @@ impl OutputConfig {
             no_interactive: false,
             response_schema: None,
             app_from_env: None,
+            format_spelling: FormatSpelling::default(),
             warnings: WarningLog::default(),
         }
     }
@@ -232,6 +237,20 @@ impl OutputConfig {
     pub fn with_app_from_env(mut self, app: Option<String>) -> Self {
         self.app_from_env = app;
         self
+    }
+
+    /// Sets [`Self::format_spelling`].
+    #[must_use]
+    pub fn with_format_spelling(mut self, spelling: FormatSpelling) -> Self {
+        self.format_spelling = spelling;
+        self
+    }
+
+    /// `step` with this run's output format on it: the only way a step reaches
+    /// a document.
+    #[must_use]
+    pub fn carry(&self, step: crate::cli::hints::NextStep) -> crate::cli::rerun::CarriedStep {
+        crate::cli::rerun::carry(step, &self.format, self.format_spelling)
     }
 
     /// `body` with its message saying `XURL_APP` gave the app it refuses, when
@@ -385,7 +404,7 @@ impl OutputConfig {
         exit_code: i32,
         hint: &crate::cli::hints::Hint,
     ) {
-        let body = error_body_with_step(error, exit_code, &hint.next_step);
+        let body = error_body_with_step(error, exit_code, &self.carry(hint.next_step.clone()));
         self.emit_body_with_hint(err, body, hint);
     }
 
@@ -401,7 +420,7 @@ impl OutputConfig {
     ) {
         let body = ErrorBody {
             auth: Some(credential),
-            ..error_body_with_step(error, exit_code, &hint.next_step)
+            ..error_body_with_step(error, exit_code, &self.carry(hint.next_step.clone()))
         };
         self.emit_body_with_hint(err, body, hint);
     }
@@ -446,7 +465,7 @@ impl OutputConfig {
             ));
         }
         if let Some(hint) = hint {
-            body.next_step = Some(hint.next_step.clone());
+            body.next_step = Some(self.carry(hint.next_step.clone()));
         }
         self.emit_error_envelope(err, body);
         if self.format.is_structured() || self.quiet {
@@ -468,7 +487,7 @@ impl OutputConfig {
         let hint = crate::cli::hints::general_hint(error, "");
         if self.format.is_structured() {
             let body = ErrorBody {
-                next_step: hint.map(|hint| hint.next_step),
+                next_step: hint.map(|hint| self.carry(hint.next_step.clone())),
                 backtrace,
                 ..error_body(error, xdk::error::EXIT_GENERAL_ERROR)
             };
@@ -501,7 +520,7 @@ impl OutputConfig {
             self.print_error_with_hint(err, error, exit_code, hint);
             return;
         }
-        let mut body = error_body_with_step(error, exit_code, &hint.next_step);
+        let mut body = error_body_with_step(error, exit_code, &self.carry(hint.next_step.clone()));
         if let Some(reason) = reason {
             // `rule` names the input rule under `reason: validation`; a
             // refusal with a reason of its own carries that reason alone.
@@ -715,7 +734,9 @@ impl OutputConfig {
             _ => &[],
         };
         let body = match hint {
-            Some(hint) => error_body_with_step(error, exit_code, &hint.next_step),
+            Some(hint) => {
+                error_body_with_step(error, exit_code, &self.carry(hint.next_step.clone()))
+            }
             None => error_body(error, exit_code),
         };
         self.print_refused_dry_run(out, ctx, body, advice);
@@ -770,7 +791,7 @@ impl OutputConfig {
             validate_only: get_bool("validate_only"),
             webhook_id: get_str("webhook_id"),
             user_id: get_str("user_id"),
-            next_step: Some(next_step),
+            next_step: Some(self.carry(next_step)),
             ..ErrorBody::default()
         };
         let text = match &body.command {
@@ -952,7 +973,11 @@ fn invalid_args_body(message: &str, separator: &str, command: &str) -> ErrorBody
         reason: Reason::InvalidArgs,
         exit_code: xdk::error::EXIT_USAGE_ERROR,
         message: Some(format!("{message}{separator}Try '{help}'.")),
-        next_step: Some(crate::cli::hints::NextStep::show_help(help)),
+        next_step: Some(crate::cli::rerun::carry(
+            crate::cli::hints::NextStep::show_help(help),
+            &OutputFormat::Text,
+            FormatSpelling::default(),
+        )),
         ..ErrorBody::default()
     }
 }
@@ -962,7 +987,7 @@ fn invalid_args_body(message: &str, separator: &str, command: &str) -> ErrorBody
 fn error_body_with_step(
     error: &Error,
     exit_code: i32,
-    step: &crate::cli::hints::NextStep,
+    step: &crate::cli::rerun::CarriedStep,
 ) -> ErrorBody {
     ErrorBody {
         message: Some(message::render_with_step(error, step)),
@@ -1089,6 +1114,7 @@ impl Default for OutputConfig {
             no_interactive: false,
             response_schema: None,
             app_from_env: None,
+            format_spelling: FormatSpelling::default(),
             warnings: WarningLog::default(),
         }
     }
@@ -1156,6 +1182,7 @@ mod tests {
             no_interactive: false,
             response_schema: None,
             app_from_env: None,
+            format_spelling: FormatSpelling::default(),
             warnings: WarningLog::default(),
         };
         assert!(!cfg.quiet);

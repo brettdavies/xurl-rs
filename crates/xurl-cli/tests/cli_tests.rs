@@ -4645,7 +4645,8 @@ async fn test_apps_add_message_names_the_next_command() {
     assert_eq!(v["default"], serde_json::Value::Bool(false), "got: {v}");
     assert_eq!(v["next_step"]["action"], "sign-in", "got: {v}");
     assert_eq!(
-        v["next_step"]["command"], "xr auth oauth2 --no-browser --step 1 --app second",
+        v["next_step"]["command"],
+        "xr --output json auth oauth2 --no-browser --step 1 --app second",
         "a structured caller gets the headless form naming the app; got: {v}"
     );
 }
@@ -6098,7 +6099,7 @@ async fn test_auth_app_for_an_app_the_store_lacks_stores_nothing() {
     assert_eq!(envelope["reason"], "token-store", "{envelope}");
     assert_eq!(
         envelope["next_step"],
-        serde_json::json!({"action": "fix-input", "command": "xr auth status"}),
+        serde_json::json!({"action": "fix-input", "command": "xr --output json auth status"}),
         "{envelope}"
     );
     let ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));

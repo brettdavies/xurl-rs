@@ -22,7 +22,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::cli::hints::NextStep;
+use crate::cli::rerun::CarriedStep;
 
 /// The envelope variants, one per `status` value a top-level document carries.
 #[derive(Debug, Serialize, JsonSchema)]
@@ -162,7 +162,7 @@ pub struct DryRunBody {
     /// The step the real run's error would carry; one that reruns the
     /// invocation keeps `--dry-run`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub next_step: Option<NextStep>,
+    pub next_step: Option<CarriedStep>,
     /// Endpoint template the request would target, when no stored scheme
     /// serves it.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -455,7 +455,7 @@ pub struct ErrorBody {
     /// Each `-H` header keeps its name in a template and has its value left as
     /// `<value>`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub next_step: Option<NextStep>,
+    pub next_step: Option<CarriedStep>,
     /// What the library warned about before the run failed, each distinct
     /// warning once. Omitted when none fired.
     #[serde(skip_serializing_if = "Option::is_none")]

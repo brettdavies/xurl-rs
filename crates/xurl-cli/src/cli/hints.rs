@@ -5,7 +5,7 @@
 //! envelope carries, which keeps a hint and its machine-readable form from
 //! drifting apart.
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 pub use xdk::error::NextAction;
 use xdk::error::{
@@ -41,7 +41,7 @@ use crate::cli::classify::{ROOT_COMMAND, requested_login};
 /// [`Self::listen_on_free_port`], [`Self::fix_input_with`],
 /// [`Self::fix_input_template`], [`Self::step_two_again`], and the one
 /// [`resume_after_upload_hint`] gives a 401.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
     /// The action to take.
@@ -203,44 +203,6 @@ impl NextStep {
             template: Some(template),
             docs: None,
         }
-    }
-
-    /// This step's command with `--dry-run` after the program word, for a
-    /// dry run's refusal whose step reruns an invocation, unless the command
-    /// carries it already. A command that does not start with the program
-    /// word is left as it is.
-    #[must_use]
-    pub fn under_dry_run(self) -> Self {
-        let named = self.command.as_deref().is_some_and(|command| {
-            command
-                .split(' ')
-                .any(|word| word == "--dry-run" || word.starts_with("--dry-run="))
-        });
-        if named {
-            self
-        } else {
-            self.after_program(&["--dry-run".to_string()])
-        }
-    }
-
-    /// This step's command with the words of `invocation` that name the output
-    /// format after the program word, so the run it hands out answers in the
-    /// format the failed run did. A command that does not start with the
-    /// program word is left as it is.
-    #[must_use]
-    pub fn keeping_format(self, invocation: &[String]) -> Self {
-        self.after_program(&format_words(invocation))
-    }
-
-    fn after_program(mut self, words: &[String]) -> Self {
-        if let Some(command) = &mut self.command
-            && let Some(rest) = command.strip_prefix(ROOT_COMMAND)
-            && rest.starts_with(' ')
-            && !words.is_empty()
-        {
-            *command = format!("{ROOT_COMMAND} {}{rest}", words.join(" "));
-        }
-        self
     }
 
     /// Look at a store file that could not be loaded, starting from the
@@ -501,7 +463,9 @@ pub struct Hint {
 /// The login is the one `-u` names in `invocation`, or any login when it
 /// names none. An app that holds only other logins is passed over, since
 /// the rerun would refuse there the same way. A sign-in on the target names
-/// it unless it is the default, so the login lands where the rerun looks.
+/// it, the default app included: the caller's shell resolves the app per
+/// invocation from `--app` and `XURL_APP`, and it must land the login where
+/// this run looked.
 ///
 /// The snapshot is taken before dispatch, so the choice sees the store the
 /// run actually loaded, including an app named by `--app` and a client id
@@ -548,7 +512,7 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
     let target_has_client_id =
         snapshot.env_client_id_present || target_facts.is_some_and(|f| f.has_client_id);
     if target_has_client_id {
-        let app = (target != snapshot.default_app).then_some(target);
+        let app = (!target.is_empty()).then_some(target);
         let next_step = NextStep::sign_in_as(login, app, headless);
         let command = next_step.command.clone().unwrap_or_default();
         text_lines.push(format!("Sign in first. Run: {command}"));
@@ -1054,9 +1018,8 @@ pub fn refresh_refused_hint(
     let target = snapshot.active_app.as_str();
     let login =
         requested_login(invocation).or_else(|| snapshot.oauth2_default_logins.get(target).cloned());
-    let app = (target != snapshot.default_app).then_some(target);
-    let next_step =
-        NextStep::sign_in_as(login.as_deref(), app, headless).keeping_format(invocation);
+    let app = (!target.is_empty()).then_some(target);
+    let next_step = NextStep::sign_in_as(login.as_deref(), app, headless);
     let command = next_step.command.clone().unwrap_or_default();
     Some(Hint {
         text_lines: vec![format!("{what} Sign in again. Run: {command}")],
@@ -1365,25 +1328,6 @@ fn hidden_header(header: &str) -> String {
     } else {
         format!("{name}: <value>")
     }
-}
-
-/// The words of `invocation` that name the output format: `--output NAME`,
-/// `--output=NAME`, `--json`, and `--jsonl`, each as given.
-fn format_words(invocation: &[String]) -> Vec<String> {
-    let mut words = Vec::new();
-    let mut args = invocation.iter().skip(1);
-    while let Some(arg) = args.next() {
-        if arg == "--" {
-            break;
-        }
-        if arg == "--output" {
-            words.push(arg.clone());
-            words.extend(args.next().map(|name| shell_word(name)));
-        } else if arg.starts_with("--output=") || arg == "--json" || arg == "--jsonl" {
-            words.push(shell_word(arg));
-        }
-    }
-    words
 }
 
 /// The sign-in `invocation` started, written to run again from its first
@@ -1759,63 +1703,38 @@ mod tests {
         }
     }
 
+    /// The refresh step names the app the run used, the default one included,
+    /// and the format it carries on the way out is the failed run's.
     #[test]
-    fn under_dry_run_puts_the_flag_after_the_program_word_of_a_command_only() {
-        let step = NextStep::select_app("xr auth oauth2 --no-browser --step 1 --app work".into());
-        assert_eq!(
-            step.under_dry_run().command.as_deref(),
-            Some("xr --dry-run auth oauth2 --no-browser --step 1 --app work")
-        );
-        let registration = NextStep::register_app();
-        assert_eq!(registration.clone().under_dry_run(), registration);
-    }
-
-    #[test]
-    fn under_dry_run_names_the_flag_once() {
-        for command in [
-            "xr --dry-run auth oauth2 --app work",
-            "xr --dry-run=true auth oauth2 --app work",
-        ] {
-            let step = NextStep::select_app(command.into());
-            assert_eq!(step.clone().under_dry_run(), step, "{command}");
-        }
-    }
-
-    /// The failed command's `--output` and `--json` words ride on the step, so
-    /// a structured caller runs it in the format it was reading.
-    #[test]
-    fn a_refresh_step_keeps_the_format_the_failed_command_named() {
+    fn a_refresh_step_names_the_app_and_takes_the_format_the_run_ran_in() {
+        use crate::cli::output::OutputFormat;
         let tmp = tempfile::TempDir::new().expect("tempdir");
         let store = two_signed_in_apps(&tmp);
         let refused = Error::auth(format!("{REFRESH_TOKEN_REFUSED}: HTTP 400"));
-        for (invocation, headless, expected) in [
+        for (format, headless, expected) in [
             (
-                "xr --output json whoami",
+                OutputFormat::Json,
                 true,
                 "xr --output json auth oauth2 bob --no-browser --step 1 --app work",
             ),
             (
-                "xr whoami --output=yaml",
+                OutputFormat::Yaml,
                 true,
-                "xr --output=yaml auth oauth2 bob --no-browser --step 1 --app work",
+                "xr --output yaml auth oauth2 bob --no-browser --step 1 --app work",
             ),
-            (
-                "xr --json whoami",
-                true,
-                "xr --json auth oauth2 bob --no-browser --step 1 --app work",
-            ),
-            ("xr whoami", false, "xr auth oauth2 bob --app work"),
+            (OutputFormat::Text, false, "xr auth oauth2 bob --app work"),
         ] {
             let hint =
-                refresh_refused_hint(&snapshot_of(&store), &refused, &argv(invocation), headless)
+                refresh_refused_hint(&snapshot_of(&store), &refused, &argv("xr whoami"), headless)
                     .expect("a hint");
-            assert_eq!(
-                hint.next_step.command.as_deref(),
-                Some(expected),
-                "{invocation}"
+            let carried = crate::cli::rerun::carry(
+                hint.next_step.clone(),
+                &format,
+                crate::cli::rerun::FormatSpelling::default(),
             );
+            assert_eq!(carried.command.as_deref(), Some(expected), "{format:?}");
             assert!(
-                hint.text_lines[0].ends_with(expected),
+                hint.text_lines[0].ends_with(hint.next_step.command.as_deref().unwrap_or_default()),
                 "the text names the step it carries: {:?}",
                 hint.text_lines
             );
@@ -2277,7 +2196,7 @@ mod tests {
         );
         assert_eq!(
             hint.next_step.command.as_deref(),
-            Some("xr auth oauth2 nobody")
+            Some("xr auth oauth2 nobody --app personal")
         );
     }
 
@@ -2301,7 +2220,10 @@ mod tests {
 
         let hint = choose_hint(&snapshot_of(&store), &words(&["xr", "whoami"]), true);
 
-        assert_eq!(hint.next_step, NextStep::sign_in_as(None, None, true));
+        assert_eq!(
+            hint.next_step,
+            NextStep::sign_in_as(None, Some("work"), true)
+        );
     }
 
     /// A rerun never echoes a header value, whichever way the header is

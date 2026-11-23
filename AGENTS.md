@@ -236,6 +236,16 @@ once it runs; or, after a 401 or a 429 with no reset on the status read after `x
 once the credential works or the window passes. A new error picks an existing action where one fits, and does not ship
 without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
 
+A step that runs `xr` answers in the output format the failed run did. `NextStep` has no `Serialize`, and every
+envelope field that holds a step holds a `CarriedStep`, which only `OutputConfig::carry` makes: it puts the format
+after the program word of each step but `show-help`, spelled as the run chose it: `--json` or `--jsonl` when that flag,
+`XURL_JSON`, or `XURL_JSONL` chose it, `--output <format>` otherwise, since clap refuses `--output` beside either alias.
+A step built by running the invocation again also keeps `--dry-run` and `--app` as flags: `explicit_invocation` writes
+what `XURL_DRY_RUN` and `XURL_APP` chose after the program word, so the step runs the same in a shell without the
+variable; the sign-in that answers a refused `auth oauth2 --step 2` is such a step. Any other step that signs in or
+stores a credential is not a rehearsal and takes no `--dry-run`, and a sign-in names the app the run used, the default
+one included. `crates/xurl-cli/src/cli/rerun.rs` holds the tables.
+
 `--dry-run` sends nothing and changes no stored credential on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
 invalid input, for a request no stored credential serves, for a sign-in whose arguments, client id, authorize URL, saved
@@ -344,6 +354,13 @@ never the tests.
 - **Examples page.** An `xr <family>` line under the use-case section it belongs to in
   `crates/xurl-cli/src/cli/commands/examples.rs`. `crates/xurl-cli/tests/agentic_tests.rs` fails for a family the page
   never invokes.
+- **Step context.** Nothing to add for a command: its steps reach an envelope through `OutputConfig::carry`, which the
+  type of each envelope's `next_step` demands. A new global flag takes a row in `CARRIED_GLOBALS` or in
+  `DROPPED_GLOBALS` with its reason, and a new `NextAction` a row in `FORMAT_POLICY`, both in
+  `crates/xurl-cli/src/cli/rerun.rs`. `crates/xurl-cli/tests/rerun_walk.rs` fails for a flag or an action with neither,
+  and runs every command over every store shape, as a real run, a dry run, and a run under `--app`, failing for a step
+  that drops what its run asked for. `crates/xurl-cli/tests/rerun_env_tests.rs` spawns `xr` with the variables set and
+  none of the flags.
 - **Completions.** `scripts/generate-completions.sh`; CI's completions freshness gate fails when they are stale.
 - **Audit vocabulary.** A new top-level command word that anc does not count as a standard verb goes in
   `domain_verbs` in `.anc.toml`. CI's `Agent-native audit` warns once too few of `xr`'s commands use standard or

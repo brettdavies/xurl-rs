@@ -611,7 +611,7 @@ mod tests {
         let hint =
             mismatch_hint(&snapshot, &no_login, &words(&["xr", "whoami"]), true).expect("a step");
 
-        assert_eq!(hint.next_step, NextStep::sign_in(None, true));
+        assert_eq!(hint.next_step, NextStep::sign_in(Some("work"), true));
     }
 
     #[test]

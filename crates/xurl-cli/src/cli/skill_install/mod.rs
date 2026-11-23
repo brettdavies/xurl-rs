@@ -51,6 +51,7 @@ use std::io::Write;
 use crate::cli::envelope::Reason;
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
+use crate::cli::rerun::CarriedStep;
 
 mod bundle;
 mod destination;
@@ -172,7 +173,7 @@ pub struct InstallEnvelope {
     pub message: Option<String>,
     /// What to do about [`Self::reason`]; `None` on success.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub next_step: Option<NextStep>,
+    pub next_step: Option<CarriedStep>,
 }
 
 impl InstallEnvelope {
@@ -184,10 +185,10 @@ impl InstallEnvelope {
     /// the sibling verb. That refusal from `skill update` itself has no
     /// sibling left to name. A clone that failed is tried again. The rest are
     /// the machine's state, which no `xr` command changes.
-    fn with_next_step(mut self) -> Self {
+    fn with_next_step(mut self, out: &OutputConfig) -> Self {
         let host = self.host;
         let action = self.action;
-        self.next_step = self.reason.and_then(|reason| match reason {
+        let step = self.reason.and_then(|reason| match reason {
             "destination-not-empty" if action == ACTION_UPDATE => Some(NextStep::fix_input(None)),
             "destination-not-empty" => {
                 Some(NextStep::run_command(format!("xr skill update {host}")))
@@ -199,6 +200,7 @@ impl InstallEnvelope {
             }
             _ => None,
         });
+        self.next_step = step.map(|step| out.carry(step));
         self
     }
 
@@ -252,7 +254,7 @@ pub struct InstallMultiEnvelope {
     /// On a failure, the step of the host with the worst exit code. Each entry
     /// in [`Self::installations`] carries its own.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub next_step: Option<NextStep>,
+    pub next_step: Option<CarriedStep>,
 }
 
 impl InstallMultiEnvelope {
@@ -319,12 +321,13 @@ pub fn compute_install_envelope(
     host: SkillHost,
     dry_run: bool,
     skill_env: &SkillEnv,
+    out: &OutputConfig,
 ) -> InstallEnvelope {
     let mut envelope = install_envelope(host, dry_run, skill_env);
     envelope.legacy_install_dir = skill_env
         .legacy_copy(host)
         .map(|path| path.display().to_string());
-    envelope.with_next_step().with_message()
+    envelope.with_next_step(out).with_message()
 }
 
 fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> InstallEnvelope {
@@ -469,7 +472,7 @@ pub fn run_install(
     stdout: &mut dyn Write,
     skill_env: &SkillEnv,
 ) -> i32 {
-    let envelope = compute_install_envelope(host, dry_run, skill_env);
+    let envelope = compute_install_envelope(host, dry_run, skill_env, out);
     let rendered = render_envelope(&envelope, &out.format);
     let _ = writeln!(stdout, "{rendered}");
     if envelope.status == STATUS_ERROR {
@@ -511,7 +514,7 @@ fn run_for_all_hosts(
 ) -> i32 {
     let installations = SkillHost::ALL
         .iter()
-        .map(|host| compute_install_envelope(*host, dry_run, skill_env))
+        .map(|host| compute_install_envelope(*host, dry_run, skill_env, out))
         .collect();
     let multi = InstallMultiEnvelope::of(ACTION_INSTALL, dry_run, installations);
     let rendered = render_multi(&multi, &out.format);
@@ -530,7 +533,7 @@ fn emit_missing_host_envelope(out: &OutputConfig, stdout: &mut dyn Write) -> i32
             "exit_code": 2,
             "message": "missing target host; pass <host> or --all",
             "known_hosts": KNOWN_HOSTS,
-            "next_step": NextStep::show_help("xr skill install --help".to_string()),
+            "next_step": out.carry(NextStep::show_help("xr skill install --help".to_string())),
         });
         let _ = writeln!(stdout, "{}", render_structured(&json, &out.format));
     } else {
@@ -619,7 +622,17 @@ mod tests {
             ..SkillEnv::default()
         };
 
-        let envelope = compute_install_envelope(host, true, &skill_env);
+        let envelope = compute_install_envelope(
+            host,
+            true,
+            &skill_env,
+            &OutputConfig::new(
+                crate::cli::output::OutputFormat::Text,
+                false,
+                false,
+                crate::cli::ColorChoice::Never,
+            ),
+        );
         assert_eq!(envelope.legacy_install_dir.as_deref(), legacy.to_str());
         assert!(legacy.exists(), "install leaves the legacy copy alone");
     }
