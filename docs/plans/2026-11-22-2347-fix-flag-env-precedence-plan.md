@@ -1535,6 +1535,7 @@ Effort assumes the default ratios: tests ~50x, bug fix ~20x.
   no behavior of today's tree; the `XURL_NO_BROWSER` cases move from U1 to U7; the stop condition, KTD17, U3, and the
   Definition of Done allow `help-auth-oauth2.golden` to move in its `--step` and `--no-browser` blocks; the Changelog
   guidance swaps the `XURL_NO_BROWSER` Fixed bullet for a Changed bullet. Nobody posts on clap-rs/clap#5591.
+- 2026-11-23: `/compound-engineering:ce-doc-review` started, one round, non-interactive, as its own Opus process.
 
 ## GSTACK REVIEW REPORT
 
