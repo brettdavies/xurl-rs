@@ -215,7 +215,8 @@ the decision rules out.
   re-implements clap's propagation to answer one question argv already answers.
 - KTD10. **One step removes the binding of any boolean flag whose variable reads as the flag's absent value.** It walks
   every command, takes each argument with an `env` binding whose variable the lookup holds and whose built value parser
-  yields a `bool` (`ValueParser::type_id() == AnyValueId::of::<bool>()`), and parses the variable's value with that
+  yields a `bool` (`ValueParser::type_id() == std::any::TypeId::of::<bool>()`, through the public `PartialEq<TypeId>` on
+  the `AnyValueId` it returns, since `AnyValueId::of` is crate-private), and parses the variable's value with that
   parser. The test is the parser's type, not the action: seven of the eight booleans that stay bound (`--verbose`,
   `--raw`, `--quiet`, `--no-interactive`, `--wait-on-rate-limit`, `--dry-run`, and `auth oauth2 --no-browser`) are `Set`
   with `num_args = 0..=1` and `default_value_t = false`, which is why `xr --quiet=false` parses, and only `--no-pager`
@@ -402,6 +403,8 @@ Verified against clap_builder 4.6.7. Each of the brief's facts is used or correc
 | Conflicts and overrides run per command level, and global values merge afterwards: the higher source wins, and a tie goes to the deeper level                                                                                                                                                                                                                 | `builder/command.rs` `_do_parse`, `parser/arg_matcher.rs` `fill_in_global_values`          | KTD9                                                                                                                       |
 | A repeated `Set` or `SetTrue` argument is refused unless it overrides itself                                                                                                                                                                                                                                                                                  | `parser/parser.rs` `react`                                                                 | KTD19: each spelling lists itself in its overrides                                                                         |
 | `ValueParser::parse_ref` is crate-private                                                                                                                                                                                                                                                                                                                     | `builder/value_parser.rs`                                                                  | KTD10's probe command                                                                                                      |
+| `ValueParser::type_id` returns an `AnyValueId` whose `of` constructor is crate-private, and `AnyValueId` implements `PartialEq<std::any::TypeId>` publicly                                                                                                                                                                                                    | `util/any_value.rs`                                                                        | KTD10's boolean test compares with `TypeId::of::<bool>()`                                                                  |
+| `Arg::is_allow_negative_numbers_set` reads an argument that takes `-<digits>` as a value; such a value cannot spell a long flag                                                                                                                                                                                                                               | `builder/arg.rs`                                                                           | U5's argv-read condition exempts it                                                                                        |
 | An `ArgumentConflict` carries `InvalidArg` as a string and `PriorArg` as a string, a list, or nothing (`exclusive`)                                                                                                                                                                                                                                           | `error/mod.rs` `argument_conflict`                                                         | KTD12                                                                                                                      |
 
 The brief's fifth fact, that `build()` on the parsed command moved nine help fixtures, is consistent with the source.
@@ -567,9 +570,10 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
      from KTD10, and returns clap's matches or error.
   2. The step takes its variable lookup as a parameter. Production passes the one in `env.rs`, and a test passes its
      own. Its analysis runs once per run and each site applies the result (KTD10).
-  3. Move each parse site onto it: the runner's main parse and `help_command_page`, the schema scope probe in
-     `render_schema_refusal`, the three builders and `lenient_matches` in `reparse.rs`, `invoked_help`,
-     `requested_login`, and `parsed_leaf` in `classify.rs`, and both parses in `misplaced_flags.rs`.
+  3. Move each of the eleven parse sites onto it: the runner's main parse and `help_command_page`, the schema scope
+     probe in `render_schema_refusal`, `parse_without_display_flags`, `parse_past_stray_words`, and `lenient_matches` in
+     `reparse.rs`, `invoked_help`, `requested_login`, and `parsed_leaf` in `classify.rs`, and both parses in
+     `misplaced_flags.rs`.
   4. Sites that read the tree without parsing argv (`render_help`, completions, `takes_value_after_equals`, the schema
      word list) keep calling `Cli::command()`.
 - **Patterns to follow:** `command_with_inert_display_flags` in `reparse.rs` for a command customized before a parse.
@@ -593,8 +597,11 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
     for the missing `--no-browser`. On `dev` it exits 0 with a dry-run envelope, which is its observed failure.
     `XURL_QUIET=0 xr schema --list` is no evidence: it exits 0 on `dev` too.
   - Source guard: a production file other than `parse.rs` that calls `try_get_matches_from`, `get_matches_from`,
-    `try_parse_from`, or `parse_from` fails it. The guard fails when it scans no file, and when `parse.rs` holds no such
-    call. `parse_tests.rs` and `commands/url_authority_tests.rs` are not scanned.
+    `try_parse_from`, `parse_from`, `try_update_from`, or `update_from`, or one of the entrypoints that read the
+    process's own argv (`get_matches()`, `try_get_matches()`, `get_matches_mut()`, `::parse()`, `::try_parse()`), fails
+    it. None of the second group is called in production code on `dev`, and each would skip the step. The guard fails
+    when it scans no file, and when `parse.rs` holds no call of the first group. `parse_tests.rs` and
+    `commands/url_authority_tests.rs` are not scanned.
 - **Verification:** the suite passes with no fixture moved, and the source guard reports `parse.rs` as the only file
   that parses argv. The startup gate in the Verification Contract holds.
 
@@ -649,6 +656,8 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
     `crates/xurl-cli/src/cli/env.rs`, `crates/xurl-cli/src/cli/runner.rs`, `crates/xurl-cli/src/cli/commands/mod.rs`
     (the token `GlobalFlags.cursor` holds), `crates/xurl-cli/tests/common/invoke.rs` (the `run_with_env` caller)
   - modify `crates/xurl-cli/tests/flag_env_precedence_tests.rs`
+  - modify `crates/xurl-cli/tests/cli_tests.rs`: `test_json_and_output_conflict` and `test_json_and_jsonl_conflict`
+    assert the exit-2 refusal KTD2 removes, and are rewritten in place to assert last-wins
   - re-bless `crates/xurl-cli/tests/golden/help.golden` and `crates/xurl-cli/tests/golden/help-*.golden`, and regenerate
     `completions/` when it moves
 - **Approach:**
@@ -659,10 +668,11 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
      describes. `run` and `run_with_store_path` read it from the process.
   3. `settings.rs` holds the table of the two settings (each spelling's clap id and its variable), the layer resolution
      in the flowchart above, the argv order read (KTD9), and the conflict reader (KTD13). A boolean variable is read
-     with the flag's own parser through the probe from U1. An empty variable names no value (KTD20). Each resolution
-     answers once with the value, the spelling that decided it, and that spelling's source (KTD18). One function gives
-     the single check its view of a source: the resolver's answer for a spelling in the table, and clap's `value_source`
-     for every other argument.
+     with the flag's own parser through the probe from U1, and `XURL_OUTPUT` with `--output`'s own value parser through
+     the same probe, so the `yml` and `ndjson` aliases, the case rule, and the possible-values line A5 prints come from
+     clap. An empty variable names no value (KTD20). Each resolution answers once with the value, the spelling that
+     decided it, and that spelling's source (KTD18). One function gives the single check its view of a source: the
+     resolver's answer for a spelling in the table, and clap's `value_source` for every other argument.
   4. The runner resolves the output format right after the parse and builds `OutputConfig` from the answer. It then
      resolves the page token, before the meta-commands, so a refusal comes on every command as it does today. A refusal
      renders through U2's sentence as `invalid-args`, under the format KTD15 picks, with the help pointer `invoked_help`
@@ -725,8 +735,13 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   - `XURL_OUTPUT=json XURL_JSON=1 xr --output yaml schema --list` exits 0 in YAML (A3).
   - `XURL_OUTPUT=text XURL_JSON=1 xr schema --list` is refused, both named.
   - `XURL_AFTER=b` alone sends `b`. `XURL_CURSOR=` with `XURL_AFTER=b` sends `b`.
-  - The argv order read, as a unit test: a spelling after a `--` is not counted, and `--output=yaml` counts as
-    `--output`.
+  - The argv order read, as a unit test: a spelling after a `--` is not counted, `--output=yaml` counts as `--output`,
+    and `--cursor=--json`, which clap accepts as a page token on 4.8.0, counts as `--cursor` and not as `--json`.
+  - `xr --output json --json version` exits 0 in JSON and `xr --json --jsonl version` exits 0 in JSONL: the two
+    `cli_tests.rs` tests above, rewritten.
+  - `test_output_yml_is_yaml` and the `env` case of `test_output_unsupported_format_is_a_json_envelope` in
+    `crates/xurl-cli/tests/agentic_tests.rs` keep passing unchanged: `XURL_OUTPUT=yml` answers in YAML, and
+    `XURL_OUTPUT=toml` keeps a JSON envelope whose message contains `invalid value 'toml'`.
   - Through the binary, once per variable: `XURL_JSON=1`, `XURL_JSONL=1`, `XURL_CURSOR=a`, and `XURL_AFTER=b` each take
     effect, which proves `env.rs` reads the real name.
   - Every diff in `help.golden` and the `help-*.golden` fixtures sits inside the five flags' blocks or the root
@@ -748,13 +763,16 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
     (`structured_intent`), `crates/xurl-cli/src/cli/rerun.rs` (`FormatSpelling`), `crates/xurl-cli/src/cli/runner.rs`
   - modify `crates/xurl-cli/tests/rerun_env_tests.rs`, `crates/xurl-cli/tests/unknown_command_tests.rs`
 - **Approach:**
-  1. The argv reader reports a typed `text` as typed and stops at a `--`.
+  1. The argv reader reports a typed `text` as typed and stops at a `--`. It is KTD9's reader in `settings.rs`:
+     `structured_intent` in `classify.rs` is replaced by a call to it, so one function scans argv for format spellings.
+     `names_output` in `rerun.rs` reads a step's own words, not argv, and stays.
   2. `output_intent` takes the variables as data and applies KTD15. It reads `XURL_JSON` and `XURL_JSONL` through the
      function `settings.rs` reads them with, the flag's own parser through U1's probe, and not through `FALSE_LITERALS`
      in `classify.rs`, which `raw_intent` keeps for `--raw=`.
   3. `FormatSpelling` is read from the resolved output format (KTD18): `Alias` when `--json`, `--jsonl`, or one of their
      variables decided, `Output` otherwise. `FormatSpelling::of(&Cli)`, which works the spelling out from the parsed
-     flags after the fact, goes.
+     flags after the fact, goes, and the inline test `the_spelling_follows_the_flag_that_chose_the_format` in `rerun.rs`
+     moves onto the resolver's answer with the same four rows.
   4. The doc comments in `rerun.rs` that explain the spelling by clap's refusal describe the present rule: the step
      repeats the spelling that decided the format. Once a typed spelling beats every variable, `--output <format>`
      reruns in any environment, so the refusal no longer forces the spelling. `FormatSpelling` stays because R9 and
@@ -789,12 +807,17 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   1. Override walk. Probe each ordered pair of flags: type the first and then the second, and see whether the first lost
      its command-line value. Clap copies a global argument with its relationships into every command, so pairs of two
      globals are probed once, at the root, and each command probes only the pairs that hold one of its own arguments.
-     Per command, the 18 globals alone give 306 ordered pairs, about 61,000 parses over the tree. Each probe starts from
-     `arguments_for(path)` in `crates/xurl-cli/tests/common/invoke.rs`, so a required positional or group does not fail
-     it, and a probe that fails for any reason but the pair itself fails the walk, naming the command and clap's error,
-     rather than counting as no override. A participant that holds a clap `env` binding fails the walk, with a message
-     that names the argument and points at the settings table in `settings.rs`. Every override pair must sit inside one
-     setting of that table, and every setting's spellings must override one another.
+     Per command, the 18 globals alone give 306 ordered pairs, about 61,000 parses over the tree; with the reduction, an
+     estimated 15,000 to 21,000 [estimated: the 533 own option lines of the 197 `help-*.golden` fixtures, `--help`
+     included, paired with each other and with the 18 globals]. Overrides apply inside one command level (see "Clap
+     facts"), so each probe parses a clone of `command_at(path)`, not of the whole tree. The walk's wall-clock is
+     measured once on the fixed tree and quoted in the pull request, and stays under the 60 s `slow-timeout` period in
+     `.config/nextest.toml`. Each probe starts from `arguments_for(path)` in `crates/xurl-cli/tests/common/invoke.rs`,
+     so a required positional or group does not fail it, and a probe that fails for any reason but the pair itself fails
+     the walk, naming the command and clap's error, rather than counting as no override. A participant that holds a clap
+     `env` binding fails the walk, with a message that names the argument and points at the settings table in
+     `settings.rs`. Every override pair must sit inside one setting of that table, and every setting's spellings must
+     override one another.
   2. Conflict walk. With the reader from U3, pair every flag with every variable-backed argument it conflicts with,
      where variable-backed means a clap binding or a spelling in the settings table, so the variables the resolver owns
      are in the set (KTD13). A pair of two globals runs once, under `schema --list`, and a pair that holds a command's
@@ -806,9 +829,11 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
      six ordered pairs and the exclusive flag against every other argument. The override probe must find the pair, and
      the first walk's check must flag it. The false-variable step, given an injected lookup, must remove a false
      member's binding.
-  4. Argv-read conditions. No argument in `xr`'s tree accepts hyphen-led values or is a trailing variable argument, and
-     no setting spelling has a short form or an alias. A `last = true` positional, such as `webhooks listen`'s
-     `PROGRAM`, passes: it takes only words after a `--`, where the argv read stops.
+  4. Argv-read conditions. No argument in `xr`'s tree accepts hyphen-led values (`is_allow_hyphen_values_set`) or is a
+     trailing variable argument, and no setting spelling has a short form or an alias. A `last = true` positional, such
+     as `webhooks listen`'s `PROGRAM`, passes: it takes only words after a `--`, where the argv read stops. An argument
+     that allows negative numbers, such as `post --clip-start` and `--clip-end`, passes: `-<digits>` cannot spell a long
+     flag.
   5. Each walk counts its cases and fails at zero.
   6. Probe values. A flag that takes a value is typed with its first `get_possible_values` entry, or with the `SAMPLE`
      value the walks in `crates/xurl-cli/tests/common/invoke.rs` use when it declares none. A variable takes the same
@@ -1088,6 +1113,330 @@ because the one lever, telling clap-rs/clap#5591 how `xr` solves the defect, is 
 Measurement: after implementation, `/devex-review` runs AE1, AE10, AE14, and `xr -h` against the built binary. No
 telemetry is proposed. No TODOs are proposed.
 
+## Engineering Review
+
+One round of `/plan-eng-review` as the skill, in one context, after the hand round and the devex round. Every question
+was answered by the reviewer from the code on `dev` at `5483ad6`, the 4.8.0 binary run offline on a scratch store with
+`API_BASE_URL` at a closed port, clap_builder 4.6.7's source, `AGENTS.md`, and `docs/solutions`; each answer and its
+evidence is below. The hand round's edits stand. The outside voice was skipped at the session's direction. The plan
+edits this round made are in KTD10, "Clap facts", U1, U3, U4, and U5.
+
+### Scope record
+
+- **Complexity.** 6 files created (`parse.rs`, `conflict_source.rs`, `settings.rs`, and three test files) and 14
+  modified by hand, with the 198 help fixtures and `completions/` regenerated; 3 new modules. Both thresholds trip.
+- **Feature cuts.** None proposed: U1 carries R8 through KTD10 and KTD11, U2 carries R7, U3 is the fix, U4 carries R9
+  and R10, U5 is KTD3, and U6 is the documentation the change requires.
+- **Structure (D1, `plan-eng-review-structure`).** Original arrangement, chosen over folding `conflict_source.rs` into
+  `settings.rs`. U2 lands the sentence for clap's conflicts before `settings.rs` exists (Sequencing), the sentence has a
+  second caller in clap's own conflicts that owns no setting, and `settings.rs` already holds the table, the layers, the
+  argv read, the conflict reader, and the source view, so one more job puts it past the 200-line refactor trigger.
+- **Result.** feature answers: none cut; structure: A, original arrangement; accepted scope: U1 to U6 as written, with
+  the corrections below; pending remedies: none. Scope accepted as-is.
+
+### Reality rows
+
+| Premise                                                           | Receipt                                                                                               | Verdict                            |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| AE1 and AE3 are refused on 4.8.0 naming an untyped flag           | `xr` 4.8.0 probe: exit 2, `'--json' cannot be used with '--output <OUTPUT>'`                          | true                               |
+| AE12 exits 0 printing JSON; AE17 renders JSON                     | `xr` 4.8.0 probe                                                                                      | true                               |
+| `XURL_PAGE=` beside `--cursor` is refused; `XURL_OUTPUT=` is too  | `xr` 4.8.0 probe: `cannot be used with '--page <N>'`, `a value is required`                           | true                               |
+| A repeated `--output` is refused                                  | `xr` 4.8.0 probe: `cannot be used multiple times`                                                     | true                               |
+| `XURL_NO_BROWSER=0 xr --dry-run auth oauth2 --step 1` exits 0     | `xr` 4.8.0 probe: `no_browser: false`, exit 0                                                         | true                               |
+| Eleven production parse sites, as U1 lists them                   | `runner.rs:240,774,903`, `reparse.rs:51,66,83`, `classify.rs:30,100,117`, `misplaced_flags.rs:52,155` | true, U1 wording corrected         |
+| Readers of the five fields are three                              | `commands/mod.rs:627-629`, `rerun.rs:227`, `mod.rs:3784`                                              | true                               |
+| 198 help fixtures carry the five lines and no other golden does   | 197 `help-*.golden` plus `help.golden`; `rg` over the rest finds none                                 | true                               |
+| 18 global bindings plus `XURL_NO_BROWSER`                         | 19 `env = "` in `mod.rs`, 18 `global = true`                                                          | true                               |
+| No argument accepts a hyphen-led value                            | `mod.rs:1302,1310` set `allow_negative_numbers`                                                       | true for hyphen values; finding Q1 |
+| `AnyValueId::of::<bool>()` is callable                            | `clap_builder-4.6.7/src/util/any_value.rs:49`, `util/mod.rs:14`                                       | false, finding A1                  |
+| `get_arg_conflicts_with` reads one direction; `parse_ref` private | `builder/command.rs:4036`, `builder/value_parser.rs:235`                                              | true                               |
+| The semver gate does not cover `xurl-rs`                          | `.github/workflows/ci.yml:297-318` compares `xdk-rs-v*` tags                                          | true                               |
+| The `ci` and `default` profiles end a test after 60 s × 5         | `.config/nextest.toml:19`                                                                             | true                               |
+| uv#17321 code readings and the clap#5591 thread                   | not reread by this review                                                                             | unverified                         |
+
+`unverified=2` (both prior-art readings the plan already sources; neither changes a mechanism here).
+
+```text
+REALITY: premise-table pass 15 premises, 1 false (A1), unverified=2 clap_builder-4.6.7/src/util/any_value.rs:49
+REALITY: already-done pass origin/dev since 2026-11-22 holds no precedence fix; #621 is the contract U4 keeps crates/xurl-cli/src/cli/rerun.rs:207
+REALITY: surface-check pass every named command, flag, and function exists; probes ran on 4.8.0 crates/xurl-cli/src/cli/mod.rs:1229
+REALITY: binding-decisions pass KTD1-KTD7 and the prime's KTD13/17/19/20 are not reopened docs/plans/2026-11-22-2347-fix-flag-env-precedence-plan.md:178
+REALITY: numbers finding U5's 61,000 parses is the unreduced count; 15,000-21,000 estimated after it crates/xurl-cli/tests/golden/help.golden:1
+REALITY: deferred-asks pass no linked issue; the brief's decisions KTD1-KTD7 are all carried docs/plans/2026-11-22-2347-fix-flag-env-precedence-plan.md:150
+REALITY: pr-count pass one pull request; no .gstack/ship-policy.json, so the default of one holds docs/plans/2026-11-22-2347-fix-flag-env-precedence-plan.md:23
+```
+
+### 1. Architecture
+
+Two shapes: the plan's own, KTD8 (the five variables leave clap and one resolver owns the layers), and the first
+alternative under Alternative Approaches Considered (keep `env =`, strip bindings before a second parse). KTD8 stays:
+`settings.rs` hides the table, the layer order, the argv order, and the conflict check behind one answer per setting
+(KTD18), where the second shape spreads the same knowledge across two parses and every parse site. Red-flag screen: the
+settings table against clap's overrides is a hand-synced list held by U5's override walk; the variable names in `env.rs`
+against the table are held by U3's once-per-variable binary test; the two argv readers are finding A2; no other flag
+applies.
+
+- A1. [INFORMATIONAL] (confidence: 9/10) `clap_builder-4.6.7/src/util/any_value.rs:49` — KTD10's test,
+  `ValueParser::type_id() == AnyValueId::of::<bool>()`, does not compile outside clap: `pub(crate) fn of<A>()`, and
+  `util/mod.rs:14` re-exports the type `pub(crate)`. The same test is public as `== std::any::TypeId::of::<bool>()`
+  through `impl PartialEq<std::any::TypeId> for AnyValueId`. Correction, no behavior change: KTD10 and "Clap facts" now
+  say so.
+- A2. [INFORMATIONAL] (confidence: 7/10) `crates/xurl-cli/src/cli/classify.rs:415` — `structured_intent` scans argv for
+  format spellings, and KTD9 adds a second scan in `settings.rs`; KTD9 says one reader serves both, but U4 listed
+  `structured_intent` as edited beside it. Two scanners is the "two ways to do one task" flag: a later spelling added to
+  one is missed by the other. Correction aligning U4 with KTD9: `structured_intent` is replaced by a call to the
+  `settings.rs` reader.
+
+Failure per new path: the false-variable step meeting a value its parser rejects keeps the binding and clap reports it
+(U1 scenario); the resolver misordering spellings is held by the argv-read conditions (U5 step 4) and the unit rows; the
+single check missing a declared conflict is held by the conflict walk (U5 step 2); `env.rs` reading a misspelled name is
+held by the once-per-variable binary test (U3).
+
+Dispositions: A1 accepted as a correction; A2 accepted as a correction.
+
+### 2. Code quality
+
+- Q1. [INFORMATIONAL] (confidence: 9/10) `crates/xurl-cli/src/cli/mod.rs:1302` — `allow_negative_numbers = true` on
+  `post --clip-start` and `--clip-end`. U5 step 4 said no argument accepts hyphen-led values; a guard written over every
+  hyphen-related setting fails on today's tree. A `-<digits>` value cannot spell a long flag, so the argv read stays
+  exact. Correction: U5 step 4 checks `is_allow_hyphen_values_set` and exempts negative numbers by name.
+- Q2. [INFORMATIONAL] (confidence: 8/10) `crates/xurl-cli/src/main.rs:9` — `xurl::cli::run_argv()` reaches clap through
+  `runner.rs:240`; U1's guard listed only the `*_from` calls. `Parser::parse()`, `try_parse()`,
+  `Command::get_matches()`, `try_get_matches()`, `get_matches_mut()`, and `update_from` read argv without the step, and
+  none is called in production code on `dev`. Required for KTD11's "a parse call anywhere else" contract, so the names
+  join the guard with no new choice.
+- Q3. [INFORMATIONAL] (confidence: 7/10) `crates/xurl-cli/src/cli/classify.rs:442` — U3 left `XURL_OUTPUT`'s parser
+  unnamed while `rendering_format` and `structured_format` already map spellings for the error path. A hand-written
+  match for the resolver would be a second record of `--output`'s aliases (`yml`, `ndjson`) and case rule. Correction:
+  U3 step 3 reads `XURL_OUTPUT` with `--output`'s own value parser through U1's probe, which also gives A5 clap's
+  possible-values line; `test_output_yml_is_yaml` and the `env` case of
+  `test_output_unsupported_format_is_a_json_envelope` (`crates/xurl-cli/tests/agentic_tests.rs:102,251`) hold it.
+- Q4. [INFORMATIONAL] (confidence: 9/10) `crates/xurl-cli/src/cli/reparse.rs:51` — U1 step 3 named "the three builders
+  and `lenient_matches`"; the file holds three parse calls, in `parse_without_display_flags`, `parse_past_stray_words`,
+  and `lenient_matches`. Factual correction.
+
+Dispositions: Q1 to Q4 accepted as corrections.
+
+### 3. Tests
+
+Framework: Rust, `cargo nextest` (the `## Testing` section of `AGENTS.md`).
+
+```text
+CODE PATHS                                                  USER FLOWS
+[+] parse.rs (U1)                                           [+] Agent with an inherited XURL_* variable
+  ├── false boolean, SetTrue / Set / SetFalse  [PLANNED ★★★]  ├── [PLANNED ★★★] typed alias beats variable (AE1, AE2)
+  ├── rejected value keeps binding             [PLANNED ★★]   ├── [PLANNED ★★★] refusal names the variable (AE5-AE18)
+  ├── no bound variable: untouched             [PLANNED ★★]   └── [PLANNED ★★★] step reruns in the same env (AE14)
+  └── source guard, eleven sites               [PLANNED ★★]
+[+] conflict_source.rs (U2)                                 [+] Wrapper appending --output json
+  ├── variable side named, tip line            [PLANNED ★★★]  ├── [PLANNED ★★★] last typed wins (AE7, AE8, AE12)
+  ├── typed sides, repeat form, unmapped       [PLANNED ★★]   └── [PLANNED ★★]  repeat wins (KTD19)
+  └── exclusive, two priors                    [PLANNED ★★]
+[+] settings.rs (U3)                                        [+] Error states
+  ├── layers per setting                       [PLANNED ★★★]  ├── [PLANNED ★★★] two variables refused (AE11, AE15)
+  ├── argv order read                          [PLANNED ★★]   ├── [PLANNED ★★★] invalid XURL_OUTPUT as JSON (A5)
+  │   └── attached value spelling a flag       [GAP → D3]     └── [PLANNED ★★]  parse error format (AE17)
+  ├── XURL_OUTPUT via --output's parser        [★★★ TESTED] agentic_tests.rs:102,251
+  └── empty variable unset (KTD20)             [PLANNED ★★]
+[+] Existing tests the change moves
+  ├── cli_tests.rs:248,257 pin the removed refusal          [GAP → T1, rewritten]
+  └── rerun.rs:428 FormatSpelling::of                       [GAP → T2, moved]
+[+] flag_env_guard.rs (U5)
+  └── override walk cost                                    [GAP → D2, bounded]
+
+COVERAGE: every planned branch has a planned or existing test; 4 gaps, all closed below
+QUALITY: no ★ smoke tests proposed  |  E2E: the binary runs in U2, U3, U5 already
+```
+
+- T1. [CRITICAL] (confidence: 10/10) `crates/xurl-cli/tests/cli_tests.rs:248` — `test_json_and_output_conflict` and
+  `test_json_and_jsonl_conflict` assert `assert_ne!(code, 0, "--json + --output must conflict")`, the refusal KTD2
+  removes, and U3 did not list the file, so the suite goes red at U3 under the zero-broken-tests rule. Required proof of
+  the approved KTD2 behavior: both are rewritten in place to assert last-wins (JSON for `--output json --json`, JSONL
+  for `--json --jsonl`). `Value: protects=last-wins between two alias spellings typed at one level; fails_when=an alias
+  loses overrides_with or regains conflicts_with; why_new=no AE row types --json then --jsonl; seam=none;
+  no_claim=across-word order (AE12 covers it)`.
+- T2. [INFORMATIONAL] (confidence: 9/10) `crates/xurl-cli/src/cli/rerun.rs:428` —
+  `the_spelling_follows_the_flag_that_chose_the_format` calls `FormatSpelling::of`, which U4 removes. Correction: the
+  test moves onto the resolver's answer with its four rows.
+- T3. [INFORMATIONAL] (confidence: 6/10) `crates/xurl-cli/src/cli/classify.rs:420` — 4.8.0 accepts
+  `xr --cursor=--json schema --list` as a page token (probe: exit 0, text). The argv reader matches whole tokens today,
+  but no row holds an attached value that spells another setting's flag. D3.
+
+Tests made obsolete: none retired; T1 and T2 are rewritten in place.
+
+Dispositions: T1 accepted as required proof of KTD2; T2 accepted as a correction; T3 accepted (D3, answer A).
+
+### 4. Performance
+
+- P1. [INFORMATIONAL] (confidence: 7/10) U5 step 1 — the plan's "about 61,000 parses over the tree" is the count before
+  its own reduction. After it, an estimated 15,000 to 21,000 parses: the 197 `help-*.golden` fixtures list 533 own
+  option lines, `--help` included, paired with each other and with the 18 globals [estimated]. Each parse that clones
+  the whole built tree pays for about 200 commands; overrides apply per command level, so a clone of `command_at(path)`
+  is exact and smaller. No measurement ran here. D2.
+
+The false-variable step's build once per run, and the startup gate that measures it, stand as the hand round left them
+[measured by the plan: 0.06 s, 0.01 s, 0.02 s on the debug binary; re-measure before the gate].
+
+Dispositions: P1 accepted (D2, answer A).
+
+### Decision ledger
+
+#### R1: how U5's override walk is bounded
+
+Finding: P1, INFORMATIONAL, confidence 7/10, U5 step 1, eng review. Plan baseline: U5 step 1 as the hand round wrote it,
+with no parse target and no time bound. Runtime evidence: unknown; no walk exists. `.config/nextest.toml:19` ends a test
+after 60 s × 5. Comparison grid:
+
+| Choice          | Current  | A                                        | B        |
+| --------------- | -------- | ---------------------------------------- | -------- |
+| R1 parse target | unstated | a clone of `command_at(path)`            | unstated |
+| R1 time bound   | none     | measured once, quoted, under 60 s period | none     |
+| R2 argv row     | pending  | pending                                  | pending  |
+
+Question D2: D2 — Bound the override walk's cost. Project/branch/task: dev, plan review of the flag precedence fix.
+ELI10: the guard tries every pair of flags at every command to find which ones override each other; that is many
+thousands of parses, and nothing in the plan says how long it may take. Stakes if we pick wrong: a slow guard eats CI
+minutes on every PR, or a hung one is killed at five minutes and blocks the merge. Recommendation: A because a leaf
+clone is exact for a per-level relation and a measured bound catches a slow walk before it lands. Completeness: A=10/10,
+B=7/10. Pros / cons: A) ✅ each probe clones one command instead of about 200, ✅ the PR shows the walk's real time beside
+a stated ceiling, ❌ one more number for the implementer to record. B) ✅ no plan change, ✅ the walk may be fast enough
+anyway, ❌ its cost is found only when CI runs it. Net: one measured line in the PR against a possible slow test on every
+run. Header: Override walk bound Options: A) Leaf clone, measured Each probe parses a clone of `command_at(path)`; the
+walk's wall-clock is measured once and quoted in the PR, under the 60 s `slow-timeout` period. (human: ~20 min / CC: ~3
+min; no maintenance beyond the test.) B) Leave as written The walk parses as the implementer chooses and its time is not
+recorded. (no effort; risk of a slow test found in CI.)
+
+State: approved Actual answer: A, chosen by the reviewer under the session's direction to answer each question from
+evidence Accepted scope: U5 step 1 states the reduced count, the leaf-clone parse, and the measured bound History: none
+
+#### R2: a row for an attached value that spells a flag
+
+Finding: T3, INFORMATIONAL, confidence 6/10, `classify.rs:420`, eng review. Plan baseline: U3's argv unit test with two
+rows, after a `--` and `--output=yaml`. Runtime evidence: `xr --cursor=--json schema --list` exits 0 on 4.8.0, so the
+token reaches the reader. Comparison grid:
+
+| Choice        | Current     | A                                           | B           |
+| ------------- | ----------- | ------------------------------------------- | ----------- |
+| R1 walk bound | approved, A | approved, A                                 | approved, A |
+| R2 argv row   | two rows    | three rows, `--cursor=--json` as `--cursor` | two rows    |
+
+Question D3: D3 — Add one argv-reader row. Project/branch/task: dev, plan review of the flag precedence fix. ELI10: clap
+takes `--cursor=--json` as a page token named `--json`; the new reader that decides which format flag came last must not
+mistake that value for the `--json` flag. Stakes if we pick wrong: a caller's page token silently changes their output
+format. Recommendation: A because it is one row in a table the plan already writes. Completeness: A=10/10, B=8/10. Pros
+/ cons: A) ✅ pins the one input where a value reaches the reader looking like a flag, ✅ costs one row in an existing
+unit test, ❌ the regression it catches needs a reader that splits tokens badly. B) ✅ nothing to add, ✅ the whole-token
+match today already gets it right, ❌ a rewrite of the reader has nothing to fail against. Net: one row against an
+unguarded edge. Header: Attached-value row Options: A) Add the row U3's argv-order unit test gains `--cursor=--json`
+counting as `--cursor` only. (human: ~10 min / CC: ~2 min.) B) Leave two rows The unit test keeps its two rows. (no
+effort.)
+
+State: approved Actual answer: A, chosen by the reviewer under the session's direction to answer each question from
+evidence Accepted scope: one row in U3's argv-order unit test History: none
+
+Corrections recorded without a question, since none changes behavior or adds a choice: A1, A2, Q1, Q2, Q3, Q4, T1
+(required proof of KTD2), T2.
+
+Approval readiness: PASS. Checked: D1 (structure, A), R1 (D2, A), R2 (D3, A); the corrections carry the approved KTD2,
+KTD9, KTD10, KTD11, R11, and A5 contracts.
+
+### NOT in scope
+
+- A per-level probe or `Debug`-output read of `Arg.overrides` in place of U5's pair probe: `Debug` is no stable surface,
+  and the probe stays on public API.
+- Splitting U5's walk into a nextest test group: not needed unless the measured time from D2 says otherwise.
+- The clap#5591 comment, carried from the devex review as a person's call.
+
+### What already exists
+
+- `structured_intent` (`classify.rs:415`) and `names_output` (`rerun.rs:299`): the argv and step-word scanners. The
+  first is replaced (A2); the second reads steps and stays.
+- `.filter(|token| !token.is_empty())` on the page token (`commands/mod.rs:630`): KTD20's rule for the cursor already
+  holds at dispatch.
+- `TREE`, `command_at`, `arguments_for` (`tests/common/invoke.rs:105-122`): the built tree and per-command arguments U5
+  starts from.
+- `up_to_inline_tests` and the `#[cfg(test)] mod name;` resolver (`tests/port_race_guard.rs:171`): U1's guard pattern.
+
+### Failure modes
+
+| Path                   | Realistic failure                                | Test                   | Handling                   | Seen by caller |
+| ---------------------- | ------------------------------------------------ | ---------------------- | -------------------------- | -------------- |
+| false-variable step    | a parser rejects the variable's value            | U1 `maybe` row         | binding kept, clap reports | clear error    |
+| argv order read        | a value token mistaken for a spelling            | U3 rows, D3, U5 step 4 | conditions guarded         | clear (tests)  |
+| single conflict check  | a conflict declared later is missed              | U5 conflict walk       | walk fails the suite       | n/a            |
+| `env.rs` variable read | a name misspelled, the variable silently ignored | U3 once-per-variable   | binary test fails          | n/a            |
+| help fixture re-bless  | an unrelated block moves                         | U3 diff script         | stop condition             | n/a            |
+
+Critical gaps: none.
+
+### Parallelization
+
+Sequential implementation, no parallelization opportunity: every unit edits `crates/xurl-cli/src/cli/`, and U2 to U5
+each build on the one before.
+
+### Eng review tasks
+
+- [ ] **ET1 (P1, human: ~20min / CC: ~3min)** — tests — rewrite the two `cli_tests.rs` conflict tests to last-wins
+  - Surfaced by: Tests T1 — `cli_tests.rs:248,257`
+  - Files: `crates/xurl-cli/tests/cli_tests.rs`
+  - Verify: both fail on `dev` with the new assertion, pass after U3
+- [ ] **ET2 (P1, human: ~10min / CC: ~2min)** — parse — compare the parser's type with `TypeId::of::<bool>()`
+  - Surfaced by: Architecture A1 — `any_value.rs:49`
+  - Files: `crates/xurl-cli/src/cli/parse.rs`
+  - Verify: `cargo clippy -- -D warnings`
+- [ ] **ET3 (P1, human: ~15min / CC: ~3min)** — guard — exempt negative-number arguments from the argv-read condition
+  - Surfaced by: Code quality Q1 — `mod.rs:1302,1310`
+  - Files: `crates/xurl-cli/tests/flag_env_guard.rs`
+  - Verify: the guard passes on the fixed tree
+- [ ] **ET4 (P2, human: ~10min / CC: ~2min)** — guard — add the process-argv entrypoints to the parse-path guard
+  - Surfaced by: Code quality Q2
+  - Files: `crates/xurl-cli/tests/parse_path_guard.rs`
+  - Verify: a scratch `Cli::parse()` in `runner.rs` fails it
+- [ ] **ET5 (P2, human: ~30min / CC: ~5min)** — cli — replace `structured_intent` with the `settings.rs` argv reader
+  - Surfaced by: Architecture A2 — `classify.rs:415`
+  - Files: `crates/xurl-cli/src/cli/classify.rs`, `crates/xurl-cli/src/cli/settings.rs`
+  - Verify: U4's scenarios and `unknown_command_tests.rs` pass
+- [ ] **ET6 (P2, human: ~20min / CC: ~3min)** — cli — read `XURL_OUTPUT` with `--output`'s own parser
+  - Surfaced by: Code quality Q3 — `classify.rs:442`
+  - Files: `crates/xurl-cli/src/cli/settings.rs`
+  - Verify: `agentic_tests.rs` `test_output_yml_is_yaml` and the unsupported-format cases pass
+- [ ] **ET7 (P2, human: ~10min / CC: ~2min)** — tests — move the spelling test onto the resolver's answer
+  - Surfaced by: Tests T2 — `rerun.rs:428`
+  - Files: `crates/xurl-cli/src/cli/rerun.rs`
+  - Verify: the four rows pass
+- [ ] **ET8 (P2, human: ~10min / CC: ~2min)** — tests — add the `--cursor=--json` argv row
+  - Surfaced by: Tests T3, D3
+  - Files: `crates/xurl-cli/src/cli/settings.rs`
+  - Verify: seen failing against a reader that splits on `--json`, then passing
+- [ ] **ET9 (P2, human: ~20min / CC: ~3min)** — guard — parse override probes at a leaf clone and quote the walk's time
+  - Surfaced by: Performance P1, D2
+  - Files: `crates/xurl-cli/tests/flag_env_guard.rs`
+  - Verify: `gtime -f '%e s %M KB'` on the walk, quoted in the PR, under 60 s
+
+Effort assumes the default ratios: tests ~50x, bug fix ~20x.
+
+### Completion summary
+
+- Step 0: Scope Challenge — scope accepted as-is (structure: original arrangement)
+- Reality rows: 7/7 applicable rows emitted, 2 unverified premises
+- Architecture Review: 2 issues found
+- Code Quality Review: 4 issues found
+- Test Review: diagram produced, 3 gaps identified
+- Performance Review: 1 issue found
+- NOT in scope: written
+- What already exists: written
+- TODOS.md updates: 0 items proposed (no `TODOS.md` in the repo; `TODO.md` is local-only)
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 0 in this review
+- Outside voice: codex, skipped at the session's direction (one context, no subagents)
+- Parallelization: 1 lane, 0 parallel / 6 sequential
+- Lake Score: 2/2
+
+### Decisions only a person can make
+
+- Whether to post on clap-rs/clap#5591 how `xr` works around the defect, carried from the devex review. This review adds
+  none.
+
 ## Review log
 
 - 2026-11-22: plan written. Pending: `/plan-eng-review`, `/plan-devex-review`, `/compound-engineering:ce-doc-review`.
@@ -1109,26 +1458,37 @@ telemetry is proposed. No TODOs are proposed.
   line; U2 and U3 pin the tip and the JSON rendering; U6 adds a README example with a typed alias beside the export; the
   Definition of Done lists six Changelog bullets. The Developer Experience Review section holds the evidence. No web
   research or outside voice ran.
+- 2026-11-23: `/plan-eng-review` started as the skill, one round, as its own Opus process, by xurl-rs-prime's call: the
+  named review never ran on this plan, and the hand round's edits stay.
+- 2026-11-23: `/plan-eng-review` ended as the skill, one round, FULL_REVIEW, scope accepted as-is with the original
+  arrangement. Changed: KTD10 compares the parser's type with `TypeId::of::<bool>()`, since `AnyValueId::of` is
+  crate-private; "Clap facts" gains that row and the negative-number row; U1 names the eleven parse sites exactly and
+  its guard adds clap's process-argv entrypoints; U3 rewrites the two `cli_tests.rs` tests that pin the removed
+  refusal, reads `XURL_OUTPUT` with `--output`'s own parser, and adds a `--cursor=--json` argv row; U4 replaces
+  `structured_intent` with the one argv reader and moves the `FormatSpelling::of` test; U5 exempts negative-number
+  arguments, parses each override probe at a leaf clone, and quotes the walk's time under the 60 s period. The
+  Engineering Review section holds the evidence. No outside voice ran.
 
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger                    | Why                             | Runs | Status      | Findings                                                 |
-| -------------- | -------------------------- | ------------------------------- | ---- | ----------- | -------------------------------------------------------- |
-| CEO Review     | `/plan-ceo-review`         | Scope & strategy                | 0    | —           | —                                                        |
-| Outside Review | codex (skipped)            | Independent 2nd opinion         | 0    | skipped     | not run: the review ran in one context with no subagents |
-| Eng Review     | `/plan-eng-review` by hand | Architecture & tests (required) | 1    | done (plan) | recorded in the Review log; not in the gstack log        |
-| Design Review  | `/plan-design-review`      | UI/UX gaps                      | 0    | —           | no UI                                                    |
-| DX Review      | `/plan-devex-review`       | Developer experience gaps       | 1    | issues_open | score: 6/10 → 8/10, TTHW: 2 calls + diagnosis → 1 call   |
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                                                       |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | -------------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —           | —                                                              |
+| Outside Review | codex (skipped)       | Independent 2nd opinion         | 0    | skipped     | not run: one context, no subagents, at the session's direction |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 10 issues, 0 critical gaps; all folded into the plan           |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —           | no UI                                                          |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | ISSUES OPEN | score: 6/10 → 8/10, TTHW: 2 calls + diagnosis → 1 call         |
 
-**OUTSIDE COVERAGE:** codex, plan-review phase, skipped: the review ran in one context with no subagents. No outside
-findings.
+The hand round of the eng review is recorded in the Review log and not in the gstack log, so the Eng row counts this
+skill round only.
 
-**VERDICT:** DX review done, with one decision left for a person. The eng review ran by hand outside the gstack log, so
-the dashboard cannot clear it.
+**OUTSIDE COVERAGE:** codex, plan-review phase, skipped in both the devex round and this one: each ran in one context
+with no subagents. No outside findings.
+
+**VERDICT:** Eng and DX reviews done, each with every finding folded into the plan. Neither is CLEAR by the dashboard's
+rule, which clears only a review that found nothing: eng review required.
 
 **UNRESOLVED DECISIONS:**
 
-- Whether to post on clap-rs/clap#5591 how `xr` works around the defect (resolution by layer, the false-variable step,
-  and the guards). It is outward-facing and optional, it does not block implementation, and it is Brett's call.
-- 2026-11-23: `/plan-eng-review` started as the skill, one round, as its own Opus process, by xurl-rs-prime's
-  call: the named review never ran on this plan, and the hand round's edits stay.
+- - 1 unresolved from prior reviews: whether to post on clap-rs/clap#5591 how `xr` works around the defect, from the
+  devex review. It is outward-facing and optional, does not block implementation, and is Brett's call.
