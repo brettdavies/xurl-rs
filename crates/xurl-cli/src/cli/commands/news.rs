@@ -2,7 +2,7 @@
 
 use serde_json::json;
 
-use super::{Run, effective_limit, no_checks, send_validated};
+use super::{Run, checked, effective_limit, no_checks, send_validated};
 use crate::cli::NewsCommands;
 use crate::cli::failure::CommandResult;
 use xdk::api::{Client, shortcuts};
@@ -28,7 +28,7 @@ pub(super) async fn run(action: NewsCommands, run: Run<'_>) -> CommandResult<()>
         }
         NewsCommands::Get { story_id, common } => {
             let ctx = json!({"command": "news-get", "story_id": story_id});
-            let validate = || shortcuts::validate_news_id(&story_id);
+            let validate = || checked(shortcuts::validate_news_id, &story_id);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_news(&story_id)
             })

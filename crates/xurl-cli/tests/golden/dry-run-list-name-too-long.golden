@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "lists", "add", "xxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 396
+stdout_len: 437
 stderr_len: 0
 --- stdout ---
 {
@@ -19,6 +19,7 @@ stderr_len: 0
   "response_schema": "xr schema lists add",
   "rule": "list-name-too-long",
   "status": "dry_run",
+  "value": "xxxxxxxxxxxxxxxxxxxxxxxxxx",
   "would_succeed": false
 }
 

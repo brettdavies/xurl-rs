@@ -3,7 +3,10 @@
 
 use serde_json::json;
 
-use super::{Run, list_for_user, list_paged, send_confirmed, send_to_accounts, send_validated};
+use super::{
+    Invalid, Run, checked, checked_each, list_for_user, list_paged, send_confirmed,
+    send_to_accounts, send_validated,
+};
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, ConversationsCommands, DmEventsCommands};
 use xdk::api::{Client, shortcuts};
@@ -26,8 +29,8 @@ pub(super) async fn run(action: ConversationsCommands, run: Run<'_>) -> CommandR
                 "body": text,
             });
             let validate = || {
-                shortcuts::validate_conversation_id(&conversation_id)?;
-                shortcuts::validate_dm_body(&text)
+                checked(shortcuts::validate_conversation_id, &conversation_id)?;
+                checked(shortcuts::validate_dm_body, &text)
             };
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.send_to_conversation(&conversation_id, &text)
@@ -43,7 +46,7 @@ pub(super) async fn run(action: ConversationsCommands, run: Run<'_>) -> CommandR
                 "command": "conversations-history",
                 "conversation_id": conversation_id,
             });
-            let validate = || shortcuts::validate_conversation_id(&conversation_id);
+            let validate = || checked(shortcuts::validate_conversation_id, &conversation_id);
             list_paged(run, ctx, validate, max_results, &common, |client, n| {
                 client.get_conversation_events(&conversation_id, n)
             })
@@ -73,7 +76,7 @@ pub(super) async fn dm_events(action: DmEventsCommands, run: Run<'_>) -> Command
     match action {
         DmEventsCommands::Get { event_id, common } => {
             let ctx = json!({"command": "dm-events-get", "event_id": event_id});
-            let validate = || shortcuts::validate_dm_event_id(&event_id);
+            let validate = || checked(shortcuts::validate_dm_event_id, &event_id);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_dm_event(&event_id)
             })
@@ -86,7 +89,7 @@ pub(super) async fn dm_events(action: DmEventsCommands, run: Run<'_>) -> Command
         } => {
             let ctx = json!({"command": "dm-events-remove", "event_id": event_id});
             let prompt = format!("Delete direct message {event_id}?");
-            let validate = || shortcuts::validate_dm_event_id(&event_id);
+            let validate = || checked(shortcuts::validate_dm_event_id, &event_id);
             send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.delete_dm_event(&event_id)
             })
@@ -109,9 +112,9 @@ async fn start(
         "body": text,
     });
     let validate = || {
-        shortcuts::validate_participant_count(participants.len())?;
-        shortcuts::validate_accounts(participants)?;
-        shortcuts::validate_dm_body(text)
+        shortcuts::validate_participant_count(participants.len()).map_err(Invalid::unnamed)?;
+        checked_each(shortcuts::validate_accounts, participants)?;
+        checked(shortcuts::validate_dm_body, text)
     };
     send_to_accounts(run, ctx, validate, participants, common, |client, ids| {
         client.create_dm_conversation(ids, text)

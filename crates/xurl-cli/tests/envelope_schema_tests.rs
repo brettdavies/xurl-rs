@@ -240,7 +240,15 @@ fn every_key_a_skill_verb_can_carry_is_declared_on_the_error_variant() {
         legacy_install_dir: Some("/old/xurl-rs".to_string()),
         refused_dir: Some("/old/xurl-rs".to_string()),
         message: Some("refused".to_string()),
-        next_step: Some(NextStep::fix_input(None)),
+        next_step: Some(
+            xurl::cli::output::OutputConfig::new(
+                xurl::cli::output::OutputFormat::Json,
+                false,
+                false,
+                xurl::cli::ColorChoice::Never,
+            )
+            .carry(NextStep::fix_input(None)),
+        ),
     };
     let document = serde_json::to_value(&envelope).expect("an envelope");
 

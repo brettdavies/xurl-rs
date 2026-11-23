@@ -47,7 +47,9 @@ from an OAuth2 credential, described under [Authentication](#authentication).
 Every request draws credits at the rates on X's [pricing page](https://docs.x.com/x-api/getting-started/pricing), and
 the app must be enrolled as described in the repository's
 [Before you start](https://github.com/brettdavies/xurl-rs#before-you-start-an-x-app) section; without that step, reads
-fail with `client-not-enrolled` even when the credential is valid.
+fail with `client-not-enrolled` even when the credential is valid. An endpoint that needs a higher X access level than
+the app's package, such as Enterprise, fails with the same reason for an enrolled app; see
+[X Platform Enrollment](https://github.com/brettdavies/xurl-rs#x-platform-enrollment).
 
 ## Authentication
 

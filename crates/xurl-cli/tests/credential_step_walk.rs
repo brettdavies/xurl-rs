@@ -18,20 +18,17 @@ mod common;
 
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use regex::Regex;
 use serde_json::Value;
 use xdk::api::auth_matrix::{AUTH_MATRIX, WireScheme};
-use xdk::store::TokenStore;
 use xdk::testing::MockX;
 
 use common::invoke::{
-    Fill, Ran, SAMPLE, Seed, answering_mock, arguments_for, bearer_only, command_at,
-    live_oauth2_only, nothing, oauth1_only, run_xr, runnable_paths, takes_a_credential, walk,
+    Ran, SAMPLE, answering_mock, arguments_for, command_at, run_xr, runnable_paths,
+    takes_a_credential, walk,
 };
-
-const OTHER: &str = "other-app";
+use common::shapes::{OTHER, Shape, shapes};
 
 /// The setup command a message or step names, and the scheme it stores.
 static SETUP: LazyLock<Regex> = LazyLock::new(|| {
@@ -42,70 +39,6 @@ static TAIL: LazyLock<Regex> =
 static AUTH_FLAG: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"--auth (oauth2|oauth1|app)\b").expect("a pattern"));
 static APP_FLAG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"--app (\S+)").expect("a pattern"));
-
-fn register_other(ts: &mut TokenStore) {
-    ts.add_app(OTHER, "CLIENT-ID", "CLIENT-SECRET")
-        .expect("add app");
-}
-
-fn other_with_bearer(ts: &mut TokenStore) {
-    register_other(ts);
-    ts.save_bearer_token_for_app(OTHER, "BEARER")
-        .expect("save bearer");
-}
-
-fn other_with_oauth1(ts: &mut TokenStore) {
-    register_other(ts);
-    ts.save_oauth1_tokens_for_app(OTHER, "ACCESS", "SECRET", "KEY", "CONSUMER")
-        .expect("save oauth1");
-}
-
-fn other_with_login(ts: &mut TokenStore) {
-    register_other(ts);
-    let in_an_hour = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("clock is past the epoch")
-        .as_secs()
-        + 3600;
-    ts.save_oauth2_token_for_app(OTHER, SAMPLE, "LIVE-ACCESS", "REFRESH", in_an_hour)
-        .expect("save oauth2");
-}
-
-/// One thing a store can hold: what the active app stores (`holds`), and the
-/// scheme the other registered app stores, if any.
-struct Shape {
-    name: &'static str,
-    seed: Seed,
-    holds: &'static [WireScheme],
-}
-
-fn shapes() -> Vec<Shape> {
-    let fills: [(&str, Fill, &[WireScheme]); 7] = [
-        ("an empty app", nothing, &[]),
-        ("a login", live_oauth2_only, &[WireScheme::OAuth2]),
-        ("OAuth1 keys", oauth1_only, &[WireScheme::OAuth1]),
-        ("a bearer token", bearer_only, &[WireScheme::App]),
-        (
-            "nothing, another app with a bearer token",
-            other_with_bearer,
-            &[],
-        ),
-        (
-            "nothing, another app with OAuth1 keys",
-            other_with_oauth1,
-            &[],
-        ),
-        ("nothing, another app with a login", other_with_login, &[]),
-    ];
-    fills
-        .into_iter()
-        .map(|(name, fill, holds)| Shape {
-            name,
-            seed: Seed::of(fill),
-            holds,
-        })
-        .collect()
-}
 
 /// What a run exercises: how it is invoked, the schemes its requests
 /// accept, the arguments that stand for it without a scheme, and whether it

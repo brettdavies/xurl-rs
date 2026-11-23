@@ -18,16 +18,16 @@ use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult, ChatMute,
-    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatModeratorsResult,
+    ChatMute, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
     DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
     ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
     MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
-    Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
-    StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
-    StreamSourceKey, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated, ProvisionedResult, RepostedResult,
+    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -375,6 +375,25 @@ pub struct ScheduledBroadcastChanges {
     /// Whether the broadcast waits for `go live` rather than starting on
     /// time.
     pub manual_publish: Option<bool>,
+}
+
+/// What to change on a broadcast, before it starts, while it is live, or
+/// after it ends. A field left `None` keeps its value.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct BroadcastChanges {
+    /// The new title.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Who can chat, 0 to [`CHAT_OPTION_MAX`]: 0 default, 1 chat off, 2
+    /// everyone, 3 verified accounts, 4 accounts the host follows, 5 the
+    /// host's subscribers, 6 accounts followed by an account the host
+    /// follows.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chat_option: Option<u8>,
+    /// The new live category, an id from `GET /2/broadcasts/categories`; an
+    /// empty string removes the category.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub live_category_id: Option<String>,
 }
 
 /// A part of another post's video, shared as a post's clip: the spec's
@@ -928,6 +947,17 @@ pub fn validate_note_id(id: &str) -> std::result::Result<(), &'static str> {
     Ok(())
 }
 
+/// Validates a post draft id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-draft-id` for anything else.
+pub fn validate_draft_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-draft-id");
+    }
+    Ok(())
+}
+
 /// Validates a Community Note's text against the spec's pattern, which
 /// requires an `http://` or `https://` URL in it.
 ///
@@ -956,6 +986,36 @@ pub fn validate_note_text(text: &str) -> std::result::Result<(), &'static str> {
 pub fn validate_broadcast_id(id: &str) -> std::result::Result<(), &'static str> {
     if id.is_empty() || id.len() > 24 || !id.bytes().all(|b| b.is_ascii_alphanumeric()) {
         return Err("invalid-broadcast-id");
+    }
+    Ok(())
+}
+
+/// Highest chat option X takes, the spec's `maximum`.
+pub const CHAT_OPTION_MAX: u8 = 6;
+
+/// Validates a change to a broadcast against the spec's bounds.
+///
+/// # Errors
+/// Returns the kebab-case reason: `no-broadcast-changes` when nothing would
+/// change, `empty-broadcast-title`, or `invalid-chat-option`.
+pub fn validate_broadcast_changes(
+    changes: &BroadcastChanges,
+) -> std::result::Result<(), &'static str> {
+    if *changes == BroadcastChanges::default() {
+        return Err("no-broadcast-changes");
+    }
+    if changes
+        .title
+        .as_deref()
+        .is_some_and(|title| title.trim().is_empty())
+    {
+        return Err("empty-broadcast-title");
+    }
+    if changes
+        .chat_option
+        .is_some_and(|option| option > CHAT_OPTION_MAX)
+    {
+        return Err("invalid-chat-option");
     }
     Ok(())
 }
@@ -1137,13 +1197,15 @@ pub fn validate_user_id(input: &str) -> std::result::Result<(), &'static str> {
     Ok(())
 }
 
-/// Validates a webhook URL against the spec's length bounds and the two
-/// rules X's webhook documentation gives: the URL uses HTTPS, and it names
-/// no port.
+/// Validates a webhook URL against the spec's length bounds, the two rules
+/// X's webhook documentation gives (the URL uses HTTPS, and it names no
+/// port), and a third: it carries no username or password, which would go to
+/// X as part of the URL.
 ///
 /// # Errors
 /// Returns the kebab-case reason: `empty-webhook-url`, `webhook-url-too-long`,
-/// `webhook-url-not-https`, `webhook-url-has-port`.
+/// `webhook-url-not-https`, `webhook-url-has-port`,
+/// `webhook-url-has-credentials`.
 pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> {
     if url.is_empty() {
         return Err("empty-webhook-url");
@@ -1151,22 +1213,26 @@ pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> 
     if url.chars().count() > WEBHOOK_URL_MAX_CHARS {
         return Err("webhook-url-too-long");
     }
-    let Some(rest) = url.strip_prefix("https://") else {
-        return Err("webhook-url-not-https");
-    };
-    if url::Url::parse(url).is_err() {
+    if !url.starts_with("https://") {
         return Err("webhook-url-not-https");
     }
-    // The authority as written: `Url` drops a port that is the scheme's
-    // default, and X refuses one that is spelled out.
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let Ok(parsed) = url::Url::parse(url) else {
+        return Err("webhook-url-not-https");
+    };
+    // The authority as a parser reads it, written out: `Url` drops a port that
+    // is the scheme's default and reports no userinfo for `https://@host`, and
+    // X refuses both.
+    let authority = super::url_authority::split_special_url(url).authority;
     let host_and_port = authority.rsplit('@').next().unwrap_or_default();
     let has_port = match host_and_port.rsplit_once(']') {
         Some((_, after_bracket)) => after_bracket.starts_with(':'),
         None => host_and_port.contains(':'),
     };
-    if has_port {
+    if has_port || parsed.port().is_some() {
         return Err("webhook-url-has-port");
+    }
+    if authority.contains('@') || !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err("webhook-url-has-credentials");
     }
     Ok(())
 }
@@ -1971,6 +2037,67 @@ impl Client {
         )
     }
 
+    /// Saves a post draft to the caller's account without publishing it. A
+    /// post URL in `reply_to` resolves to its id. X keeps a draft's text,
+    /// media, reply, and the AI and paid-partnership disclosures, and refuses
+    /// any other field.
+    pub fn create_post_draft(
+        &self,
+        text: &str,
+        media_ids: &[String],
+        reply_to: Option<&str>,
+    ) -> Call<ApiResponse<PostDraftCreated>> {
+        let body = PostBody {
+            text: text.to_string(),
+            reply: reply_to.map(|post_id| PostReply {
+                in_reply_to_post_id: resolve_post_id(post_id),
+            }),
+            quote: None,
+            media: (!media_ids.is_empty()).then(|| PostMedia {
+                media_ids: media_ids.to_vec(),
+            }),
+            clip: None,
+        };
+        self.json_call(
+            endpoints::CREATE_POST_DRAFT.method,
+            template(
+                endpoints::CREATE_POST_DRAFT.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &body,
+        )
+    }
+
+    /// Reads the caller's post drafts, newest first. A draft that carries
+    /// `unsupported_content` is not listed in full.
+    pub fn get_post_drafts(&self, max_results: i32) -> Call<ApiResponse<Vec<PostDraft>>> {
+        self.call(
+            endpoints::GET_POST_DRAFTS.method,
+            template(
+                endpoints::GET_POST_DRAFTS.path,
+                HashMap::new(),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Deletes one of the caller's post drafts. The whole draft goes, any
+    /// part the list does not show included, and it cannot be restored. X
+    /// answers `deleted: true` for an id that is not one of the caller's
+    /// drafts.
+    pub fn delete_post_draft(&self, draft_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_POST_DRAFT.method,
+            template(
+                endpoints::DELETE_POST_DRAFT.path,
+                id_param(draft_id),
+                Vec::new(),
+            ),
+        )
+    }
+
     /// Hides a reply to one of the caller's posts, or shows it again when
     /// `hidden` is false.
     pub fn hide_reply(&self, reply_id: &str, hidden: bool) -> Call<ApiResponse<HiddenResult>> {
@@ -2134,6 +2261,22 @@ impl Client {
                 endpoints::GET_TRENDS.path,
                 HashMap::from([("woeid".to_string(), woeid.to_string())]),
                 query,
+            ),
+        )
+    }
+
+    /// Lists every place X reports trends for, each with the WOEID
+    /// [`Client::get_trends`] takes. X answers the whole list in one page.
+    pub fn get_trend_locations(&self) -> Call<ApiResponse<Vec<TrendLocation>>> {
+        self.call(
+            endpoints::GET_TREND_LOCATIONS.method,
+            template(
+                endpoints::GET_TREND_LOCATIONS.path,
+                HashMap::new(),
+                vec![(
+                    "trend_location.fields".to_string(),
+                    "country,country_code,name,parent_id,place_type,woeid".to_string(),
+                )],
             ),
         )
     }
@@ -2421,6 +2564,22 @@ impl Client {
         self.call(
             endpoints::DELETE_BROADCAST.method,
             template(endpoints::DELETE_BROADCAST.path, id_param(id), Vec::new()),
+        )
+    }
+
+    /// Changes the title, chat option, or live category of one of the
+    /// caller's broadcasts, and answers the broadcast. X takes the change
+    /// before the broadcast starts, while it is live, and after it ends, and
+    /// refuses one for a broadcast that was deleted or moderated.
+    pub fn update_broadcast(
+        &self,
+        id: &str,
+        changes: &BroadcastChanges,
+    ) -> Call<ApiResponse<BroadcastUpdated>> {
+        self.json_call(
+            endpoints::UPDATE_BROADCAST.method,
+            template(endpoints::UPDATE_BROADCAST.path, id_param(id), Vec::new()),
+            changes,
         )
     }
 

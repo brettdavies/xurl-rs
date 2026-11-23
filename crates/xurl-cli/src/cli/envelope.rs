@@ -22,7 +22,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::cli::hints::NextStep;
+use crate::cli::rerun::CarriedStep;
 
 /// The envelope variants, one per `status` value a top-level document carries.
 #[derive(Debug, Serialize, JsonSchema)]
@@ -152,13 +152,17 @@ pub struct DryRunBody {
     /// The offending input, as it was given, when the broken `rule` names one.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
+    /// The apps the store holds, in name order, when `value` is an app name it
+    /// does not hold; empty when the store holds none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub held: Option<Vec<String>>,
     /// The message the real run's error would carry.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     /// The step the real run's error would carry; one that reruns the
     /// invocation keeps `--dry-run`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub next_step: Option<NextStep>,
+    pub next_step: Option<CarriedStep>,
     /// Endpoint template the request would target, when no stored scheme
     /// serves it.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -190,22 +194,23 @@ pub struct DryRunBody {
     pub payload: Value,
 }
 
-/// The `auth` object of a dry-run envelope: the credential a request would go
-/// out under.
-#[derive(Debug, Serialize, JsonSchema)]
+/// The `auth` object of a dry-run envelope, the credential a request would go
+/// out under, and of the error envelope of a request X refused over its
+/// credential, the credential it went out under.
+#[derive(Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[non_exhaustive]
 pub struct DryRunAuth {
     /// The auth scheme: `oauth1`, `oauth2`, or `app`.
     pub scheme: String,
-    /// The app whose stored credential would be sent. Absent for a bearer
-    /// token the environment supplies, which belongs to no stored app.
+    /// The app whose stored credential is sent, or would be. Absent for a
+    /// bearer token the environment supplies, which belongs to no stored app.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app: Option<String>,
     /// The `OAuth2` login, the one credential with a user name.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
     /// Whether the `OAuth2` login's token has expired. An expired token is
-    /// reported, not refreshed.
+    /// reported, not refreshed. Absent from an error envelope.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token_expired: Option<bool>,
 }
@@ -227,6 +232,18 @@ impl DryRunAuth {
             app,
             username,
             token_expired,
+        }
+    }
+
+    /// The credential a request went out under, as an error envelope reports
+    /// it: no expiry, which the request's own answer has superseded.
+    #[must_use]
+    pub fn sent_under(scheme: &str, app: Option<String>, username: Option<String>) -> Self {
+        Self {
+            scheme: scheme.to_string(),
+            app,
+            username,
+            token_expired: None,
         }
     }
 }
@@ -386,10 +403,16 @@ pub struct ErrorBody {
     pub rule: Option<String>,
     /// The offending input, as it was given, when the broken `rule` names
     /// one: an app name, a redirect URI, a header's position among the `-H`
-    /// headers (counted from 1), the seconds a checkpoint runs ahead. Always
-    /// a string; a number goes in as its decimal digits.
+    /// headers (counted from 1), the seconds a checkpoint runs ahead. Under
+    /// `token-store`, the app name the store does not hold. Always a string;
+    /// a number goes in as its decimal digits.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
+    /// The apps the store holds, in name order, when `value` is an app name it
+    /// does not hold; empty when the store holds none. Its text hint lists the
+    /// same apps.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub held: Option<Vec<String>>,
 
     /// What the caller should do next, when a recovery step exists.
     ///
@@ -432,7 +455,7 @@ pub struct ErrorBody {
     /// Each `-H` header keeps its name in a template and has its value left as
     /// `<value>`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub next_step: Option<NextStep>,
+    pub next_step: Option<CarriedStep>,
     /// What the library warned about before the run failed, each distinct
     /// warning once. Omitted when none fired.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -473,6 +496,16 @@ pub struct ErrorBody {
     /// Other apps holding credentials, when the active one holds none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub other_apps_with_creds: Option<Vec<String>>,
+    /// The credential X refused: the scheme, the app that stores it, and for
+    /// `oauth2` the login's name, as a dry run reports the credential a
+    /// request would go out under. Present on a 401 to a request sent under
+    /// a stored credential or `XURL_BEARER_TOKEN`, and on a 403 whose problem
+    /// `type` is `unsupported-authentication` and whose command's accepted
+    /// schemes `xr` lists. Absent from a request that carries its own
+    /// `Authorization` header, from a 401 on the status read after
+    /// `xr media upload` finished, and from every other error.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth: Option<DryRunAuth>,
 
     /// Media id whose processing a wait gave up on, under
     /// `processing-timeout`, where the upload is intact; or the one X
@@ -551,6 +584,9 @@ pub struct ErrorBody {
     /// Community Note `notes remove` targeted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub note_id: Option<String>,
+    /// Post draft `drafts remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub draft_id: Option<String>,
     /// Filtered-stream rules `stream rules remove` targeted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rule_ids: Option<Vec<String>>,

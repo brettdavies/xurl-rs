@@ -1,0 +1,573 @@
+{
+  "$defs": {
+    "ApiError": {
+      "additionalProperties": true,
+      "description": "Partial error returned alongside valid data in 200 responses.",
+      "properties": {
+        "detail": {
+          "description": "Longer human-readable detail.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "description": "Short human-readable error description.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Error category title (e.g. `\"Not Found Error\"`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "description": "URI identifying the error type (problem-details style).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Includes": {
+      "additionalProperties": true,
+      "description": "Expanded objects included alongside the primary data.",
+      "properties": {
+        "posts": {
+          "description": "Post objects referenced by `referenced_posts`. X may send this under its legacy name `tweets`; either name fills this field.",
+          "items": {
+            "$ref": "#/$defs/Post"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "users": {
+          "description": "User objects referenced by `author_id`, `sender_id`, etc.",
+          "items": {
+            "$ref": "#/$defs/User"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Post": {
+      "additionalProperties": true,
+      "description": "A post object from the X API v2.\n\nRequired fields: `id`, `text` (always present in API responses).\nOptional fields depend on which `post.fields` the caller requests.",
+      "properties": {
+        "attachments": {
+          "description": "Media / poll attachment references — opaque JSON."
+        },
+        "author_id": {
+          "description": "Author's user ID; resolve via `includes.users` when expanded.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conversation_id": {
+          "description": "Root post ID of the conversation thread.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "description": "ISO-8601 timestamp the post was created.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "entities": {
+          "description": "Parsed entities (URLs, mentions, hashtags) — opaque JSON."
+        },
+        "id": {
+          "description": "Post identifier (X API snowflake string).",
+          "type": "string"
+        },
+        "in_reply_to_user_id": {
+          "description": "User ID this post replies to, when applicable.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "public_metrics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PostPublicMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Engagement counts (likes, replies, reposts, etc)."
+        },
+        "referenced_posts": {
+          "description": "Posts this one references (reply, quote, repost). X may send this under its legacy name `referenced_tweets`; either name fills this field.",
+          "items": {
+            "$ref": "#/$defs/ReferencedPost"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "Post body text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "type": "object"
+    },
+    "PostDraft": {
+      "additionalProperties": true,
+      "description": "A post draft saved to the caller's account.",
+      "properties": {
+        "created_at": {
+          "description": "When the draft was saved (RFC 3339).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Draft ID.",
+          "type": "string"
+        },
+        "made_with_ai": {
+          "description": "Whether the draft discloses AI-generated media.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "media": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PostDraftMedia"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Media attached to the post."
+        },
+        "paid_partnership": {
+          "description": "Whether the draft discloses a paid partnership.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "quote_tweet_id": {
+          "description": "The ID of the post the draft quotes.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reply": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PostDraftReply"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Present when the draft is a reply."
+        },
+        "text": {
+          "description": "The text of the draft; empty for a draft that only has media.",
+          "type": "string"
+        },
+        "thread": {
+          "description": "For a draft that is a thread, the posts after the first, in order.",
+          "items": {
+            "$ref": "#/$defs/PostDraftThreadPost"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "unsupported_content": {
+          "description": "Parts of the draft the other fields do not carry, such as\n`text_formatting` or `inline_media`. Present only when the draft\nholds more than is listed.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "description": "When the draft last changed (RFC 3339).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "type": "object"
+    },
+    "PostDraftMedia": {
+      "additionalProperties": true,
+      "description": "The media a draft carries.",
+      "properties": {
+        "media_ids": {
+          "description": "Media IDs attached to the post, in order.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "tagged_user_ids": {
+          "description": "IDs of the users tagged in any of the media.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "media_ids"
+      ],
+      "type": "object"
+    },
+    "PostDraftReply": {
+      "additionalProperties": true,
+      "description": "The post a draft replies to.",
+      "properties": {
+        "exclude_reply_user_ids": {
+          "description": "IDs of the users the reply does not mention.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "in_reply_to_tweet_id": {
+          "description": "The ID of the post the draft replies to.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "in_reply_to_tweet_id"
+      ],
+      "type": "object"
+    },
+    "PostDraftThreadPost": {
+      "additionalProperties": true,
+      "description": "A post after the first in a draft thread.",
+      "properties": {
+        "media": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PostDraftMedia"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Media attached to the post."
+        },
+        "quote_tweet_id": {
+          "description": "The ID of the post this post quotes.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "The text of the post; empty when it only has media.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    },
+    "PostPublicMetrics": {
+      "additionalProperties": true,
+      "description": "Public engagement metrics for a post.",
+      "properties": {
+        "bookmark_count": {
+          "default": 0,
+          "description": "Bookmark count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "impression_count": {
+          "default": 0,
+          "description": "View count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "like_count": {
+          "default": 0,
+          "description": "Like count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "quote_count": {
+          "default": 0,
+          "description": "Quote-post count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reply_count": {
+          "default": 0,
+          "description": "Reply count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "repost_count": {
+          "default": 0,
+          "description": "Repost count. X may send this under its legacy name `retweet_count`; either name fills this field.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "ReferencedPost": {
+      "additionalProperties": true,
+      "description": "A referenced post (reply-to, quote, repost).",
+      "properties": {
+        "id": {
+          "description": "Referenced post identifier.",
+          "type": "string"
+        },
+        "type": {
+          "description": "Reference kind — `\"replied_to\"`, `\"quoted\"`, or `\"retweeted\"`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "ResponseMeta": {
+      "additionalProperties": true,
+      "description": "Pagination and result count metadata.",
+      "properties": {
+        "next_token": {
+          "description": "Opaque cursor for the next page; pass it back as the follow-up\nrequest's cursor.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "previous_token": {
+          "description": "Opaque cursor for the previous page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "result_count": {
+          "description": "Total items returned in `data` for list endpoints.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "User": {
+      "additionalProperties": true,
+      "description": "A user object from the X API v2.\n\nRequired fields: `id`, `name`, `username`.\nOptional fields depend on which `user.fields` the caller requests.",
+      "properties": {
+        "active_follower_count": {
+          "description": "Followers active on X in the last 24 hours. X returns it only for the\nauthenticated user with account analytics enabled, omits it for an\naccount with 50 or fewer followers, and estimates it from 20,000 up.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "created_at": {
+          "description": "ISO-8601 account creation timestamp.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "Bio / profile description.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "User identifier (X API snowflake string).",
+          "type": "string"
+        },
+        "name": {
+          "description": "Display name.",
+          "type": "string"
+        },
+        "profile_image_url": {
+          "description": "Profile image URL.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "public_metrics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UserPublicMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Engagement counts (followers, following, posts)."
+        },
+        "username": {
+          "description": "Handle without the leading `@`.",
+          "type": "string"
+        },
+        "verified": {
+          "description": "Whether the account carries a verified badge.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "username"
+      ],
+      "type": "object"
+    },
+    "UserPublicMetrics": {
+      "additionalProperties": true,
+      "description": "Public engagement metrics for a user.",
+      "properties": {
+        "followers_count": {
+          "default": 0,
+          "description": "Follower count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "following_count": {
+          "default": 0,
+          "description": "Following count.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "listed_count": {
+          "default": 0,
+          "description": "Number of public lists the user is on.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "post_count": {
+          "default": 0,
+          "description": "Post count for the user. X sends this under its legacy name `tweet_count`; either name fills this field.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "Standard X API v2 response envelope. `data` holds one object for single-item endpoints and an array for list endpoints.",
+  "properties": {
+    "data": {
+      "description": "Primary payload: one object, or an array for list endpoints.",
+      "items": {
+        "$ref": "#/$defs/PostDraft"
+      },
+      "type": "array"
+    },
+    "errors": {
+      "description": "Partial errors returned alongside a 200 response.",
+      "items": {
+        "$ref": "#/$defs/ApiError"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "includes": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Includes"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Expanded objects referenced by `data` when the caller requested\n`expansions=...`."
+    },
+    "meta": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResponseMeta"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Pagination and result-count metadata."
+    }
+  },
+  "required": [
+    "data"
+  ],
+  "title": "ApiResponse",
+  "type": "object"
+}

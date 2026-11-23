@@ -1165,6 +1165,17 @@ fn dry_run_cases() -> Vec<Case> {
             &["--output", "json", "--dry-run", "notes", "remove", "note-1"],
         ),
         case(
+            "dry-run-invalid-draft-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "drafts",
+                "remove",
+                "draft-1",
+            ],
+        ),
+        case(
             "dry-run-note-needs-source-url",
             &[
                 "--output",
@@ -1378,6 +1389,17 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-webhook-url-has-credentials",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "add",
+                "https://user:pw@example.com/webhook",
+            ],
+        ),
+        case(
             "dry-run-invalid-webhook-id",
             &[
                 "--output",
@@ -1497,6 +1519,43 @@ fn dry_run_cases() -> Vec<Case> {
                 "bookmark-folders",
                 "posts",
                 "rust",
+            ],
+        ),
+        case(
+            "dry-run-no-broadcast-changes",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "update",
+                "1YqKDqWqdPLGV",
+            ],
+        ),
+        case(
+            "dry-run-empty-broadcast-title",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "update",
+                "1YqKDqWqdPLGV",
+                "--title",
+                " ",
+            ],
+        ),
+        case(
+            "dry-run-invalid-chat-option",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "update",
+                "1YqKDqWqdPLGV",
+                "--chat-option",
+                "7",
             ],
         ),
         case(

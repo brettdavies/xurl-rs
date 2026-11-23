@@ -2,6 +2,60 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.9.0] - 2026-11-23
+
+### Breaking changes
+
+- Change an answer from the OAuth2 token endpoint to count as a refusal only when its JSON `error` is one of the six codes of RFC 6749 section 5.2. A 400 or a 401 with no such code, and any other status with no reading of its own, now ends at exit 1 with a `fix-input` step that names `TOKEN_URL` and the proxy, where a 400 or a 401 ended at exit 77 and an unlisted status gave `report-issue`. It ships in a minor under the small-break exception, and [`docs/migrating/v4.9.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.9.0.md) maps each answer from its 4.8 form to its 4.9 form. by @brettdavies in [#613](https://github.com/brettdavies/xurl-rs/pull/613)
+
+### Added
+
+- Add `xr drafts list | add | remove`: list your post drafts newest first, save a draft with its text, media, and the post it replies to, and delete one. `remove` asks first, deletes the whole draft, and cannot be undone; its confirmation refusal carries `draft_id`. by @brettdavies in [#583](https://github.com/brettdavies/xurl-rs/pull/583)
+- Add `xr broadcasts update <ID> --title <TITLE> --chat-option <N>`: change a broadcast's title or who can chat; it sends only the flags you pass.
+- Add `xr trends locations`: list every place X reports trends for, with the WOEID `xr trends place` takes.
+- Add the app-only bearer token to the credentials `xr search-users` goes out under. With only a bearer stored it sends under it; a stored login still takes precedence.
+- Add `auth` to the error envelope of a request X refused over its credential, naming the app, scheme, and OAuth2 login it went out under, and give that refusal the step that gets the credential again: a 401, and a 403 whose problem type is `unsupported-authentication`. by @brettdavies in [#611](https://github.com/brettdavies/xurl-rs/pull/611)
+- Add `held` to the error envelope of an app name the store does not hold: the apps the store holds, in name order, empty when it holds none. by @brettdavies in [#612](https://github.com/brettdavies/xurl-rs/pull/612)
+
+### Changed
+
+- Change typed and repeated `--output`, `--json`, `--jsonl`, `--cursor`, and `--after` to resolve last-wins, across the command word, instead of refusing a repeat. by @brettdavies in [#623](https://github.com/brettdavies/xurl-rs/pull/623)
+- Change an empty `XURL_OUTPUT`, `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, or `XURL_AFTER` to read as unset.
+- Change the help of the five flags to name the variable without echoing its value, and the root help to state the precedence.
+- Change `xr auth oauth2 --step` to run the no-browser flow by itself, so `--no-browser` is no longer needed beside it.
+
+### Fixed
+
+- Fix a run that names an app the store does not hold with `--app` or `XURL_APP`: it is refused with reason `token-store` (exit 77) and the step `xr auth status`, with the name in `value`, before any request goes out. It was sent under the default app's credential, and its dry run named the missing app as that credential's. by @brettdavies in [#602](https://github.com/brettdavies/xurl-rs/pull/602)
+- Fix the text after a 403 `client-not-enrolled`: it named only a missing package, though X sends the reason too for an endpoint that needs a higher access level than the app's package, such as Enterprise. It now names both causes. `xr block`, `xr unblock`, `xr analytics`, and `xr webhooks stream-links list`, `add`, and `remove` say in `--help` that X's docs list their endpoints as Enterprise only, and the `enroll-app` step's description in `xr schema --envelope` names both causes. Fixes #586. by @brettdavies in [#603](https://github.com/brettdavies/xurl-rs/pull/603)
+- Fix a Ctrl+C or SIGTERM that arrives before a stream's response headers ending `xr -s`, or a streaming endpoint without it, with no `cancelled` document: it now writes the same document as a signal mid-stream and exits 0. by @brettdavies in [#605](https://github.com/brettdavies/xurl-rs/pull/605)
+- Fix the `invalid-source-id` and `invalid-broadcast-id` refusals of `broadcasts sources get`, `stream-key`, `update`, and `remove`, and of `broadcasts get`, `remove`, `chat history`, `mutes add`, and `mutes remove`, to carry `value`, the id as given.
+- Fix `xr auth oauth2 --no-browser --step 1` with no `--app` saving no app in the pending flow, so a step 2 under another app now answers the template that finishes the flow under the app that started it, instead of a step that starts a new consent. by @brettdavies in [#606](https://github.com/brettdavies/xurl-rs/pull/606)
+- Fix a sign-in or a refresh that followed a redirect from the OAuth2 token URL, which sent the grant to the host the redirect named. A 3xx from the token URL now reports as its status. by @brettdavies in [#607](https://github.com/brettdavies/xurl-rs/pull/607)
+- Fix a refused app name not saying that `XURL_APP` gave it; the message now ends with `(from XURL_APP)`. by @brettdavies in [#612](https://github.com/brettdavies/xurl-rs/pull/612)
+- Fix `--app`'s help not saying that a name the store does not hold is refused.
+- Fix the `sign-in` step after a refresh X refused to keep the `--output` format of the command that failed. by @brettdavies in [#615](https://github.com/brettdavies/xurl-rs/pull/615)
+- Fix the `select-app` step for an app with no client id to keep the output format, the login label, and `--scopes` of the sign-in it answers.
+- Fix the `--scopes` refusal for a scope X does not define to answer `show-help` with `xr auth oauth2 --help`, as the README says, in place of a bare `fix-input`.
+- Fix `xr --dry-run webhooks add` and `webhooks listen --forward` printing the username and password of the URL they were given, in the dry-run context's `url` and `forward.url`, in JSON and in text. The URL now shows without them. by @brettdavies in [#616](https://github.com/brettdavies/xurl-rs/pull/616)
+- Fix validation refusals that left `value` out for an input the rule names: list, space, webhook, folder, note, conversation, article, community, news, media, and stream rule ids, accounts and handles, time windows, call and list fields, and webhook URLs. The input now rides in `value`, in the error and under `--dry-run`.
+- Fix an `AUTH_URL` no authorize URL can be built from to be refused as `invalid-url` at exit 1 with the `show-help` step, in place of `auth-required` at exit 77, with a message that quotes the value and names `AUTH_URL`, as a bad `TOKEN_URL` is. `xr --dry-run auth oauth2 --no-browser --step 1` refuses it the same way. by @brettdavies in [#617](https://github.com/brettdavies/xurl-rs/pull/617)
+- Fix the same dry run to refuse a symlink or a directory at the pending-flow path as the real run does, naming the file in the directory case, and to warn that it replaces a saved flow, in text and in `warnings`.
+- Fix `xr auth oauth2 --no-browser --step 1` to name the pending-flow path when a directory sits there, and to give the overwrite warning only when a saved flow exists and the step goes on to replace it.
+- Fix RUSTSEC-2026-0592 by updating url, the URL parser, to 2.5.9. by @brettdavies in [#618](https://github.com/brettdavies/xurl-rs/pull/618)
+- Fix `xr webhooks add` to refuse a URL that carries a username or password, with rule `webhook-url-has-credentials`, before it reaches X. by @brettdavies in [#620](https://github.com/brettdavies/xurl-rs/pull/620)
+- Fix `xr webhooks add` to read a URL's authority as a URL parser does, so a port written after extra slashes or a tab is refused and a backslash ends the authority.
+- Fix the dry run of `xr webhooks add` and `xr webhooks listen --forward` to drop the username and password from a URL written with extra slashes, a tab, or a newline after the scheme, such as `https:///user:pw@host`.
+- Fix every `next_step` that runs `xr` to name the output format of the run it answers after `xr`, spelled as the run chose it (`--output <format>`, `--json`, or `--jsonl`): the media resume and rate-limit steps, the steps after a 401, the `xr auth status` step of a token-store refusal, the schema steps, and the replay step of a failed forward named none before. by @brettdavies in [#621](https://github.com/brettdavies/xurl-rs/pull/621)
+- Fix the sign-in steps to name `--app`, the default app included: the one after a refused refresh, the one in the `xr auth apps add` document, and the one a missing credential gives.
+- Fix a step that runs the invocation again to name `--app` as a flag when `XURL_APP` chose the app, so it runs the same in a shell without the variable.
+- Fix the awaiting-callback instructions of `xr auth oauth2 --no-browser --step 1` to name the output format in the `--step 2` command they give.
+- Fix a variable refusing a typed flag of its own setting, such as `XURL_JSON=1 xr --output text`. by @brettdavies in [#623](https://github.com/brettdavies/xurl-rs/pull/623)
+- Fix a refusal that a variable causes to name the variable, as in `cannot be used with the environment variable 'XURL_PAGE'`, to carry a `tip:` line, and to carry a `fix-input` step that links the README section on precedence.
+- Fix a boolean variable that reads false, such as `XURL_JSON=0`, taking part in conflict checks.
+
+**Full Changelog**: [v4.8.0...v4.9.0](https://github.com/brettdavies/xurl-rs/compare/v4.8.0...v4.9.0)
+
 ## [4.8.0] - 2026-11-21
 
 ### Breaking changes

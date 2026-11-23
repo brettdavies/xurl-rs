@@ -2,6 +2,66 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2026-11-23
+
+### Breaking changes
+
+- Change `TokenStore::resolve_app_mut` to return `Result<&mut App>`. A name the store does not hold is refused with `Error::AppNotFound` and creates nothing; it used to return the default app, and to create it when the store held none. The empty name is still the default app. by @brettdavies in [#610](https://github.com/brettdavies/xurl-rs/pull/610)
+
+  ```rust
+  // Before
+  let app = store.resolve_app_mut(name);
+  app.redirect_uri = uri.to_string();
+
+  // After
+  let app = store.resolve_app_mut(name)?;
+  app.redirect_uri = uri.to_string();
+  ```
+- Change the OAuth2 code exchange and refresh to return `Error::TokenEndpointUnexpected { status, body }` for a token endpoint answer that carries no OAuth error code and has no reading of its own (a 400 or a 401 with no code among the six, a 3xx, or a status such as 418). Only a JSON `error` among the six RFC 6749 section 5.2 codes returns `Error::Auth`. A 403 is still `Error::TokenEndpointForbidden`, and a 404, a 408, a 429, and a 5xx are still `Error::Api`. by @brettdavies in [#613](https://github.com/brettdavies/xurl-rs/pull/613)
+
+  ```rust
+  // Before
+  match client.get_me().send().await {
+      Err(Error::Auth { .. }) => sign_in_again(),
+      Err(Error::Api { status, .. }) => report(status),
+      other => other.map(drop).unwrap_or(()),
+  }
+
+  // After
+  match client.get_me().send().await {
+      Err(Error::Auth { .. }) => sign_in_again(),
+      Err(Error::TokenEndpointUnexpected { status, .. }) => check_token_url_and_proxy(status),
+      Err(Error::Api { status, .. }) => report(status),
+      other => other.map(drop).unwrap_or(()),
+  }
+  ```
+
+### Added
+
+- Add `Client::update_broadcast` with `BroadcastChanges` and `BroadcastUpdated`, and `Client::get_trend_locations` with `TrendLocation`. by @brettdavies in [#583](https://github.com/brettdavies/xurl-rs/pull/583)
+- Add `Client::create_post_draft`, `get_post_drafts`, and `delete_post_draft`, with `PostDraft`, `PostDraftCreated`, `PostDraftMedia`, `PostDraftReply`, `PostDraftThreadPost`, and `validate_draft_id`.
+- Add the app-only bearer token to the credentials `Client::search_users` accepts.
+- Add `Error::AppNotFound { name, held }` for an app name the store does not hold, and `Auth::refuse_if_app_missing`. Store operations return the variant where they returned `Error::TokenStore` with the same message, and a request through a `Client` returns it before it is sent. by @brettdavies in [#602](https://github.com/brettdavies/xurl-rs/pull/602)
+
+### Changed
+
+- Change `API_SPEC_VERSION`, `API_SPEC_SHA256`, and `API_SPEC_DATE` to follow upstream 2.175. by @brettdavies in [#583](https://github.com/brettdavies/xurl-rs/pull/583)
+
+### Fixed
+
+- Fix `TokenStore::resolve_app` and the readers built on it, `Auth::with_app_name`, `Auth::has_oauth2_token`, and `SigningSecrets::for_app` returning the default app's data for a name the store does not hold. They return an app with no credentials. by @brettdavies in [#602](https://github.com/brettdavies/xurl-rs/pull/602)
+- Fix the page `Error::docs_url()` names for a 403 `client-not-enrolled`: the repository README's "X Platform Enrollment" section covered one cause, and now covers both the app that is not enrolled in a package and the endpoint that needs a higher X access level. by @brettdavies in [#603](https://github.com/brettdavies/xurl-rs/pull/603)
+- Fix the description of `NextAction::EnrollApp`, which said X refused the app and to enroll it; it now names both causes.
+- Fix `Auth::remote_oauth2_step1` saving an empty `app_name` in the pending flow when the `Auth` names no app; it saves the store's active app. by @brettdavies in [#606](https://github.com/brettdavies/xurl-rs/pull/606)
+- Fix the OAuth2 code exchange and refresh following a redirect from the token URL, which sent the grant to the host the redirect named. A 3xx from the token URL is now an `Error::Api` with that status. by @brettdavies in [#607](https://github.com/brettdavies/xurl-rs/pull/607)
+- Fix `Auth::has_oauth2_token` looking a named login up in the default app. It reads the app the `Auth` names, so an app that holds no login no longer answers true for a login only the default app holds. `Auth::get_oauth2_header` reads it too, and its answer for that case does not change. by @brettdavies in [#610](https://github.com/brettdavies/xurl-rs/pull/610)
+- Fix `xdk::auth::pending::save` to refuse a directory at the pending path with an `Error::Io` that names it, in place of the operating system's bare "Is a directory". by @brettdavies in [#617](https://github.com/brettdavies/xurl-rs/pull/617)
+- Fix the error for an authorization URL no URL can be built from to be `Error::InvalidUrl`, as the token URL's is, in place of `Error::Auth`. Its message starts with the new constant `xdk::error::AUTH_URL_UNUSABLE`, then the quoted URL.
+- Fix RUSTSEC-2026-0592 in the tested dependency set by updating url to 2.5.9. The published manifest is unchanged; an embedder's own lockfile takes the fix with `cargo update -p url`. by @brettdavies in [#618](https://github.com/brettdavies/xurl-rs/pull/618)
+- Fix `validate_webhook_url` to return `webhook-url-has-credentials` for a URL that carries a username or password, and to read the authority as a URL parser does, so `webhook-url-has-port` covers a port written after extra slashes or a tab and a backslash ends the authority. by @brettdavies in [#620](https://github.com/brettdavies/xurl-rs/pull/620)
+
+**Full Changelog**: [xdk-rs-v0.8.0...xdk-rs-v0.9.0](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.8.0...xdk-rs-v0.9.0)
+
 ## [0.8.0] - 2026-11-21
 
 ### Added

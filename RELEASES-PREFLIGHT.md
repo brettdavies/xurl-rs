@@ -57,10 +57,13 @@ Flags:
 
 - `--smoke-home PATH`: run `smoke` and `multi-app` against the store at `PATH/.xurl/auth.yml`, the directory layout `xr`
   keeps at `~/.xurl/auth.yml`, instead of seeding one from 1Password. A PATH with no store at that path, a single-file
-  store at `PATH/.xurl` included, exits 2 naming the path it read. It seeds nothing and leaves PATH alone.
+  store at `PATH/.xurl` included, exits 2 naming the path it read. It seeds nothing, and exit never shreds PATH.
   `--smoke-home "$HOME"` runs both gates against the production store.
-- `--no-cleanup`: keep the home after exit (useful for follow-up `xr` probes). Without it, exit shreds the home, one
-  `--smoke-home` names included, so pass it for a store worth keeping.
+- `--no-cleanup`: keep the home a gate seeded after exit (useful for follow-up `xr` probes). Without it, exit shreds that
+  home. The stores and empty homes a gate makes for itself are shredded at exit either way, one that a failed gate,
+  SIGINT, or SIGTERM left included. The `api-contract` gate's scratch directory and the worktree of the previous tag in
+  it are removed at exit the same way, and leave no entry in `git worktree list`. A home that `--smoke-home` or an
+  exported `SMOKE_HOME` names is never shredded, with the flag or without it.
 - `--tag TAG`: override LAST_TAG auto-detection (default: the newest `v[0-9]*` tag, so an `xdk-rs-v*` tag never stands
   in for the CLI's)
 
@@ -85,9 +88,8 @@ Each window copies the store to `auth.yml.bak` beside it, makes one `xr` call, a
 keeps its logins and its `default_app`, or none. A run killed inside a window leaves that copy behind, holding secrets:
 move it back over `auth.yml`. What `xr` writes in a call outside a window stays, such as a refreshed OAuth2 token.
 Another `xr` command that writes the store during a window loses its write to the move, so run none while the gates
-run. The shred on exit refuses `$HOME` itself, spelled with a trailing slash or `..` or not, and takes a home below it.
-A run on `--smoke-home "$HOME"` without `--no-cleanup` finishes its gates, prints that refusal, and exits 1, the code of
-a failed gate, with the store kept.
+run. Exit shreds the stores and empty homes a gate made and none a caller named, so a store `--smoke-home` names, `$HOME`
+itself in any spelling included, is still there after the run.
 
 ## Establish the surface
 
@@ -345,7 +347,8 @@ transcript. Use `xr auth status` (redacts) or `yq '... | path'` for shape probes
 - [ ] **Bearer token (stored, two-step)** (automatable): after the seed recipe above,
   `xrs search "rust" --max-results 1 --auth app --app bird_dev --output json | jaq -c '{has_data:(.data|length>0)}'` →
   expect `{"has_data":true}`.
-- [ ] **Typed wire vocabulary** (automatable): `XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored`. Reads one
+- [ ] **Typed wire vocabulary** (automatable):
+  `XURL_TOKEN_STORE=<store> XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored`. Reads one
   media post and one user through the library's typed structs under a `tracing` subscriber on
   `xdk::api::VOCABULARY_TARGET`, and fails listing every `legacy → normalized` pair the library reported, so any key X
   sends in its legacy post vocabulary fails the gate; the keys come from the spec-derived table, not a hand-written
@@ -359,9 +362,8 @@ transcript. Use `xr auth status` (redacts) or `yq '... | path'` for shape probes
   hand. A typed metric that reads back zero or a post with no media keys still holds the release. Costs one post read
   and one user read. `XURL_APP=<app>` picks the store app, `XURL_LIVE_SMOKE_AUTH=app|oauth1|oauth2` pins the scheme, and
   `XURL_LIVE_SMOKE_POST_ID=<id>` swaps in any other post with media if the default was deleted. The script runs it
-  with the `app` scheme on the `bird_dev` app. The test opens the library's default store, `~/.xurl/auth.yml`, and not
-  the store the gate names (`XURL_TOKEN_STORE` is the binary's variable), so under a seeded store this step reads
-  `~/.xurl/auth.yml`, not the seeded one.
+  with the `app` scheme on the `bird_dev` app, on the store the gate seeded or was given. The test opens the file
+  `XURL_TOKEN_STORE` names and refuses to run when it is unset, rather than fall back to `~/.xurl/auth.yml`.
 - [ ] **Media upload** (automatable): `xrs media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg --media-type
   image/jpeg --category tweet_image --wait --auth oauth1 --app bird_dev --output json | jaq -c '{media_id:.data.id}'`.
   **Gotcha:** defaults are `video/mp4` + `amplify_video`; for the JPG fixture you MUST pass `--media-type image/jpeg

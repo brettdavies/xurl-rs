@@ -14,10 +14,10 @@ use xdk::webhooks::{
     validate_forward_url,
 };
 
-use super::Run;
 use super::webhooks_checkpoint::Progress;
 use super::webhooks_forward::{Finished, Forwarding, Target};
 use super::webhooks_program::ProgramTarget;
+use super::{Invalid, Run, without_userinfo};
 use crate::cli::SigningSecret;
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::{NO_SIGNING_SECRET, shell_word};
@@ -82,7 +82,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
             Vec::new()
         };
         ctx["forward"] = json!({
-            "url": url,
+            "url": without_userinfo(url),
             "headers": headers,
             "timeout_secs": budget.attempt_timeout().as_secs(),
         });
@@ -93,6 +93,13 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     if !listener.program.is_empty() {
         ctx["program"] = json!(listener.program);
         ctx["timeout_secs"] = json!(budget.attempt_timeout().as_secs());
+    }
+    if let Err(error) = auth.refuse_if_app_missing() {
+        return Err(if flags.dry_run {
+            Failure::DryRunRefusal { ctx, error }
+        } else {
+            Failure::from(error)
+        });
     }
     if flags.dry_run {
         if let Err(error) = targets {
@@ -227,7 +234,7 @@ fn forward_targets(listener: &Listener) -> Result<Vec<Target>, Error> {
 
 /// `--forward` with its `-H` headers.
 fn url_target(url: &str, headers: &[String]) -> Result<UrlTarget, Error> {
-    validate_forward_url(url).map_err(Error::validation)?;
+    validate_forward_url(url).map_err(|rule| Invalid::of_url(rule, url))?;
     UrlTarget::new(url, headers)
 }
 

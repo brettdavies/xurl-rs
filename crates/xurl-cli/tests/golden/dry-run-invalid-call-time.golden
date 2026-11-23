@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02 16:00"]
 store: empty
 exit_code: 0
-stdout_len: 444
+stdout_len: 475
 stderr_len: 0
 --- stdout ---
 {
@@ -17,6 +17,7 @@ stderr_len: 0
   "rule": "invalid-call-time",
   "start_time": "2026-11-02 16:00",
   "status": "dry_run",
+  "value": "2026-11-02 16:00",
   "would_succeed": false
 }
 

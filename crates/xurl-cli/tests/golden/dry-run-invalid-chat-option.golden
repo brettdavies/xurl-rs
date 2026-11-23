@@ -1,0 +1,26 @@
+args: ["--output", "json", "--dry-run", "broadcasts", "update", "1YqKDqWqdPLGV", "--chat-option", "7"]
+store: empty
+exit_code: 0
+stdout_len: 421
+stderr_len: 0
+--- stdout ---
+{
+  "broadcast_id": "1YqKDqWqdPLGV",
+  "chat_option": 7,
+  "command": "broadcasts-update",
+  "exit_code": 1,
+  "message": "A chat option is 0 to 6.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr broadcasts update --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema broadcasts update",
+  "rule": "invalid-chat-option",
+  "status": "dry_run",
+  "value": "7",
+  "would_succeed": false
+}
+
+--- stderr ---
+

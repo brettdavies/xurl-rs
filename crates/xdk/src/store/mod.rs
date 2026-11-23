@@ -306,7 +306,7 @@ impl TokenStore {
         if self.apps.contains_key(name) {
             Ok(())
         } else {
-            Err(Self::app_not_found(name))
+            Err(self.app_not_found(name))
         }
     }
 
@@ -318,8 +318,11 @@ impl TokenStore {
         self.require_app(name)
     }
 
-    fn app_not_found(name: &str) -> Error {
-        Error::token_store(format!("{} {name:?}", crate::error::APP_NOT_FOUND))
+    fn app_not_found(&self, name: &str) -> Error {
+        Error::AppNotFound {
+            name: name.to_string(),
+            held: self.list_apps(),
+        }
     }
 
     /// The not-found error for a credential meant for `name`, an app this
@@ -329,7 +332,7 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::TokenStore`] when `name` is not empty and names no app.
+    /// Returns [`Error::AppNotFound`] when `name` is not empty and names no app.
     #[doc(hidden)]
     pub fn refuse_if_app_missing(&self, name: &str) -> Result<()> {
         if name.is_empty() {
@@ -411,15 +414,14 @@ impl TokenStore {
     pub fn update_app(&mut self, name: &str, client_id: &str, client_secret: &str) -> Result<()> {
         self.require_app_to_write(name)?;
         self.update(|store| {
-            let app = store
-                .apps
-                .get_mut(name)
-                .ok_or_else(|| Self::app_not_found(name))?;
-            if !client_id.is_empty() {
-                app.client_id = client_id.to_string();
-            }
-            if !client_secret.is_empty() {
-                app.client_secret = client_secret.to_string();
+            store.require_app(name)?;
+            if let Some(app) = store.apps.get_mut(name) {
+                if !client_id.is_empty() {
+                    app.client_id = client_id.to_string();
+                }
+                if !client_secret.is_empty() {
+                    app.client_secret = client_secret.to_string();
+                }
             }
             Ok(())
         })
@@ -567,9 +569,11 @@ impl TokenStore {
     /// Returns an error if the username is not found in the app or the store cannot be saved.
     pub fn set_default_user(&mut self, app_name: &str, username: &str) -> Result<()> {
         self.refuse_if_load_failed()?;
+        self.refuse_if_app_missing(app_name)?;
         Self::require_user(self.resolve_app(app_name), username)?;
         self.update(|store| {
-            let app = store.resolve_app_mut(app_name);
+            store.refuse_if_app_missing(app_name)?;
+            let app = store.resolve_app_mut(app_name)?;
             Self::require_user(app, username)?;
             app.default_user = username.to_string();
             Ok(())
@@ -604,7 +608,7 @@ impl TokenStore {
             if !name.is_empty() {
                 store.require_app(name)?;
             }
-            let app = store.resolve_app_mut(name);
+            let app = store.resolve_app_mut(name)?;
             app.redirect_uri = uri.to_string();
             Ok(())
         })
@@ -660,33 +664,34 @@ impl TokenStore {
         self.apps.get_mut(&key).expect("just inserted")
     }
 
-    /// Returns the app for the given name, or the default app.
+    /// Returns the app for the given name. An empty name is the default app;
+    /// a name the store does not hold is an app with no credentials, never
+    /// the default app.
     #[must_use]
     pub fn resolve_app(&self, name: &str) -> &App {
-        if !name.is_empty()
-            && let Some(app) = self.apps.get(name)
-        {
-            return app;
+        static EMPTY: std::sync::LazyLock<App> = std::sync::LazyLock::new(App::new);
+        if name.is_empty() {
+            return self.apps.get(&self.default_app).unwrap_or(&EMPTY);
         }
-        // Fall back to default app, or a static empty app
-        self.apps.get(&self.default_app).unwrap_or_else(|| {
-            // This is a fallback — should rarely happen
-            static EMPTY: std::sync::LazyLock<App> = std::sync::LazyLock::new(App::new);
-            &EMPTY
-        })
+        self.apps.get(name).unwrap_or(&EMPTY)
     }
 
-    /// Returns the app for the given name (mutable), or the default app.
+    /// Returns the app for the given name (mutable). An empty name is the
+    /// default app, which the store creates when it holds none; any other name
+    /// is an app the store holds, and no other name creates one.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if the internal app map is in an inconsistent state (should never
-    /// happen as `active_app_or_create` always inserts a default).
-    pub fn resolve_app_mut(&mut self, name: &str) -> &mut App {
-        if !name.is_empty() && self.apps.contains_key(name) {
-            return self.apps.get_mut(name).expect("just checked");
+    /// Returns [`Error::AppNotFound`] naming the app and the apps the store
+    /// holds, and changes nothing, when `name` is not empty and names no app.
+    pub fn resolve_app_mut(&mut self, name: &str) -> Result<&mut App> {
+        self.refuse_if_app_missing(name)?;
+        if name.is_empty() {
+            return Ok(self.active_app_or_create());
         }
-        self.active_app_or_create()
+        self.apps.get_mut(name).ok_or_else(|| {
+            Error::Internal(format!("app {name:?} left the store while it was held"))
+        })
     }
 
     // ── Persistence ──────────────────────────────────────────────────

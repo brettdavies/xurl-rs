@@ -6,11 +6,14 @@
 pub mod accepted_auth;
 mod classify;
 pub mod commands;
+mod conflict_source;
 pub(crate) mod credential_step;
 mod failure;
 pub mod hints;
 mod misplaced_flags;
+pub mod rerun;
 pub mod runner;
+pub mod settings;
 pub(crate) mod shutdown;
 
 pub use runner::{run, run_argv, run_with_store_path};
@@ -25,6 +28,7 @@ pub mod envelope;
 pub mod family_help;
 pub mod output;
 pub mod panic_hook;
+pub mod parse;
 #[cfg(test)]
 mod parse_tests;
 mod reparse;
@@ -78,6 +82,7 @@ Examples:
 ENVIRONMENT VARIABLES:
   XURL_OUTPUT            Output format: text, json, jsonl, ndjson, yaml, csv, tsv (same as --output)
   XURL_CURSOR            Pagination cursor / page token (same as --cursor)
+  XURL_AFTER             Page token, one setting with XURL_CURSOR (same as --after)
   XURL_QUIET             Suppress non-essential output (same as --quiet)
   XURL_NO_INTERACTIVE    Fail instead of prompting (same as --no-interactive)
   XURL_TIMEOUT           Network timeout in seconds (same as --timeout)
@@ -102,9 +107,14 @@ ENVIRONMENT VARIABLES:
   API_BASE_URL           API origin every request is built against
   INFO_URL               User-info endpoint override; derived from API_BASE_URL when unset
 
-Flags override env vars when both are set. NO_COLOR=1 always wins over
---color/XURL_COLOR (https://no-color.org). --no-pager is a documented
-no-op so agents can pass it unconditionally; xr never invokes $PAGER.
+A typed flag wins over its env var. --output, --json, and --jsonl outrank
+XURL_OUTPUT, XURL_JSON, and XURL_JSONL; --cursor and --after outrank
+XURL_CURSOR and XURL_AFTER; and of several typed, the last wins. Two env
+vars for one setting are refused, as is an env var beside a typed flag it
+conflicts with (XURL_PAGE with --cursor). XURL_JSON=0 counts as unset.
+NO_COLOR=1 always wins over --color/XURL_COLOR (https://no-color.org).
+--no-pager is a documented no-op so agents can pass it unconditionally; xr
+never invokes $PAGER.
 
 INPUT FROM STDIN:
   Subcommands that accept JSON input (currently `xr validate`) read from
@@ -1045,43 +1055,55 @@ pub struct Cli {
     #[arg(short = 'F', long = "file")]
     pub file: Option<String>,
 
-    /// Use a specific registered app (overrides default)
+    /// Use a specific registered app (overrides default). A name the store
+    /// does not hold is refused.
     #[arg(long = "app", global = true, help_heading = GLOBAL_OPTIONS, env = "XURL_APP")]
     pub app: Option<String>,
 
     /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
     /// yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused
     /// at exit 2 with a JSON envelope whose reason is `invalid-args`.
+    ///
+    /// Read from `XURL_OUTPUT` only when no `--output`, `--json`, or `--jsonl`
+    /// is typed.
     #[arg(
         long,
         global = true, help_heading = GLOBAL_OPTIONS,
         default_value = "text",
         value_enum,
-        env = "XURL_OUTPUT"
+        overrides_with_all = ["output", "json", "jsonl"],
+        help = "Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]",
+        long_help = "Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`\n\nRead from XURL_OUTPUT only when no --output, --json, or --jsonl is typed.\n\n[env: XURL_OUTPUT]",
     )]
     pub output: OutputFormat,
 
-    /// Shorthand for `--output json` (P2 alias).
+    /// Shorthand for `--output json`.
+    ///
+    /// Read from `XURL_JSON` only when no `--output`, `--json`, or `--jsonl`
+    /// is typed; `XURL_JSON=0` is unset.
     #[arg(
         long,
         global = true, help_heading = GLOBAL_OPTIONS,
-        conflicts_with = "output",
-        conflicts_with = "jsonl",
-        env = "XURL_JSON",
+        overrides_with_all = ["output", "json", "jsonl"],
         value_parser = clap::builder::FalseyValueParser::new(),
         action = clap::ArgAction::SetTrue,
+        help = "Shorthand for `--output json` [env: XURL_JSON]",
+        long_help = "Shorthand for `--output json`\n\nRead from XURL_JSON only when no --output, --json, or --jsonl is typed; XURL_JSON=0 is unset.\n\n[env: XURL_JSON]",
     )]
     pub json: bool,
 
-    /// Shorthand for `--output jsonl` (P2 alias).
+    /// Shorthand for `--output jsonl`.
+    ///
+    /// Read from `XURL_JSONL` only when no `--output`, `--json`, or `--jsonl`
+    /// is typed; `XURL_JSONL=0` is unset.
     #[arg(
         long,
         global = true, help_heading = GLOBAL_OPTIONS,
-        conflicts_with = "output",
-        conflicts_with = "json",
-        env = "XURL_JSONL",
+        overrides_with_all = ["output", "json", "jsonl"],
         value_parser = clap::builder::FalseyValueParser::new(),
         action = clap::ArgAction::SetTrue,
+        help = "Shorthand for `--output jsonl` [env: XURL_JSONL]",
+        long_help = "Shorthand for `--output jsonl`\n\nRead from XURL_JSONL only when no --output, --json, or --jsonl is typed; XURL_JSONL=0 is unset.\n\n[env: XURL_JSONL]",
     )]
     pub jsonl: bool,
 
@@ -1223,11 +1245,16 @@ pub struct Cli {
     /// (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the
     /// endpoint's page token, `pagination_token` or `next_token`. A raw
     /// request carries its page token in its own URL.
+    ///
+    /// Read from `XURL_CURSOR` only when neither `--cursor` nor `--after` is
+    /// typed.
     #[arg(
         long = "cursor",
         global = true, help_heading = GLOBAL_OPTIONS,
-        env = "XURL_CURSOR",
-        value_name = "TOKEN"
+        value_name = "TOKEN",
+        overrides_with_all = ["cursor", "after"],
+        help = "The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]",
+        long_help = "The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it\n\nA command whose endpoint pages answers with `meta.next_token` while more results remain; run the same command again with `--cursor <token>` (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the endpoint's page token, `pagination_token` or `next_token`. A raw request carries its page token in its own URL.\n\nRead from XURL_CURSOR only when neither --cursor nor --after is typed.\n\n[env: XURL_CURSOR]",
     )]
     pub cursor: Option<String>,
 
@@ -1252,13 +1279,17 @@ pub struct Cli {
     /// Threads through to the same `pagination_token` query parameter as
     /// `--cursor`. Exposed so agents that picked up "after-style" pagination
     /// from other CLIs (`gh`, `kubectl`) get a working flag.
+    ///
+    /// Read from `XURL_AFTER` only when neither `--cursor` nor `--after` is
+    /// typed.
     #[arg(
         long = "after",
         global = true, help_heading = GLOBAL_OPTIONS,
-        env = "XURL_AFTER",
         value_name = "TOKEN",
-        conflicts_with = "cursor",
-        conflicts_with = "page"
+        overrides_with_all = ["cursor", "after"],
+        conflicts_with = "page",
+        help = "Documented alias for `--cursor` [env: XURL_AFTER]",
+        long_help = "Documented alias for `--cursor` (`--after <token>`).\n\nThreads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up \"after-style\" pagination from other CLIs (`gh`, `kubectl`) get a working flag.\n\nRead from XURL_AFTER only when neither --cursor nor --after is typed.\n\n[env: XURL_AFTER]",
     )]
     pub after: Option<String>,
 
@@ -1350,6 +1381,15 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── Post drafts ──────────────────────────────────────────────────
+    /// Your post drafts: list them, save one, and remove one
+    #[command(after_help = family_help::drafts::page())]
+    Drafts {
+        /// `drafts` verb to dispatch.
+        #[command(subcommand)]
+        action: DraftsCommands,
+    },
+
     // ── Reading ──────────────────────────────────────────────────────
     /// Read a post
     #[command(after_help = READ_HELP)]
@@ -1361,6 +1401,9 @@ pub enum Commands {
         common: CommonFlags,
     },
     /// Report impressions and engagement for your posts over a time window
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/overview
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = ANALYTICS_HELP)]
     Analytics {
         /// Post IDs or URLs, 1 to 100
@@ -1731,6 +1774,9 @@ pub enum Commands {
         common: CommonFlags,
     },
     /// Block a user
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/users/blocks/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = BLOCK_HELP)]
     Block {
         #[arg(value_name = "ACCOUNT", help = format!("The account to block. {}", output::account_rule()))]
@@ -1740,6 +1786,9 @@ pub enum Commands {
         common: CommonFlags,
     },
     /// Unblock a user
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/users/blocks/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = UNBLOCK_HELP)]
     Unblock {
         #[arg(value_name = "ACCOUNT", help = format!("The account to unblock. {}", output::account_rule()))]
@@ -2581,6 +2630,57 @@ pub enum NewsCommands {
     },
 }
 
+/// `xr drafts` verbs.
+#[derive(Subcommand, Debug)]
+pub enum DraftsCommands {
+    /// List your post drafts, newest first
+    ///
+    /// A draft that lists `unsupported_content` holds more than this listing shows.
+    /// Leave it alone unless its owner asks.
+    #[command(after_help = family_help::drafts::FAMILY.verb_page(&family_help::drafts::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Save a post draft without publishing it
+    ///
+    /// X keeps a draft's text, media, and the post it replies to.
+    #[command(after_help = family_help::drafts::FAMILY.verb_page(&family_help::drafts::ADD))]
+    Add {
+        /// The text of the draft
+        text: String,
+        /// Media ID(s) to attach (repeatable)
+        #[arg(long = "media-id")]
+        media_ids: Vec<String>,
+        /// The post the draft replies to: its id or URL
+        #[arg(long = "reply-to", value_name = "POST")]
+        reply_to: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a post draft
+    ///
+    /// The whole draft goes, any part `xr drafts list` does not show included, and it cannot be
+    /// restored. X answers `deleted: true` for an id that is not one of your drafts.
+    #[command(after_help = family_help::drafts::FAMILY.verb_page(&family_help::drafts::REMOVE))]
+    Remove {
+        /// Draft ID, as `xr drafts list` prints it
+        #[arg(value_name = "DRAFT_ID")]
+        draft_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
 /// `xr articles` verbs.
 #[derive(Subcommand, Debug)]
 pub enum ArticlesCommands {
@@ -2737,6 +2837,13 @@ pub enum TrendsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// List every place X reports trends for, each with the WOEID `place` takes
+    #[command(after_help = family_help::trends::FAMILY.verb_page(&family_help::trends::LOCATIONS))]
+    Locations {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
 }
 
 /// `xr broadcasts` family subcommands.
@@ -2758,6 +2865,27 @@ pub enum BroadcastsCommands {
         /// Broadcast ID, as `xr broadcasts list` prints it
         #[arg(value_name = "BROADCAST_ID")]
         broadcast_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Change the title of one of your broadcasts, or who can chat
+    ///
+    /// X takes the change before the broadcast starts, while it is live, and after it ends, and
+    /// refuses it for a broadcast that was deleted or moderated. A field you leave out keeps its
+    /// value.
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::UPDATE))]
+    Update {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// New title
+        #[arg(long)]
+        title: Option<String>,
+        /// Who can chat, 0 to 6: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts
+        /// you follow, 5 your subscribers, 6 accounts followed by an account you follow
+        #[arg(long = "chat-option", value_name = "N")]
+        chat_option: Option<u8>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -3556,6 +3684,9 @@ pub enum WebhookSubscriptionsCommands {
 #[derive(Subcommand, Debug)]
 pub enum WebhookStreamLinksCommands {
     /// List the webhooks the app's filtered stream delivers to
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/webhooks/stream/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::LIST))]
     List {
         /// Shortcut flags shared with every other shortcut command.
@@ -3565,6 +3696,9 @@ pub enum WebhookStreamLinksCommands {
     /// Deliver the app's filtered stream to a webhook
     ///
     /// X bills each post it then delivers to the webhook.
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/webhooks/stream/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::ADD))]
     Add {
         /// Webhook ID, as `xr webhooks list` prints it
@@ -3575,6 +3709,9 @@ pub enum WebhookStreamLinksCommands {
         common: CommonFlags,
     },
     /// Stop delivering the app's filtered stream to a webhook
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/webhooks/stream/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::REMOVE))]
     Remove {
         /// Webhook ID, as `xr webhooks list` prints it
@@ -3664,25 +3801,6 @@ pub enum SkillCmd {
     },
 }
 
-impl Cli {
-    /// Resolves the effective output format after applying `--json` /
-    /// `--jsonl` aliases.
-    ///
-    /// `--jsonl` wins over `--json` if both were set (they conflict via
-    /// clap, so at most one survives parsing); either alias overrides
-    /// `--output`.
-    #[must_use]
-    pub fn effective_output(&self) -> OutputFormat {
-        if self.jsonl {
-            OutputFormat::Jsonl
-        } else if self.json {
-            OutputFormat::Json
-        } else {
-            self.output.clone()
-        }
-    }
-}
-
 /// Common flags shared by shortcut commands.
 ///
 /// `--verbose` is intentionally absent here; it lives on the root [`Cli`]
@@ -3720,13 +3838,14 @@ pub enum AuthCommands {
     Oauth2 {
         /// Enable manual two-step flow for headless machines (SSH, containers)
         ///
-        /// Auto-engages when stdout is not a TTY (piped runs, CI) so headless
-        /// callers receive the auth URL instead of a silent `open::that` spawn
-        /// that nothing will see. The `XURL_NO_BROWSER` env var sets this by
-        /// default on machines that should never attempt to open a browser.
-        /// Honours `1` / `true` / `yes` / `on` as truthy and `0` / `false` /
-        /// `no` / `off` / empty as falsey (the same `FalseyValueParser` shape
-        /// used by every other env-backed boolean flag).
+        /// A typed `--step` implies it. Auto-engages when stdout is not a TTY
+        /// (piped runs, CI) so headless callers receive the auth URL instead
+        /// of a silent `open::that` spawn that nothing will see. The
+        /// `XURL_NO_BROWSER` env var sets this by default on machines that
+        /// should never attempt to open a browser. Honours `1` / `true` /
+        /// `yes` / `on` as truthy and `0` / `false` / `no` / `off` / empty as
+        /// falsey (the same `FalseyValueParser` shape used by every other
+        /// env-backed boolean flag).
         #[arg(
             long,
             env = "XURL_NO_BROWSER",
@@ -3737,8 +3856,12 @@ pub enum AuthCommands {
             require_equals = true,
         )]
         no_browser: bool,
-        /// Step number: 1 (generate auth URL) or 2 (complete exchange)
-        #[arg(long, requires = "no_browser", value_parser = clap::value_parser!(u8).range(1..=2))]
+        /// Step of the no-browser flow: 1 (generate auth URL) or 2 (complete exchange)
+        ///
+        /// A typed step runs the no-browser flow by itself, so `--no-browser`
+        /// is not needed beside it; `--no-browser=false` beside a step is
+        /// refused.
+        #[arg(long, value_parser = clap::value_parser!(u8).range(1..=2))]
         step: Option<u8>,
         /// Redirect URL from browser (step 2). Use '-' to read from stdin (recommended on shared machines)
         #[arg(long = "auth-url", requires = "step")]

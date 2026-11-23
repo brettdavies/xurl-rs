@@ -142,6 +142,10 @@ fn one_of_each_variant() -> Vec<Error> {
         Error::json("expected value"),
         Error::auth("token expired"),
         Error::token_store("corrupt yaml"),
+        Error::AppNotFound {
+            name: "ghost".into(),
+            held: vec!["work".into()],
+        },
         mismatch(Some("oauth1"), None, None),
         mismatch(None, Some(&["oauth1"]), None),
         mismatch(None, Some(&[]), Some(&["prod"])),
@@ -287,6 +291,10 @@ fn errors_without_a_documented_recovery_carry_no_pointer() {
         Error::io("permission denied"),
         Error::validation("missing field"),
         Error::token_store("corrupt yaml"),
+        Error::AppNotFound {
+            name: "ghost".into(),
+            held: Vec::new(),
+        },
         Error::InvalidMethod("bad method".into()),
         Error::invalid_url("ftp://example"),
         Error::InvalidPathParam {
@@ -340,6 +348,41 @@ fn a_token_endpoint_403_is_a_forbidden_the_token_url_or_the_proxy_causes() {
     );
 }
 
+/// A token endpoint answer that is no OAuth refusal and no 403, 404, 408, 429,
+/// or 5xx came from the same kind of thing as the 403: the token URL or the
+/// proxy is what to fix. Its reason follows its status, a 400 as
+/// `invalid-request` and every other as `api-error`, and none of them is a
+/// credential refusal.
+#[test]
+fn a_token_endpoint_status_with_no_reading_of_its_own_is_for_the_token_url_or_the_proxy() {
+    for (status, kind) in [
+        (400, "invalid-request"),
+        (422, "invalid-request"),
+        (401, "api-error"),
+        (418, "api-error"),
+        (302, "api-error"),
+    ] {
+        let unexpected = Error::TokenEndpointUnexpected {
+            status,
+            body: "<html>proxy</html>".into(),
+        };
+        assert_eq!(unexpected.to_string(), "<html>proxy</html>");
+        assert_eq!(unexpected.kind(), kind, "{status}");
+        assert_eq!(unexpected.exit_code(), EXIT_GENERAL_ERROR, "{status}");
+        assert_eq!(
+            unexpected.next_action(),
+            Some(NextAction::FixInput),
+            "{status}"
+        );
+        assert_eq!(
+            unexpected.docs_url(),
+            Some("https://github.com/brettdavies/xurl-rs#the-oauth2-token-endpoint"),
+            "{status}"
+        );
+        assert!(unexpected.is_api(), "{status}");
+    }
+}
+
 /// RFC 9110 section 15.5.9: a 408 says the server never received the whole
 /// request, and the client may send it again. Its reason and exit code stay
 /// those of any status with no reading of its own.
@@ -367,7 +410,10 @@ fn a_refused_input_is_fixed_before_another_try() {
             name: "id".into(),
             value: "1/2".into(),
         },
-        Error::token_store(format!("{} \"ghost\"", xdk::error::APP_NOT_FOUND)),
+        Error::AppNotFound {
+            name: "ghost".into(),
+            held: vec!["work".into()],
+        },
     ];
     for err in refused {
         assert_eq!(err.next_action(), Some(NextAction::FixInput), "{err:?}");

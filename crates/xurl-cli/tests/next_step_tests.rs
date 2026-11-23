@@ -19,6 +19,8 @@ use xurl::cli;
 
 /// The page the `inspect-store` step names.
 const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
+
+const PRECEDENCE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#flag-and-variable-precedence";
 #[cfg(unix)]
 const STORE_WRITE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-written";
 
@@ -219,7 +221,7 @@ async fn a_name_the_store_does_not_hold_points_at_the_apps_it_holds() {
     assert_eq!(v["reason"], "token-store", "{v}");
     assert_eq!(
         v["next_step"],
-        serde_json::json!({"action": "fix-input", "command": "xr auth status"}),
+        serde_json::json!({"action": "fix-input", "command": "xr --output json auth status"}),
         "{v}"
     );
 }
@@ -236,7 +238,7 @@ async fn a_credential_lookup_on_an_unloadable_store_keeps_its_command() {
     assert_eq!(v["reason"], "auth-required", "{v}");
     assert_eq!(
         v["next_step"],
-        serde_json::json!({"action": "inspect-store", "command": "xr auth status", "docs": STORE_DOCS}),
+        serde_json::json!({"action": "inspect-store", "command": "xr --output json auth status", "docs": STORE_DOCS}),
         "{v}"
     );
 }
@@ -426,7 +428,8 @@ async fn a_refusal_naming_a_store_entry_carries_the_status_command(
     #[case] held: Held,
     #[case] args: &[&str],
 ) {
-    let step = serde_json::json!({"action": "fix-input", "command": "xr auth status"});
+    let step =
+        serde_json::json!({"action": "fix-input", "command": "xr --output json auth status"});
     let tmp = TempDir::new().expect("tempdir");
     seed_store_write(held, &tmp);
     let (code, real, _) = store_write(held, &tmp, args, false).await;
@@ -671,6 +674,22 @@ fn the_page_inspect_store_names_is_in_the_readme() {
     assert!(found, "{file} has no heading that anchors to #{anchor}");
 }
 
+/// The step of a refusal that a variable causes names a section of the CLI
+/// README, so the heading it anchors to has to be there.
+#[test]
+fn the_page_a_variable_refusal_names_is_in_the_readme() {
+    let (file, anchor) = PRECEDENCE_DOCS
+        .strip_prefix("https://github.com/brettdavies/xurl-rs/blob/main/")
+        .and_then(|rest| rest.split_once('#'))
+        .expect("a README path and an anchor");
+    let readme = std::fs::read_to_string(common::workspace_root().join(file)).expect("the README");
+    let found = readme
+        .lines()
+        .filter_map(|line| line.strip_prefix("### "))
+        .any(|heading| heading.to_lowercase().replace(' ', "-") == anchor);
+    assert!(found, "{file} has no heading that anchors to #{anchor}");
+}
+
 /// The `docs` of a token endpoint 403 name a section of the repository README,
 /// so the heading it anchors to has to be there.
 #[test]
@@ -756,7 +775,7 @@ async fn a_credential_step_serves_the_invocation_it_answers(#[case] args: &[&str
             assert_eq!(answer["auth"]["username"], login, "{command}: {answer}");
         }
         Some("sign-in") => assert!(
-            command.starts_with(&format!("xr auth oauth2 {login} ")),
+            command.starts_with(&format!("xr --output json auth oauth2 {login} ")),
             "the sign-in stores the login under another name: {command}"
         ),
         other => panic!("{argv:?}: unexpected step {other:?}: {step}"),

@@ -6,7 +6,8 @@
 use proptest::prelude::*;
 use serde_json::Value;
 use xurl::cli::envelope::{ErrorBody, Reason};
-use xurl::cli::hints::{NextAction, NextStep};
+use xurl::cli::hints::NextAction;
+use xurl::cli::rerun::CarriedStep;
 
 /// Every value the `Reason` type holds, read from its generated schema.
 fn reasons() -> Vec<Reason> {
@@ -39,7 +40,7 @@ fn nullable_text() -> impl Strategy<Value = Option<Value>> {
     ])
 }
 
-fn next_step() -> impl Strategy<Value = Option<NextStep>> {
+fn next_step() -> impl Strategy<Value = Option<CarriedStep>> {
     let action = prop::sample::select(vec![
         NextAction::RegisterApp,
         NextAction::SignIn,
@@ -56,11 +57,14 @@ fn next_step() -> impl Strategy<Value = Option<NextStep>> {
         NextAction::RunCommand,
     ]);
     prop::option::of((action, text(), text(), text()).prop_map(
-        |(action, command, template, docs)| NextStep {
-            action,
-            command,
-            template,
-            docs,
+        |(action, command, template, docs)| {
+            let step = serde_json::json!({
+                "action": action,
+                "command": command,
+                "template": template,
+                "docs": docs,
+            });
+            serde_json::from_value(step).expect("a step as the wire writes it")
         },
     ))
 }

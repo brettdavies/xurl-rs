@@ -155,6 +155,8 @@ pub(super) async fn run(cmd: AuthCommands, run: Run<'_>) -> CommandResult<()> {
         out,
         stdout,
         stderr,
+        invocation,
+        no_browser_typed,
         ..
     } = run;
     let flags = AuthGlobalFlags::from(&flags);
@@ -171,10 +173,12 @@ pub(super) async fn run(cmd: AuthCommands, run: Run<'_>) -> CommandResult<()> {
             return signin::oauth2(
                 signin::Oauth2Args {
                     no_browser,
+                    no_browser_typed,
                     step,
                     auth_url,
                     scopes,
                     username,
+                    invocation,
                 },
                 auth,
                 cfg,

@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "spaces", "get", "1DXxyRYNejbKM-"]
 store: empty
 exit_code: 0
-stdout_len: 385
+stdout_len: 414
 stderr_len: 0
 --- stdout ---
 {
@@ -19,6 +19,7 @@ stderr_len: 0
     "1DXxyRYNejbKM-"
   ],
   "status": "dry_run",
+  "value": "1DXxyRYNejbKM-",
   "would_succeed": false
 }
 

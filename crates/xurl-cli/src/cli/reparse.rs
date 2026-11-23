@@ -12,12 +12,10 @@ use std::ffi::OsString;
 use clap::error::{ContextKind, ErrorKind};
 use clap::{Arg, ArgAction, ArgMatches, CommandFactory, FromArgMatches};
 
-use crate::cli::classify::{
-    ROOT_COMMAND, color_intent, context_string, raw_intent, rendering_format, structured_intent,
-    usage_command,
-};
+use crate::cli::classify::{ROOT_COMMAND, color_intent, context_string, raw_intent, usage_command};
 use crate::cli::output::OutputFormat;
-use crate::cli::{Cli, ColorChoice};
+use crate::cli::settings::{self, Variables};
+use crate::cli::{Cli, ColorChoice, parse};
 
 /// `Cli::command()` with the root help and version flags inert.
 ///
@@ -26,8 +24,8 @@ use crate::cli::{Cli, ColorChoice};
 /// inert counting flag with the same spellings stands in at the root. The
 /// `help` subcommand stays, because without it the word `help` binds to the
 /// positional and reads as an unknown command.
-fn command_with_inert_display_flags() -> clap::Command {
-    Cli::command()
+fn with_inert_display_flags(command: clap::Command) -> clap::Command {
+    command
         .disable_help_flag(true)
         .disable_version_flag(true)
         .arg(
@@ -48,7 +46,7 @@ fn command_with_inert_display_flags() -> clap::Command {
 /// invocation one of them interrupted can be classified like any other. The
 /// error is the one that invocation raises without the flag.
 pub(crate) fn parse_without_display_flags(args: &[OsString]) -> Result<Cli, clap::Error> {
-    let matches = command_with_inert_display_flags().try_get_matches_from(args)?;
+    let matches = parse::try_matches(args, with_inert_display_flags)?;
     Cli::from_arg_matches(&matches)
 }
 
@@ -57,14 +55,14 @@ pub(crate) fn parse_without_display_flags(args: &[OsString]) -> Result<Cli, clap
 /// other: `xr suth status` reads as `xr suth`, while a raw-only flag anywhere
 /// in argv still marks a request. `None` when it fails for any other reason.
 pub(crate) fn parse_past_stray_words(args: &[OsString]) -> Option<Cli> {
-    let matches = command_with_inert_display_flags()
-        .arg(
+    let matches = parse::try_matches(args, |command| {
+        with_inert_display_flags(command).arg(
             Arg::new("stray_words")
                 .num_args(1..)
                 .action(ArgAction::Append),
         )
-        .try_get_matches_from(args)
-        .ok()?;
+    })
+    .ok()?;
     Cli::from_arg_matches(&matches).ok()
 }
 
@@ -77,11 +75,11 @@ pub(crate) fn lenient_cli(args: &[OsString]) -> Option<Cli> {
 
 /// What clap resolved from `args` before an error stopped it: the flags ahead
 /// of the rejected token, their environment bindings, and the defaults.
-fn lenient_matches(args: &[OsString]) -> Option<ArgMatches> {
-    command_with_inert_display_flags()
-        .ignore_errors(true)
-        .try_get_matches_from(args)
-        .ok()
+pub(crate) fn lenient_matches(args: &[OsString]) -> Option<ArgMatches> {
+    parse::try_matches(args, |command| {
+        with_inert_display_flags(command).ignore_errors(true)
+    })
+    .ok()
 }
 
 /// The color choice for a parse-error rendering: a `--color` named anywhere in
@@ -114,26 +112,16 @@ pub(crate) fn raw_choice(args: &[OsString]) -> bool {
         .unwrap_or(false)
 }
 
-/// The output format for a parse-error rendering: a format named anywhere in
-/// argv, then the `--jsonl` and `--json` aliases as clap resolved them (their
-/// `XURL_JSONL` and `XURL_JSON` bindings included), then `output`, the
-/// caller's `XURL_OUTPUT`. A successful parse never holds an alias beside
-/// `--output`, because clap rejects the pair; ranking the alias first renders
-/// that rejection in the format the alias names.
-pub(crate) fn output_intent(args: &[OsString], output: Option<&str>) -> Option<OutputFormat> {
-    structured_intent(args)
-        .or_else(|| {
-            let matches = lenient_matches(args)?;
-            let set = |id: &str| matches!(matches.try_get_one::<bool>(id), Ok(Some(true)));
-            if set("jsonl") {
-                Some(OutputFormat::Jsonl)
-            } else if set("json") {
-                Some(OutputFormat::Json)
-            } else {
-                None
-            }
-        })
-        .or_else(|| output.and_then(rendering_format))
+/// The output format for a parse-error rendering, from the same layers the
+/// resolver reads and never refusing: the last format argv names before a
+/// `--`, a typed `text` included, and only when argv names none, the variables
+/// in the order `XURL_JSONL`, `XURL_JSON`, `XURL_OUTPUT`.
+///
+/// Read from the unparsed argv, because a clap error leaves no `Cli`, and
+/// clap stops at the token it rejected, so a flag after that token reaches no
+/// parse.
+pub(crate) fn output_intent(args: &[OsString], variables: Variables<'_>) -> Option<OutputFormat> {
+    settings::typed_format(args).unwrap_or_else(|| settings::variable_format(variables))
 }
 
 /// The correction for a value given after a space to a flag that takes it
@@ -193,15 +181,19 @@ fn takes_value_after_equals(command: &str, flag: &str) -> bool {
 /// line names, or, when clap attached no usage, the subcommands it resolved
 /// before it stopped.
 pub(crate) fn failing_command(error: &clap::Error, args: &[OsString]) -> String {
-    usage_command(error).unwrap_or_else(|| {
-        let mut words = vec![ROOT_COMMAND.to_string()];
-        if let Some(matches) = lenient_matches(args) {
-            let mut current = &matches;
-            while let Some((name, sub)) = current.subcommand() {
-                words.push(name.to_string());
-                current = sub;
-            }
+    usage_command(error).unwrap_or_else(|| resolved_command(args))
+}
+
+/// The command `args` reach, found from the subcommands clap resolved before
+/// it stopped, wherever the flags sit.
+pub(crate) fn resolved_command(args: &[OsString]) -> String {
+    let mut words = vec![ROOT_COMMAND.to_string()];
+    if let Some(matches) = lenient_matches(args) {
+        let mut current = &matches;
+        while let Some((name, sub)) = current.subcommand() {
+            words.push(name.to_string());
+            current = sub;
         }
-        words.join(" ")
-    })
+    }
+    words.join(" ")
 }

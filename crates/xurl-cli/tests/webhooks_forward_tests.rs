@@ -226,9 +226,10 @@ async fn a_failed_forward_is_reported_on_stderr_and_changes_nothing_else() {
     let template = failed["next_step"]["template"]
         .as_str()
         .expect("a template");
-    let window =
-        regex::Regex::new(r"^xr webhooks replay <WEBHOOK_ID> --from (\d{12}) --to (\d{12})$")
-            .unwrap();
+    let window = regex::Regex::new(
+        r"^xr --output jsonl webhooks replay <WEBHOOK_ID> --from (\d{12}) --to (\d{12})$",
+    )
+    .unwrap();
     let found = window.captures(template).expect("the replay template");
     let received_at = failed["received_at"].as_str().expect("the arrival time");
     let minute: String = received_at[..16]
@@ -335,6 +336,49 @@ async fn a_forward_url_it_cannot_send_to_is_refused_before_anything_binds(#[case
                 .as_str()
                 .is_some_and(|m| m.contains("-H")),
             "the refusal names -H: {envelope}"
+        );
+    }
+}
+
+#[rstest::rstest]
+#[case::add_refused(&["webhooks", "add"], "https://user:s3cr3t@example.com:8443/hook", "https://example.com:8443/hook")]
+#[case::add_accepted(&["webhooks", "add"], "https://user:s3cr3t@example.com/hook", "https://example.com/hook")]
+#[case::forward(&["webhooks", "listen", "--forward"], "https://user:s3cr3t@127.0.0.1:9/x", "https://127.0.0.1:9/x")]
+#[case::forward_one_slash(&["webhooks", "listen", "--forward"], "http:/user:s3cr3t@127.0.0.1:9/x", "127.0.0.1:9/x")]
+#[case::add_one_slash(&["webhooks", "add"], "https:/user:s3cr3t@example.com/", "example.com/")]
+#[case::add_backslash(&["webhooks", "add"], "https:\\/user:s3cr3t@example.com/", "example.com/")]
+#[case::add_no_colon(&["webhooks", "add"], "https//user:s3cr3t@example.com/", "example.com/")]
+#[case::add_no_scheme(&["webhooks", "add"], "user:s3cr3t@example.com/?next=https://x", "example.com/?next=https://x")]
+#[case::add_at_in_path(&["webhooks", "add"], "https://example.com/@hook", "https://example.com/@hook")]
+#[case::add_extra_slash(&["webhooks", "add"], "https:///user:s3cr3t@example.com/hook", "example.com/hook")]
+#[case::add_slash_backslash(&["webhooks", "add"], "https://\\user:s3cr3t@example.com/hook", "example.com/hook")]
+#[case::forward_extra_slash(&["webhooks", "listen", "--forward"], "http:///user:s3cr3t@127.0.0.1:9/x", "127.0.0.1:9/x")]
+#[case::add_tab_after_scheme(&["webhooks", "add"], "https://\t/user:s3cr3t@example.com/hook", "example.com/hook")]
+#[case::add_newline_in_scheme(&["webhooks", "add"], "https:/\n/user:s3cr3t@example.com/hook", "example.com/hook")]
+#[case::forward_tab_after_scheme(&["webhooks", "listen", "--forward"], "http://\t/user:s3cr3t@127.0.0.1:9/x", "127.0.0.1:9/x")]
+#[tokio::test]
+async fn a_dry_run_never_prints_a_url_credential(
+    #[case] command: &[&str],
+    #[case] url: &str,
+    #[case] shown: &str,
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for format in ["json", "text"] {
+        let mut args = vec!["--output", format, "--dry-run"];
+        args.extend_from_slice(command);
+        args.push(url);
+        let (code, stdout, stderr) = run(&store, "http://127.0.0.1:9", &args).await;
+
+        assert_eq!(code, 0, "{format}: stderr: {stderr}");
+        assert!(
+            !stdout.contains("s3cr3t") && !stderr.contains("s3cr3t"),
+            "{format}: the credential is printed:\n{stdout}\n{stderr}"
+        );
+        assert!(
+            stdout.contains(shown),
+            "{format}: the URL is shown: {stdout}"
         );
     }
 }

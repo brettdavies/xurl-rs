@@ -1,5 +1,5 @@
-//! The `trends` family: the trends for a place, and the caller's
-//! personalized trends.
+//! The `trends` family: the trends for a place, the caller's personalized
+//! trends, and the places that have trends.
 
 use serde_json::json;
 
@@ -35,6 +35,10 @@ pub(super) async fn run(action: TrendsCommands, run: Run<'_>) -> CommandResult<(
                 Client::get_personalized_trends,
             )
             .await
+        }
+        TrendsCommands::Locations { common } => {
+            let ctx = json!({"command": "trends-locations"});
+            send_validated(run, ctx, no_checks, &common, Client::get_trend_locations).await
         }
     }
 }

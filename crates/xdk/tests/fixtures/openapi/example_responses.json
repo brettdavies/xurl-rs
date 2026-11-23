@@ -141,6 +141,23 @@
       }
     ]
   },
+  "trend_locations": {
+    "data": [
+      {
+        "woeid": 1,
+        "name": "Worldwide",
+        "place_type": "supername"
+      },
+      {
+        "woeid": 23424977,
+        "name": "United States",
+        "place_type": "country",
+        "country": "United States",
+        "country_code": "US",
+        "parent_id": 1
+      }
+    ]
+  },
   "personalized_trends": {
     "data": [
       {
@@ -822,6 +839,18 @@
   "ingest_region": {
     "region": "us-east-1"
   },
+  "broadcast_updated": {
+    "data": {
+      "id": "1YqKDqWqdPLGV",
+      "broadcast_id": "1YqKDqWqdPLGV",
+      "state": "RUNNING",
+      "share_url": "https://x.com/i/broadcasts/1YqKDqWqdPLGV",
+      "title": "Studio A, second take",
+      "chat_option": 3,
+      "live_category_id": "gaming",
+      "language": "en"
+    }
+  },
   "broadcast_ended": {
     "data": {
       "id": "1YqKDqWqdPLGV",
@@ -1031,6 +1060,61 @@
   "webhook_stream_link_provisioned": {
     "data": {
       "provisioned": true
+    }
+  },
+  "post_drafts": {
+    "data": [
+      {
+        "id": "1850000000000000011",
+        "text": "Launch day thread, first post",
+        "created_at": "2026-11-20T10:00:00.000Z",
+        "updated_at": "2026-11-20T10:05:00.000Z",
+        "media": {
+          "media_ids": [
+            "1850000000000000020"
+          ],
+          "tagged_user_ids": [
+            "2244994945"
+          ]
+        },
+        "reply": {
+          "in_reply_to_tweet_id": "1585341984679469056"
+        },
+        "thread": [
+          {
+            "text": "Second post",
+            "media": {
+              "media_ids": [
+                "1850000000000000021"
+              ]
+            }
+          }
+        ],
+        "made_with_ai": false,
+        "paid_partnership": false
+      },
+      {
+        "id": "1850000000000000012",
+        "text": "Formatted text",
+        "unsupported_content": [
+          "text_formatting"
+        ]
+      }
+    ],
+    "meta": {
+      "result_count": 2,
+      "next_token": "1850000000000000012"
+    }
+  },
+  "post_draft_created": {
+    "data": {
+      "id": "1850000000000000013",
+      "text": "Remember to post this"
+    }
+  },
+  "post_draft_deleted": {
+    "data": {
+      "deleted": true
     }
   }
 }

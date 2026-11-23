@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{Run, list_paged, no_checks, send_confirmed, send_validated};
+use super::{Run, checked_each, list_paged, no_checks, send_confirmed, send_validated};
 use crate::cli::failure::CommandResult;
 use crate::cli::{StreamCommands, StreamRulesCommands};
 use xdk::api::{Client, shortcuts};
@@ -49,7 +49,7 @@ pub(super) async fn run(action: StreamCommands, run: Run<'_>) -> CommandResult<(
                 "rule_ids": rule_ids,
                 "validate_only": validate_only,
             });
-            let validate = || shortcuts::validate_rule_ids(&rule_ids);
+            let validate = || checked_each(shortcuts::validate_rule_ids, &rule_ids);
             let build = |client: &Client| client.remove_stream_rules(&rule_ids, validate_only);
             if validate_only {
                 return send_validated(run, ctx, validate, &common, build).await;

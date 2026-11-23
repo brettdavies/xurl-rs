@@ -5,7 +5,8 @@
 use serde_json::json;
 
 use super::{
-    Run, act_from_me, act_on_user_with, list_for_user, list_paged, send_confirmed, send_validated,
+    Invalid, Run, act_from_me, act_on_user_with, checked, list_for_user, list_paged,
+    send_confirmed, send_validated,
 };
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, ListMembersCommands, ListsCommands};
@@ -72,7 +73,7 @@ pub(super) async fn run(action: ListsCommands, run: Run<'_>) -> CommandResult<()
         }
         ListsCommands::Get { list_id, common } => {
             let ctx = json!({"command": "lists-get", "list_id": list_id});
-            let validate = || shortcuts::validate_list_id(&list_id);
+            let validate = || checked(shortcuts::validate_list_id, &list_id);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_list(&list_id)
             })
@@ -84,7 +85,7 @@ pub(super) async fn run(action: ListsCommands, run: Run<'_>) -> CommandResult<()
             common,
         } => {
             let ctx = json!({"command": "lists-posts", "list_id": list_id});
-            let validate = || shortcuts::validate_list_id(&list_id);
+            let validate = || checked(shortcuts::validate_list_id, &list_id);
             list_paged(run, ctx, validate, max_results, &common, |client, n| {
                 client.get_list_posts(&list_id, n)
             })
@@ -96,7 +97,7 @@ pub(super) async fn run(action: ListsCommands, run: Run<'_>) -> CommandResult<()
             common,
         } => {
             let ctx = json!({"command": "lists-followers", "list_id": list_id});
-            let validate = || shortcuts::validate_list_id(&list_id);
+            let validate = || checked(shortcuts::validate_list_id, &list_id);
             list_paged(run, ctx, validate, max_results, &common, |client, n| {
                 client.get_list_followers(&list_id, n)
             })
@@ -116,10 +117,9 @@ pub(super) async fn run(action: ListsCommands, run: Run<'_>) -> CommandResult<()
             };
             let ctx = json!({"command": "lists-add", "list": details});
             let validate = || {
-                shortcuts::validate_new_list(
-                    details.name.as_deref().unwrap_or_default(),
-                    details.description.as_deref(),
-                )
+                let name = details.name.as_deref().unwrap_or_default();
+                shortcuts::validate_new_list(name, details.description.as_deref())
+                    .map_err(|rule| list_refusal(rule, &details))
             };
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.create_list(&details)
@@ -141,8 +141,9 @@ pub(super) async fn run(action: ListsCommands, run: Run<'_>) -> CommandResult<()
             };
             let ctx = json!({"command": "lists-update", "list_id": list_id, "changes": changes});
             let validate = || {
-                shortcuts::validate_list_id(&list_id)?;
+                checked(shortcuts::validate_list_id, &list_id)?;
                 shortcuts::validate_list_changes(&changes)
+                    .map_err(|rule| list_refusal(rule, &changes))
             };
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.update_list(&list_id, &changes)
@@ -156,7 +157,7 @@ pub(super) async fn run(action: ListsCommands, run: Run<'_>) -> CommandResult<()
         } => {
             let ctx = json!({"command": "lists-remove", "list_id": list_id});
             let prompt = format!("Delete list {list_id}?");
-            let validate = || shortcuts::validate_list_id(&list_id);
+            let validate = || checked(shortcuts::validate_list_id, &list_id);
             send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.delete_list(&list_id)
             })
@@ -192,7 +193,7 @@ async fn members(action: ListMembersCommands, run: Run<'_>) -> CommandResult<()>
             common,
         } => {
             let ctx = json!({"command": "lists-members-list", "list_id": list_id});
-            let validate = || shortcuts::validate_list_id(&list_id);
+            let validate = || checked(shortcuts::validate_list_id, &list_id);
             list_paged(run, ctx, validate, max_results, &common, |client, n| {
                 client.get_list_members(&list_id, n)
             })
@@ -204,7 +205,7 @@ async fn members(action: ListMembersCommands, run: Run<'_>) -> CommandResult<()>
             common,
         } => {
             let ctx = json!({"command": "lists-members-add", "list_id": list_id});
-            let validate = || shortcuts::validate_list_id(&list_id);
+            let validate = || checked(shortcuts::validate_list_id, &list_id);
             act_on_user_with(
                 run,
                 ctx,
@@ -221,7 +222,7 @@ async fn members(action: ListMembersCommands, run: Run<'_>) -> CommandResult<()>
             common,
         } => {
             let ctx = json!({"command": "lists-members-remove", "list_id": list_id});
-            let validate = || shortcuts::validate_list_id(&list_id);
+            let validate = || checked(shortcuts::validate_list_id, &list_id);
             act_on_user_with(
                 run,
                 ctx,
@@ -247,9 +248,23 @@ where
     T: Serialize + DeserializeOwned + Default,
 {
     let ctx = json!({"command": command, "list_id": list_id});
-    let validate = || shortcuts::validate_list_id(list_id);
+    let validate = || checked(shortcuts::validate_list_id, list_id);
     act_from_me(run, ctx, validate, common, |client, me| {
         shortcut(client, me, list_id)
     })
     .await
+}
+
+/// The refusal of the field of `details` that `rule` is about; a rule about
+/// none of them, or about an empty one, names no input.
+fn list_refusal(rule: &'static str, details: &ListDetails) -> Invalid {
+    let field = match rule {
+        "list-name-too-long" => details.name.as_deref(),
+        "list-description-too-long" => details.description.as_deref(),
+        _ => None,
+    };
+    field.map_or_else(
+        || Invalid::unnamed(rule),
+        |input| Invalid::of_input(rule, input),
+    )
 }

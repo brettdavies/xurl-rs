@@ -201,6 +201,103 @@ pub struct ReferencedPost {
     pub extra: BTreeMap<String, Value>,
 }
 
+// ── Post drafts ─────────────────────────────────────────────────────
+
+/// The media a draft carries.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PostDraftMedia {
+    /// Media IDs attached to the post, in order.
+    pub media_ids: Vec<String>,
+    /// IDs of the users tagged in any of the media.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tagged_user_ids: Option<Vec<String>>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The post a draft replies to.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PostDraftReply {
+    /// The ID of the post the draft replies to.
+    pub in_reply_to_tweet_id: String,
+    /// IDs of the users the reply does not mention.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exclude_reply_user_ids: Option<Vec<String>>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A post after the first in a draft thread.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PostDraftThreadPost {
+    /// The text of the post; empty when it only has media.
+    pub text: String,
+    /// Media attached to the post.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media: Option<PostDraftMedia>,
+    /// The ID of the post this post quotes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quote_tweet_id: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A post draft saved to the caller's account.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PostDraft {
+    /// Draft ID.
+    pub id: String,
+    /// The text of the draft; empty for a draft that only has media.
+    pub text: String,
+    /// When the draft was saved (RFC 3339).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// When the draft last changed (RFC 3339).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    /// Media attached to the post.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media: Option<PostDraftMedia>,
+    /// Present when the draft is a reply.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply: Option<PostDraftReply>,
+    /// The ID of the post the draft quotes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quote_tweet_id: Option<String>,
+    /// For a draft that is a thread, the posts after the first, in order.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thread: Option<Vec<PostDraftThreadPost>>,
+    /// Whether the draft discloses AI-generated media.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub made_with_ai: Option<bool>,
+    /// Whether the draft discloses a paid partnership.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub paid_partnership: Option<bool>,
+    /// Parts of the draft the other fields do not carry, such as
+    /// `text_formatting` or `inline_media`. Present only when the draft
+    /// holds more than is listed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unsupported_content: Option<Vec<String>>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// What X answers when a post draft is saved.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PostDraftCreated {
+    /// Draft ID.
+    pub id: String,
+    /// The text of the saved draft.
+    pub text: String,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── User ────────────────────────────────────────────────────────────
 
 /// A user object from the X API v2.
@@ -424,6 +521,32 @@ pub struct Trend {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// A place X reports trends for, as `/2/trends/locations` describes it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct TrendLocation {
+    /// The place's WOEID, which `get_trends` takes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub woeid: Option<u64>,
+    /// The place's name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The kind of place: `town`, `country`, or `supername` for Worldwide.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub place_type: Option<String>,
+    /// The country the place is in, absent for a place that is not in one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country: Option<String>,
+    /// The two-letter code of the place's country.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country_code: Option<String>,
+    /// The WOEID of the place that contains this one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<u64>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// A trend picked for the caller, as `/2/users/personalized_trends`
 /// describes it.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
@@ -619,6 +742,45 @@ pub struct Broadcast {
     /// When the broadcast last changed, in milliseconds since the Unix epoch.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at_ms: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// What X answers a changed broadcast with.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct BroadcastUpdated {
+    /// Broadcast ID.
+    pub id: String,
+    /// Broadcast ID, the same as `id`.
+    pub broadcast_id: String,
+    /// Where the broadcast is, such as `RUNNING` or `ENDED`.
+    pub state: String,
+    /// The link to watch the broadcast.
+    pub share_url: String,
+    /// The broadcast's title.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts,
+    /// 4 accounts the host follows, 5 the host's subscribers, 6 accounts
+    /// followed by an account the host follows.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chat_option: Option<i64>,
+    /// The broadcast's live category, absent when it has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub live_category_id: Option<String>,
+    /// The broadcast's language.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    /// The broadcast's media key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media_key: Option<String>,
+    /// When the broadcast started, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_ms: Option<String>,
+    /// The post that carries the broadcast.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tweet_id: Option<String>,
     /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,

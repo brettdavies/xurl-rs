@@ -7,8 +7,20 @@
 use crate::cli::hints::NextStep;
 use xdk::api::auth_matrix::WireScheme;
 use xdk::error::{
-    AuthMismatch, Error, MismatchShape, NextAction, STORE_DIR_UNCREATABLE, TOKEN_URL_UNUSABLE,
+    AUTH_URL_UNUSABLE, AuthMismatch, Error, MismatchShape, NextAction, STORE_DIR_UNCREATABLE,
+    TOKEN_URL_UNUSABLE,
 };
+
+/// The environment variable that sets the URL an [`Error::InvalidUrl`] message
+/// names, for the two URLs a sign-in reads from it.
+fn url_variable(message: &str) -> Option<&'static str> {
+    [
+        (TOKEN_URL_UNUSABLE, "TOKEN_URL"),
+        (AUTH_URL_UNUSABLE, "AUTH_URL"),
+    ]
+    .into_iter()
+    .find_map(|(prefix, variable)| message.starts_with(prefix).then_some(variable))
+}
 
 /// The message `xr` prints for `error`, in text mode and in the envelope.
 pub(crate) fn render(error: &Error) -> String {
@@ -22,21 +34,25 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Validation { rule, value } => {
             super::validation::sentence(rule, value.as_deref()).unwrap_or_else(|| error.to_string())
         }
-        Error::TokenEndpointForbidden { body } if matches!(body.trim(), "" | "{}") => {
+        Error::TokenEndpointForbidden { body } if is_empty(body) => {
             "the token endpoint answered 403 with an empty body".to_string()
+        }
+        Error::TokenEndpointUnexpected { status, body } if is_empty(body) => {
+            format!("the token endpoint answered {status} with an empty body")
         }
         Error::Api { .. }
         | Error::TokenEndpointForbidden { .. }
+        | Error::TokenEndpointUnexpected { .. }
         | Error::ProcessingTimeout { .. }
         | Error::AddressInUse { .. }
         | Error::MediaProcessingFailed { .. } => error.to_string(),
         Error::AccountNotFound { account } => {
             format!("X found no account for the handle @{account}.")
         }
-        Error::InvalidUrl { message, .. } if message.starts_with(TOKEN_URL_UNUSABLE) => {
-            format!("Invalid URL: {message}; TOKEN_URL sets it")
-        }
-        Error::InvalidUrl { message, .. } => format!("Invalid URL: {message}"),
+        Error::InvalidUrl { message, .. } => match url_variable(message) {
+            Some(variable) => format!("Invalid URL: {message}; {variable} sets it"),
+            None => format!("Invalid URL: {message}"),
+        },
         Error::InvalidPathParam { name, value } => {
             format!(
                 "Invalid path parameter {name:?}: value {value:?} contains a reserved character"
@@ -46,11 +62,18 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Json { message, .. } => format!("JSON Error: {message}"),
         Error::Auth { message, .. } => format!("Auth Error: {message}"),
         Error::TokenStore { message, .. } => format!("Token Store Error: {message}"),
+        Error::AppNotFound { .. } => format!("Token Store Error: {error}"),
         Error::AuthMethodMismatch(mismatch) => auth_method_mismatch_message(mismatch, None),
         // `Error` is `#[non_exhaustive]`; a variant this build has not seen
         // prints its own fragment rather than failing to compile downstream.
         _ => error.to_string(),
     }
+}
+
+/// Whether an answer's body says nothing: no bytes, or the `{}` an empty body
+/// is carried as.
+fn is_empty(body: &str) -> bool {
+    matches!(body.trim(), "" | "{}")
 }
 
 /// The message `xr` prints for `error` when `step` rides with it. An
@@ -182,7 +205,10 @@ mod tests {
                 "Auth Error: NoAuthMethod: no authentication method available",
             ),
             (
-                Error::token_store(format!("{} \"nosuchapp\"", xdk::error::APP_NOT_FOUND)),
+                Error::AppNotFound {
+                    name: "nosuchapp".into(),
+                    held: Vec::new(),
+                },
                 "Token Store Error: the store holds no app named \"nosuchapp\"",
             ),
             (

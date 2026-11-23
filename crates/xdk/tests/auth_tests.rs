@@ -1206,6 +1206,31 @@ fn a_step_one_on_a_store_that_does_not_parse_saves_no_flow() {
     );
 }
 
+/// An authorization URL no URL can be built from is an invalid URL, as a token
+/// URL no request can go to is, and the message quotes it. Step 1 saves no flow.
+#[test]
+fn a_step_one_with_an_authorize_url_no_url_can_be_built_from_is_an_invalid_url() {
+    let (token_store, tmp) = create_temp_token_store();
+    let mut cfg = test_config();
+    cfg.auth_url = "::not a url".to_string();
+    let auth = auth_for(&cfg, token_store);
+    let pending = tmp.path().join(".xurl.pending");
+
+    let refused = auth.remote_oauth2_step1(&pending);
+
+    match refused {
+        Err(xdk::Error::InvalidUrl { message, .. }) => {
+            assert!(
+                message.starts_with(xdk::error::AUTH_URL_UNUSABLE),
+                "{message}"
+            );
+            assert!(message.contains("'::not a url'"), "{message}");
+        }
+        other => panic!("expected an invalid URL, got {other:?}"),
+    }
+    assert!(!pending.exists(), "step 1 saved no flow");
+}
+
 #[test]
 fn test_a_sign_in_requests_every_scope_by_default() {
     let (token_store, tmp) = create_temp_token_store();

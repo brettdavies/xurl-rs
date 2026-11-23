@@ -18,16 +18,16 @@ use crate::cli::output::OutputConfig;
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMute, ChatMutedResult, Community,
-    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    IngestRegion, LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
-    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
-    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    Broadcast, BroadcastChatMessage, BroadcastUpdated, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
+    FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
+    Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated, ProvisionedResult, RepostedResult,
+    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -123,8 +123,11 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<NoteCreated>("note-created"),
     typed_alias::<NoteEvaluation>("note-evaluation"),
     typed_alias::<Vec<Note>>("notes"),
+    typed_alias::<Vec<PostDraft>>("drafts"),
+    typed_alias::<PostDraftCreated>("draft-created"),
     typed_alias::<Broadcast>("broadcast"),
     typed_alias::<Vec<Broadcast>>("broadcasts"),
+    typed_alias::<BroadcastUpdated>("broadcast-updated"),
     typed_alias::<ScheduledBroadcast>("scheduled-broadcast"),
     typed_alias::<Vec<ScheduledBroadcast>>("scheduled-broadcasts"),
     typed_alias::<Vec<BroadcastChatMessage>>("chat-messages"),
@@ -140,6 +143,7 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<Vec<NewsStory>>("news"),
     typed_alias::<NewsStory>("news-story"),
     typed_alias::<Vec<Trend>>("trends"),
+    typed_alias::<Vec<TrendLocation>>("trend-locations"),
     typed_alias::<Vec<PersonalizedTrend>>("personalized-trends"),
     typed_alias::<FollowingResult>("follow"),
     typed_alias::<DeletedResult>("delete"),
@@ -288,7 +292,7 @@ pub fn run_validate(
                     reason: Reason::Io,
                     exit_code: EXIT_GENERAL_ERROR,
                     message: Some(reason),
-                    next_step: Some(NextStep::fix_input(None)),
+                    next_step: Some(out.carry(NextStep::fix_input(None))),
                     ..ErrorBody::default()
                 },
             );
@@ -304,7 +308,7 @@ pub fn run_validate(
                 "reason": Reason::InvalidJson,
                 "exit_code": EXIT_VALIDATION_FAILED,
                 "message": format!("input is not valid JSON: {e}"),
-                "next_step": NextStep::show_help("xr validate --help".to_string()),
+                "next_step": out.carry(NextStep::show_help("xr validate --help".to_string())),
             });
             out.print_response(stderr, &payload);
             return EXIT_VALIDATION_FAILED;
@@ -328,7 +332,7 @@ pub fn run_validate(
                 "unknown schema {schema:?}; pass one of {} or omit --schema for auto-detection",
                 known.join(", ")
             ),
-            "next_step": NextStep::show_help("xr validate --help".to_string()),
+            "next_step": out.carry(NextStep::show_help("xr validate --help".to_string())),
         });
         out.print_response(stderr, &payload);
         return EXIT_VALIDATION_FAILED;
@@ -352,7 +356,7 @@ pub fn run_validate(
                 "schema": schema,
                 "valid": false,
                 "message": msg,
-                "next_step": NextStep::fix_input(None),
+                "next_step": out.carry(NextStep::fix_input(None)),
             });
             out.print_response(stderr, &payload);
             EXIT_VALIDATION_FAILED
