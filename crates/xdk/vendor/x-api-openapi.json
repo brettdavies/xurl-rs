@@ -25989,6 +25989,9 @@
         },
         "security": [
           {
+            "BearerToken": []
+          },
+          {
             "OAuth2UserToken": [
               "broadcast.read"
             ]
