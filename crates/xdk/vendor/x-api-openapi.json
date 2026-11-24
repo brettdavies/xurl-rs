@@ -78,6 +78,7 @@
               "created_at_ms",
               "id",
               "relay_source",
+              "relay_user",
               "reply_to",
               "text"
             ],
@@ -3247,6 +3248,9 @@
             "type": "string"
           },
           "relay_source": {
+            "type": "string"
+          },
+          "relay_user": {
             "type": "string"
           },
           "reply_to": {
@@ -19927,6 +19931,11 @@
           "relay_source": {
             "description": "The platform this message was relayed from, shown as that platform's icon next to the message: `youtube`, `twitch`, `kick`, `facebook`, `rumble`, `tiktok` or `instagram`. Only apps approved for chat relay may set it.",
             "maxLength": 32,
+            "type": "string"
+          },
+          "relay_user": {
+            "description": "The name of the person who wrote this message on the platform it was relayed from, shown next to that platform's icon. Display text only, not an X account. Requires `relay_source`. Links are not allowed.",
+            "maxLength": 64,
             "type": "string"
           },
           "reply_to": {
