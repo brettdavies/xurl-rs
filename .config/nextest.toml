@@ -26,10 +26,9 @@ retries = 1
 # 231 s at 4.
 test-threads = 8
 
-# The few tests that each run for minutes start first, so none of them is the
-# last thing a partition waits on. In the 2-partition run of 2026-11-23 the
-# golden fixtures took 261 s and a surface-bump case that took 123 s started
-# 1,516th of 1,517. Priority only reorders; it never skips or retries a test.
+# These tests each run for minutes. Starting them first keeps one from
+# starting near the end of its partition. Priority only reorders; it never
+# skips or retries a test.
 [[profile.default.overrides]]
 filter = """
 test(xr_output_matches_the_golden_fixtures)
