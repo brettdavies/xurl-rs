@@ -7607,6 +7607,128 @@
         },
         "type": "object"
       },
+      "DeleteChatConversationLegacyActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/DeleteChatConversationLegacyActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "DeleteChatConversationLegacyActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/DeleteChatConversationLegacyActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "DeleteChatConversationLegacyActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteChatConversationLegacyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Signatures for this action, forwarded in the order they are sent.",
+            "items": {
+              "$ref": "#/components/schemas/DeleteChatConversationLegacyActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteChatConversationLegacyResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeleteChatConversationLegacyResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteChatConversationLegacyResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the conversation was deleted.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
       "DeleteChatConversationMessageTtlActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
@@ -20762,6 +20884,128 @@
         },
         "type": "object"
       },
+      "UnarchiveChatConversationLegacyActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/UnarchiveChatConversationLegacyActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "UnarchiveChatConversationLegacyActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/UnarchiveChatConversationLegacyActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "UnarchiveChatConversationLegacyActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UnarchiveChatConversationLegacyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Signatures for this action, forwarded in the order they are sent.",
+            "items": {
+              "$ref": "#/components/schemas/UnarchiveChatConversationLegacyActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UnarchiveChatConversationLegacyResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UnarchiveChatConversationLegacyResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UnarchiveChatConversationLegacyResponseData": {
+        "properties": {
+          "archived": {
+            "description": "Whether the conversation is archived for the authenticated user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "archived"
+        ],
+        "type": "object"
+      },
       "UnarchiveChatConversationRequest": {
         "additionalProperties": false,
         "properties": {
@@ -28422,11 +28666,11 @@
     },
     "/2/chat/conversations/{id}": {
       "delete": {
-        "description": "Deletes a Chat conversation for the authenticated user only; other participants keep it. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. Deleting a pending message request's conversation deletes the request, like Delete in the X app.",
+        "description": "Deletes a Chat conversation for the authenticated user only; other participants keep it. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. Deleting a pending message request's conversation deletes the request, like Delete in the X app. Legacy route: prefer `POST /2/chat/conversations/{id}/delete`, which takes the same request and returns the same response.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
-        "operationId": "deleteChatConversation",
+        "operationId": "deleteChatConversationLegacy",
         "parameters": [
           {
             "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
@@ -28444,7 +28688,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DeleteChatConversationRequest"
+                "$ref": "#/components/schemas/DeleteChatConversationLegacyRequest"
               }
             }
           },
@@ -28455,7 +28699,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeleteChatConversationResponse"
+                  "$ref": "#/components/schemas/DeleteChatConversationLegacyResponse"
                 }
               }
             },
@@ -28489,7 +28733,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Delete a Chat Conversation",
+        "summary": "Delete a Chat Conversation Using the Legacy Route",
         "tags": [
           "Chat"
         ]
@@ -29195,11 +29439,11 @@
     },
     "/2/chat/conversations/{id}/archive": {
       "delete": {
-        "description": "Unarchives a Chat conversation for the authenticated user only. Unarchiving a conversation that is not archived changes nothing. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "description": "Unarchives a Chat conversation for the authenticated user only. Unarchiving a conversation that is not archived changes nothing. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. Legacy route: prefer `POST /2/chat/conversations/{id}/unarchive`, which takes the same request and returns the same response.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
-        "operationId": "unarchiveChatConversation",
+        "operationId": "unarchiveChatConversationLegacy",
         "parameters": [
           {
             "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
@@ -29217,7 +29461,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UnarchiveChatConversationRequest"
+                "$ref": "#/components/schemas/UnarchiveChatConversationLegacyRequest"
               }
             }
           },
@@ -29228,7 +29472,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UnarchiveChatConversationResponse"
+                  "$ref": "#/components/schemas/UnarchiveChatConversationLegacyResponse"
                 }
               }
             },
@@ -29262,7 +29506,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Unarchive a Chat Conversation",
+        "summary": "Unarchive a Chat Conversation Using the Legacy Route",
         "tags": [
           "Chat"
         ]
@@ -29336,6 +29580,81 @@
           }
         ],
         "summary": "Archive a Chat Conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/delete": {
+      "post": {
+        "description": "Deletes a Chat conversation for the authenticated user only; other participants keep it. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. Deleting a pending message request's conversation deletes the request, like Delete in the X app.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "deleteChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete a Chat Conversation",
         "tags": [
           "Chat"
         ]
@@ -29433,79 +29752,6 @@
       }
     },
     "/2/chat/conversations/{id}/invite": {
-      "delete": {
-        "description": "Turns off the invite link for an encrypted Chat group conversation. The existing link stops working.",
-        "externalDocs": {
-          "url": "https://developer.x.com/"
-        },
-        "operationId": "disableChatGroupInvite",
-        "parameters": [
-          {
-            "description": "The ID of the group conversation, starting with `g`.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "pattern": "^g[0-9]{1,19}$",
-              "type": "string"
-            },
-            "style": "simple"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DisableChatGroupInviteRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DisableChatGroupInviteResponse"
-                }
-              }
-            },
-            "description": "The request has succeeded."
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "The request has failed."
-          }
-        },
-        "security": [
-          {
-            "OAuth2UserToken": [
-              "dm.write",
-              "tweet.read",
-              "users.read"
-            ]
-          },
-          {
-            "UserToken": []
-          }
-        ],
-        "summary": "Disable a Chat Group Invite Link",
-        "tags": [
-          "Chat"
-        ]
-      },
       "post": {
         "description": "Turns on the invite link for an encrypted Chat group conversation and returns the link details. The client builds the link and sends it as invite_url, in the form https://x.com/i/chat/group_join/<conversation_id>/<token>, where the token is exactly 10 letters, digits, '-' or '_'. invite_url is required when action_signatures is sent. To make the link expire, send validity_duration_msec or validity_expiry_timestamp_msec. With action_signatures, send validity_expiry_timestamp_msec, because the signed payload carries the expiry. The group name and avatar sent here are stored unencrypted and shown to anyone who opens the link.",
         "externalDocs": {
@@ -29575,6 +29821,81 @@
           }
         ],
         "summary": "Enable a Chat Group Invite Link",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/invite/disable": {
+      "post": {
+        "description": "Turns off the invite link for an encrypted Chat group conversation. The existing link stops working.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "disableChatGroupInvite",
+        "parameters": [
+          {
+            "description": "The ID of the group conversation, starting with `g`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^g[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableChatGroupInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisableChatGroupInviteResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Disable a Chat Group Invite Link",
         "tags": [
           "Chat"
         ]
@@ -30032,79 +30353,6 @@
       }
     },
     "/2/chat/conversations/{id}/message_ttl": {
-      "delete": {
-        "description": "Stops new messages in a 1:1 or group Chat conversation from disappearing, for every participant. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
-        "externalDocs": {
-          "url": "https://developer.x.com/"
-        },
-        "operationId": "deleteChatConversationMessageTtl",
-        "parameters": [
-          {
-            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
-              "type": "string"
-            },
-            "style": "simple"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeleteChatConversationMessageTtlRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeleteChatConversationMessageTtlResponse"
-                }
-              }
-            },
-            "description": "The request has succeeded."
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "The request has failed."
-          }
-        },
-        "security": [
-          {
-            "OAuth2UserToken": [
-              "dm.write",
-              "tweet.read",
-              "users.read"
-            ]
-          },
-          {
-            "UserToken": []
-          }
-        ],
-        "summary": "Turn Off Disappearing Messages in a Chat Conversation",
-        "tags": [
-          "Chat"
-        ]
-      },
       "put": {
         "description": "Sets how long new messages in a 1:1 or group Chat conversation last before they disappear, for every participant. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
         "externalDocs": {
@@ -30174,6 +30422,81 @@
           }
         ],
         "summary": "Turn On Disappearing Messages in a Chat Conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/message_ttl/remove": {
+      "post": {
+        "description": "Stops new messages in a 1:1 or group Chat conversation from disappearing, for every participant. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "deleteChatConversationMessageTtl",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteChatConversationMessageTtlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteChatConversationMessageTtlResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Turn Off Disappearing Messages in a Chat Conversation",
         "tags": [
           "Chat"
         ]
@@ -30329,79 +30652,6 @@
       }
     },
     "/2/chat/conversations/{id}/mute": {
-      "delete": {
-        "description": "Unmutes notifications for a Chat conversation for the authenticated user only. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
-        "externalDocs": {
-          "url": "https://developer.x.com/"
-        },
-        "operationId": "unmuteChatConversation",
-        "parameters": [
-          {
-            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
-              "type": "string"
-            },
-            "style": "simple"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UnmuteChatConversationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnmuteChatConversationResponse"
-                }
-              }
-            },
-            "description": "The request has succeeded."
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "The request has failed."
-          }
-        },
-        "security": [
-          {
-            "OAuth2UserToken": [
-              "dm.write",
-              "tweet.read",
-              "users.read"
-            ]
-          },
-          {
-            "UserToken": []
-          }
-        ],
-        "summary": "Unmute a Chat Conversation",
-        "tags": [
-          "Chat"
-        ]
-      },
       "post": {
         "description": "Mutes notifications for a Chat conversation for the authenticated user only. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
         "externalDocs": {
@@ -30763,6 +31013,156 @@
           }
         ],
         "summary": "Send Typing Indicator",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/unarchive": {
+      "post": {
+        "description": "Unarchives a Chat conversation for the authenticated user only. Unarchiving a conversation that is not archived changes nothing. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "unarchiveChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnarchiveChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnarchiveChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Unarchive a Chat Conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/unmute": {
+      "post": {
+        "description": "Unmutes notifications for a Chat conversation for the authenticated user only. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "unmuteChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnmuteChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnmuteChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Unmute a Chat Conversation",
         "tags": [
           "Chat"
         ]
