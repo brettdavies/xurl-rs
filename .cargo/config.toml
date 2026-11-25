@@ -9,3 +9,10 @@ CARGO_WORKSPACE_DIR = { value = "", relative = true, force = true }
 # threads' 2 MiB default (a release build takes about 295 KiB).
 # crates/xurl-cli/tests/parse_stack_tests.rs holds the parser to half of this.
 RUST_MIN_STACK = "8388608"
+
+# The in-process tests spend their CPU in dependency code, so dependencies
+# compile optimized in dev and test builds; workspace crates stay unoptimized.
+# The table sits here rather than in Cargo.toml because CI's Rust cache keys on
+# this file and not on the virtual root manifest, so changing it moves the key.
+[profile.dev.package."*"]
+opt-level = 3
