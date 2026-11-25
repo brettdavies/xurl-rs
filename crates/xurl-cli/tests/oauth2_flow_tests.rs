@@ -31,7 +31,9 @@ use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
 use xdk::config::{Config, EnvOverrides};
 
 use common::CLOSED;
-use common::token_endpoint::{Echo, NoRefusal, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers};
+use common::token_endpoint::{
+    Echo, NoRefusal, Redirecting, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers,
+};
 
 mod common;
 
@@ -733,6 +735,48 @@ async fn an_unknown_scope_is_rejected_before_anything_is_written() {
     );
 }
 
+/// A scope X does not define is an argument `xr` refused: the step is the help
+/// of the command, and the envelope keeps the rule and the value, in the real
+/// run and in its dry run alike.
+#[tokio::test]
+async fn an_unknown_scope_sends_the_caller_to_the_help_of_the_command() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let sign_in = [
+        "auth",
+        "oauth2",
+        "--no-browser",
+        "--step",
+        "1",
+        "--scopes",
+        "tweet.reed",
+    ];
+    let mut real = vec!["xr", "--output", "json"];
+    real.extend(sign_in);
+    let mut dry = vec!["xr", "--output", "json", "--dry-run"];
+    dry.extend(sign_in);
+
+    let (code, _stdout, stderr) = run_cli(&store, &step1_overrides(), &real).await;
+    assert_eq!(code, 1, "stderr: {stderr}");
+    let refusal: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    let (code, stdout, _stderr) = run_cli(&store, &step1_overrides(), &dry).await;
+    assert_eq!(code, 0, "a dry run exits 0");
+    let rehearsal: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+
+    for (name, envelope) in [("real run", &refusal), ("dry run", &rehearsal)] {
+        assert_eq!(envelope["reason"], "validation", "{name}: {envelope}");
+        assert_eq!(envelope["rule"], "unknown-scope", "{name}: {envelope}");
+        assert_eq!(envelope["value"], "tweet.reed", "{name}: {envelope}");
+        assert_eq!(envelope["exit_code"], 1, "{name}: {envelope}");
+        assert_eq!(
+            envelope["next_step"],
+            serde_json::json!({"action": "show-help", "command": "xr auth oauth2 --help"}),
+            "{name}: {envelope}"
+        );
+    }
+}
+
 /// Step 2 takes the scope set from what step 1 saved, so the two steps cannot
 /// describe different sign-ins: no flag is needed, and a flag that names a
 /// different set is refused before the code is spent.
@@ -987,7 +1031,7 @@ async fn an_interactive_sign_in_for_an_app_removed_during_consent_sends_no_code(
     let sent = server.received_requests().await.unwrap_or_default().len();
     assert_eq!(sent, 0, "the code was sent: {returned:?}");
     assert!(
-        matches!(&returned, Err(xdk::Error::TokenStore { message, .. }) if message.contains("work")),
+        matches!(&returned, Err(xdk::Error::AppNotFound { name, .. }) if name == "work"),
         "{returned:?}"
     );
     let on_disk = xdk::store::TokenStore::new_with_path(store.to_str().unwrap());
@@ -1375,12 +1419,100 @@ async fn step2_for_another_apps_flow_finishes_under_that_app() {
     assert!(pending.exists(), "a refused step 2 keeps the pending state");
 }
 
+/// Step 1 with no `--app` signs in under the store's active app, so a step 2
+/// under another app is told to finish under that one, as it is when step 1
+/// named the app.
+#[tokio::test]
+async fn step2_for_a_flow_step1_started_on_the_active_app_finishes_under_it() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    std::fs::write(
+        &store,
+        "apps:\n  default:\n    client_id: 'default-client-id'\n    client_secret: 'default-client-secret'\n    oauth2_tokens: {}\n  work:\n    client_id: 'work-client-id'\n    client_secret: 'work-client-secret'\n    oauth2_tokens: {}\ndefault_app: default\n",
+    )
+    .expect("write tempdir store");
+    let overrides = xdk::config::EnvOverrides {
+        token_url: Some(format!("{CLOSED}/2/oauth2/token")),
+        info_url: Some(format!("{CLOSED}/2/users/me")),
+        ..xdk::config::EnvOverrides::default()
+    };
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let url: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    let state = query_param(
+        &Url::parse(url["auth_url"].as_str().expect("auth_url")).expect("a URL"),
+        "state",
+    );
+    let pending = xdk::auth::pending::pending_path_for_store(&store);
+
+    let redirect = format!(
+        "http://localhost:8080/callback?code=AUTHCODE&state={}",
+        urlencode(&state)
+    );
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--app",
+            "work",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect,
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("AppMismatch"),
+        "{envelope}"
+    );
+    assert_step(
+        &envelope,
+        "fix-input",
+        "template",
+        "xr --app default --output json auth oauth2 --no-browser --step 2 --auth-url <redirect-url>",
+    );
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
+}
+
 /// `--app <saved>` cannot help when the saved app is this one, whose client id
 /// has moved on, or one the store no longer holds: the same refusal, or an
 /// unknown app. Both need a new flow.
 #[tokio::test]
 async fn step2_for_a_flow_no_stored_app_can_finish_starts_over_at_step_one() {
-    for (saved_app, why) in [("default", "this app"), ("gone", "an app no longer stored")] {
+    for (saved_app, why) in [
+        ("default", "this app"),
+        ("gone", "an app no longer stored"),
+        ("", "a flow that names no app"),
+    ] {
         let tmp = TempDir::new().unwrap();
         let store = tmp.path().join(".xurl");
         seed_store_two_apps(&store);
@@ -2150,6 +2282,9 @@ fn closed_overrides(client_id: bool) -> xdk::config::EnvOverrides {
     }
 }
 
+/// What a refusal of an app the store does not hold says of `--app ghost`.
+const NO_SUCH_APP: &str = "the store holds no app named \"ghost\"";
+
 /// A state to run `xr auth oauth2` in, and a word of what its real run says.
 struct Verdict {
     name: &'static str,
@@ -2443,7 +2578,7 @@ fn verdicts() -> Vec<Verdict> {
         before: vec!["--app", "ghost"],
         ..verdict(
             "app the store does not hold, step 1",
-            "\"ghost\"",
+            NO_SUCH_APP,
             true,
             seed_store,
             &step1,
@@ -2452,9 +2587,52 @@ fn verdicts() -> Vec<Verdict> {
     rows.push(Verdict {
         before: vec!["--app", "ghost"],
         ..verdict(
+            "app the store does not hold, no client id, step 1",
+            NO_SUCH_APP,
+            false,
+            seed_store,
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, no app in the store, step 1",
+            NO_SUCH_APP,
+            false,
+            |_| {},
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
             "app the store does not hold, step 2",
-            "\"ghost\"",
+            NO_SUCH_APP,
             true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, no saved flow, step 2",
+            "PendingStateNotFound",
+            false,
+            seed_store,
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, flow saved for another app, step 2",
+            "AppMismatch",
+            false,
             |store| {
                 seed_store(store);
                 seed_pending(store);
@@ -2485,8 +2663,34 @@ fn verdicts() -> Vec<Verdict> {
         },
         &flow_at("not a url"),
     ));
+    rows.push(verdict(
+        "directory at the pending path, step 1",
+        "is a directory",
+        true,
+        |store| {
+            seed_store(store);
+            std::fs::create_dir(xdk::auth::pending::pending_path_for_store(store)).unwrap();
+        },
+        &step1,
+    ));
     #[cfg(unix)]
     {
+        rows.push(verdict(
+            "symlink at the pending path, step 1",
+            "symlink",
+            true,
+            |store| {
+                seed_store(store);
+                let elsewhere = store.with_file_name("elsewhere");
+                std::fs::write(&elsewhere, "x").unwrap();
+                std::os::unix::fs::symlink(
+                    &elsewhere,
+                    xdk::auth::pending::pending_path_for_store(store),
+                )
+                .unwrap();
+            },
+            &step1,
+        ));
         rows.push(verdict(
             "flow with the wrong mode",
             "PendingStatePermissions",
@@ -3063,10 +3267,6 @@ fn oauth_error(status: u16, error: &str) -> ResponseTemplate {
 async fn step2_whose_code_x_would_not_exchange_starts_over_at_step_one() {
     for (why, response) in [
         ("invalid_grant", oauth_error(400, "invalid_grant")),
-        (
-            "a 400 with no JSON",
-            ResponseTemplate::new(400).set_body_string("no"),
-        ),
         ("invalid_grant on a 403", oauth_error(403, "invalid_grant")),
         ("invalid_grant on a 404", oauth_error(404, "invalid_grant")),
         (
@@ -3125,12 +3325,13 @@ async fn step2_x_answered_with_a_server_error_is_a_server_error_and_is_sent_agai
     }
 }
 
-/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with a JSON body that
-/// holds a string `error`. Any other answer came from something that did not
-/// process the exchange, such as a proxy or a token URL with the wrong path, so
-/// the code is still good and the saved flow stays for the same step 2. A 403
-/// points at the token URL and the proxy in front of it, and every such answer
-/// is warned of by name, with its status.
+/// RFC 6749 section 5.2 refuses with a JSON body whose `error` is one of its
+/// codes, whatever the status. Any other answer, a bare 400 or 401 among them,
+/// came from something that did not process the exchange, such as a proxy or a
+/// token URL with the wrong path, so the code is still good and the saved flow
+/// stays for the same step 2. A 403 or any other status the token endpoint's
+/// own step covers points at the token URL and the proxy in front of it, and
+/// every such answer is warned of by name, with its status.
 #[tokio::test]
 async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
     for NoRefusal {
@@ -3157,11 +3358,34 @@ async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
     }
 }
 
+/// The exchange sends the code and its verifier, and a 307 or a 308 would send
+/// them again to the `Location` host. An answer that redirects is no answer the
+/// exchange follows: it reports its status, like any other the endpoint did not
+/// process, the saved flow stays, and the other server is never asked.
+#[rstest::rstest]
+#[case::found(302)]
+#[case::temporary_redirect(307)]
+#[tokio::test]
+async fn step2_the_token_endpoint_redirects_is_not_followed(#[case] status: u16) {
+    let endpoint = Redirecting::start(status).await;
+
+    let (code, envelope) = step2_at(&endpoint.base).await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{envelope}");
+    assert_eq!(envelope["reason"], "api-error", "{envelope}");
+    assert_eq!(envelope["next_step"]["action"], "fix-input", "{envelope}");
+    assert_eq!(
+        envelope["next_step"]["docs"], TOKEN_ENDPOINT_DOCS,
+        "{envelope}"
+    );
+    assert_warns_of_the_exchange(&envelope, &status.to_string());
+}
+
 /// A proxy's block page can repeat the request it refused. What the exchange
 /// sent is a credential, so none of it reaches the error.
 #[tokio::test]
 async fn step2_failure_answer_that_echoes_the_exchange_leaks_none_of_it() {
-    for status in [403, 404, 502] {
+    for status in [400, 401, 403, 404, 418, 502] {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/2/oauth2/token"))
@@ -3200,15 +3424,18 @@ async fn step2_failure_answer_of_a_large_page_is_cut_short() {
     }
 }
 
-/// An empty 403 is said to be empty, not printed as `{}`.
+/// An answer with an empty body is said to be empty, not printed as `{}`.
 #[tokio::test]
-async fn step2_with_an_empty_token_endpoint_403_says_so() {
-    let (_code, envelope) = step2_answered_with(ResponseTemplate::new(403)).await;
+async fn step2_with_an_empty_token_endpoint_answer_says_so() {
+    for status in [400, 401, 403, 418] {
+        let (_code, envelope) = step2_answered_with(ResponseTemplate::new(status)).await;
 
-    assert_eq!(
-        envelope["message"], "the token endpoint answered 403 with an empty body",
-        "{envelope}"
-    );
+        assert_eq!(
+            envelope["message"],
+            format!("the token endpoint answered {status} with an empty body"),
+            "{envelope}"
+        );
+    }
 }
 
 /// A warning names the token endpoint and the HTTP status of its answer, since
@@ -3675,4 +3902,527 @@ async fn the_headless_state_needs_no_encoding() {
     let state = query_param(&step1_url(&store, &[]).await, "state");
 
     assert!(needs_no_encoding(&state), "state {state:?}");
+}
+
+// ── A step that signs in under another app keeps the invocation ─────────
+
+/// The envelope a refused run wrote on stderr.
+fn refusal_of(stderr: &str) -> serde_json::Value {
+    serde_json::from_str(stderr.trim()).expect("one JSON envelope")
+}
+
+/// Runs the `command` a step carries, as printed.
+async fn run_step(
+    store: &std::path::Path,
+    overrides: &xdk::config::EnvOverrides,
+    command: &str,
+) -> (i32, String, String) {
+    let words: Vec<&str> = command.split(' ').collect();
+    run_cli(store, overrides, &words).await
+}
+
+/// The `select-app` step names the sign-in the caller ran, under the app that
+/// can sign in: its output format, its login label, and its scopes stay, and
+/// the step runs as printed.
+#[tokio::test]
+async fn a_select_app_step_keeps_the_invocation_it_answers() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_without_a_client_id(&store);
+    let overrides = closed_overrides(false);
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "alice",
+            "--no-browser",
+            "--step",
+            "1",
+            "--scopes",
+            "tweet.read",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let refusal = refusal_of(&stderr);
+    assert_eq!(refusal["reason"], "client-credentials-missing", "{refusal}");
+    assert_eq!(refusal["next_step"]["action"], "select-app", "{refusal}");
+    let command = refusal["next_step"]["command"].as_str().expect("a command");
+    assert_eq!(
+        command,
+        "xr --output json auth oauth2 alice --no-browser --step 1 --scopes tweet.read --app work"
+    );
+    assert!(
+        refusal["message"].as_str().unwrap().ends_with(command),
+        "the message names the step it carries: {refusal}"
+    );
+
+    let (code, stdout, stderr) = run_step(&store, &overrides, command).await;
+    assert_eq!(code, 0, "the step runs as printed; stderr: {stderr}");
+    let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    let url = Url::parse(answer["auth_url"].as_str().expect("auth_url")).expect("a URL");
+    assert_eq!(query_param(&url, "client_id"), "work-client-id");
+    assert_eq!(query_param(&url, "scope"), "tweet.read offline.access");
+}
+
+/// A step 2 that meets an app with no client id answers with a step 1, and
+/// the redirect URL, which holds an authorization code, stays out of it.
+#[tokio::test]
+async fn a_select_app_step_from_step_two_starts_over_without_the_code() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_without_a_client_id(&store);
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &closed_overrides(false),
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let refusal = refusal_of(&stderr);
+    assert_eq!(refusal["reason"], "client-credentials-missing", "{refusal}");
+    assert_eq!(
+        refusal["next_step"]["command"],
+        "xr --output json auth oauth2 --no-browser --step 1 --app work"
+    );
+    assert!(
+        !format!("{stdout}{stderr}").contains("AUTHCODE"),
+        "the code is echoed: {stdout}{stderr}"
+    );
+}
+
+/// A dry run that names `--dry-run` itself gets a step with the flag once, so
+/// the step is one `xr` accepts, and it sends nothing either.
+#[tokio::test]
+async fn a_dry_runs_select_app_step_names_dry_run_once_and_runs() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_without_a_client_id(&store);
+    let overrides = closed_overrides(false);
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    assert_eq!(answer["would_succeed"], false, "{answer}");
+    let command = answer["next_step"]["command"].as_str().expect("a command");
+    assert_eq!(
+        command,
+        "xr --output json --dry-run auth oauth2 --no-browser --step 1 --app work"
+    );
+    let (code, stdout, stderr) = run_step(&store, &overrides, command).await;
+    assert_eq!(code, 0, "the step runs as printed; stderr: {stderr}");
+    let again: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    assert_eq!(again["would_succeed"], true, "{again}");
+}
+
+// ── Step 1's dry run refuses what step 1 refuses ─────────────────────────
+
+/// The `--no-browser --step 1` words of a sign-in, with the dry-run flag when
+/// `dry` asks for it.
+fn step1_argv(dry: bool) -> Vec<&'static str> {
+    let mut argv = vec!["xr", "--output", "json"];
+    if dry {
+        argv.push("--dry-run");
+    }
+    argv.extend(["auth", "oauth2", "--no-browser", "--step", "1"]);
+    argv
+}
+
+/// An `AUTH_URL` no URL can be built from refuses step 1 as an invalid URL, as a
+/// `TOKEN_URL` that is not a URL does: it quotes the value, names the variable,
+/// and sends the caller to the help. The dry run says so with the same keys.
+#[tokio::test]
+async fn an_authorize_url_no_url_can_be_built_from_refuses_step_one_in_its_dry_run_too() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let overrides = xdk::config::EnvOverrides {
+        auth_url: Some("::not a url".to_string()),
+        ..step1_overrides()
+    };
+    let kept = on_disk(&store);
+
+    let (dry_code, dry_stdout, dry_stderr) = run_cli(&store, &overrides, &step1_argv(true)).await;
+    let (code, stdout, stderr) = run_cli(&store, &overrides, &step1_argv(false)).await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    assert!(stdout.is_empty(), "no URL is printed: {stdout}");
+    let real = json_document("real run", &stderr);
+    assert_eq!(real["reason"], "invalid-url", "{real}");
+    let message = real["message"].as_str().expect("a message");
+    assert!(message.contains("'::not a url'"), "{message}");
+    assert!(message.ends_with("; AUTH_URL sets it"), "{message}");
+    assert_eq!(real["next_step"]["action"], "show-help", "{real}");
+    assert_eq!(dry_code, 0, "stderr: {dry_stderr}");
+    let dry = json_document("dry run", &dry_stdout);
+    assert_eq!(
+        dry_run_faults("authorize URL", &dry, &real, 1),
+        Vec::<String>::new()
+    );
+    assert_eq!(on_disk(&store), kept, "nothing is written");
+}
+
+/// A step 1 that refuses leaves the saved flow where it is, so neither run
+/// warns that it replaces one.
+#[tokio::test]
+async fn a_refused_step_one_gives_no_warning_about_replacing_the_saved_flow() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let overrides = xdk::config::EnvOverrides {
+        auth_url: Some("::not a url".to_string()),
+        ..step1_overrides()
+    };
+
+    let (dry_code, _dry_stdout, dry_stderr) = run_cli(&store, &overrides, &step1_argv(true)).await;
+    let (code, _stdout, stderr) = run_cli(&store, &overrides, &step1_argv(false)).await;
+
+    assert_eq!(dry_code, 0);
+    assert!(
+        dry_stderr.is_empty(),
+        "the dry run warns of nothing: {dry_stderr}"
+    );
+    assert_eq!(code, 1, "stderr: {stderr}");
+    let real = json_document("real run", &stderr);
+    assert!(real["warnings"].is_null(), "{real}");
+}
+
+/// A saved flow is replaced by step 1, which says so; the dry run says so too,
+/// in the text and in the document a structured caller reads, and a run with
+/// no flow to replace says nothing. The text `warning:` line goes to the
+/// process's own stderr, so that case spawns the built `xr`.
+#[tokio::test(flavor = "multi_thread")]
+async fn step_ones_dry_run_warns_that_it_replaces_a_saved_flow_as_the_real_run_does() {
+    let warning = serde_json::json!({
+        "status": "ok",
+        "warnings": [{"message": "overwriting previous pending auth flow", "target": "xdk::auth"}],
+    });
+    let with_flow = TempDir::new().unwrap();
+    let store = with_flow.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let kept = on_disk(&store);
+
+    let (code, stdout, stderr) = run_cli(&store, &step1_overrides(), &step1_argv(true)).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(json_document("dry run", &stdout)["would_succeed"], true);
+    assert_eq!(json_document("dry run", &stderr), warning);
+    assert_eq!(on_disk(&store), kept, "the dry run keeps the flow");
+
+    let (code, _stdout, stderr) = run_cli(&store, &step1_overrides(), &step1_argv(false)).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(json_document("real run", &stderr), warning);
+
+    seed_pending(&store);
+    let text_store = store.clone();
+    let output = tokio::task::spawn_blocking(move || {
+        common::xr_with_store(&text_store)
+            .env("CLIENT_ID", "test-client-id")
+            .env("CLIENT_SECRET", "test-client-secret")
+            .args(["--dry-run", "auth", "oauth2", "--no-browser", "--step", "1"])
+            .output()
+    })
+    .await
+    .expect("spawn_blocking joins")
+    .expect("xr runs");
+    let text_stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        text_stderr
+            .lines()
+            .any(|line| line == "warning: overwriting previous pending auth flow"),
+        "{text_stderr}"
+    );
+
+    let without = TempDir::new().unwrap();
+    let store = without.path().join(".xurl");
+    seed_store(&store);
+    let (code, _stdout, stderr) = run_cli(&store, &step1_overrides(), &step1_argv(true)).await;
+    assert_eq!(code, 0);
+    assert!(
+        stderr.is_empty(),
+        "nothing to replace, nothing said: {stderr}"
+    );
+}
+
+/// A directory at the pending path is no flow to replace, so the refusal comes
+/// with no warning, and it names the path.
+#[tokio::test]
+async fn a_directory_at_the_pending_path_is_refused_by_name_without_the_overwrite_warning() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = xdk::auth::pending::pending_path_for_store(&store);
+    std::fs::create_dir(&pending).unwrap();
+
+    let (code, _stdout, stderr) = run_cli(&store, &step1_overrides(), &step1_argv(false)).await;
+
+    assert_eq!(code, 5, "stderr: {stderr}");
+    let refusal = json_document("real run", &stderr);
+    assert_eq!(refusal["reason"], "io", "{refusal}");
+    assert!(
+        refusal["message"]
+            .as_str()
+            .expect("a message")
+            .contains(&pending.display().to_string()),
+        "{refusal}"
+    );
+    assert!(refusal["warnings"].is_null(), "{refusal}");
+}
+
+// ── A typed `--step` runs the no-browser flow by itself ──────────────────
+
+/// Runs the built `xr` over a one-app store with `env` set on the child and
+/// returns its output. `XURL_TOKEN_STORE` is the test's own store.
+fn sign_in(env: &[(&str, &str)], args: &[&str]) -> (std::process::Output, TempDir) {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let mut command = common::xr_with_store(&store);
+    for (name, value) in env {
+        command.env(name, value);
+    }
+    let output = command.args(args).output().expect("xr runs");
+    (output, tmp)
+}
+
+fn stdout_document(output: &std::process::Output) -> serde_json::Value {
+    json_document("stdout", &String::from_utf8_lossy(&output.stdout))
+}
+
+fn stderr_document(output: &std::process::Output) -> serde_json::Value {
+    json_document("stderr", &String::from_utf8_lossy(&output.stderr))
+}
+
+fn keys(document: &serde_json::Value) -> Vec<String> {
+    let mut keys: Vec<String> = document
+        .as_object()
+        .expect("a JSON object")
+        .keys()
+        .cloned()
+        .collect();
+    keys.sort();
+    keys
+}
+
+/// `--step 1` alone is the no-browser flow's first step: the sign-in has no
+/// other use for a step, so the flag is not required beside it.
+#[test]
+fn a_typed_step_one_runs_without_no_browser_beside_it() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let document = stdout_document(&output);
+    assert_eq!(document["would_succeed"], true, "{document}");
+    assert_eq!(document["step"], 1, "{document}");
+    assert_eq!(
+        document["no_browser"], false,
+        "the key echoes the input: {document}"
+    );
+}
+
+/// A typed step 2 is held to what step 2 needs, not to a flag it makes
+/// redundant: the dry run reaches the saved-flow check and refuses for it.
+#[test]
+fn a_typed_step_two_is_checked_as_step_two_without_no_browser_beside_it() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--step",
+            "2",
+            "--auth-url",
+            "https://localhost/callback?code=c&state=s",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let document = stdout_document(&output);
+    assert_ne!(document["reason"], "invalid-args", "{document}");
+    assert!(
+        !document.to_string().contains("--no-browser"),
+        "no refusal for the flag: {document}"
+    );
+}
+
+/// `XURL_NO_BROWSER=0` is no `--no-browser`, and the typed step decides. A run
+/// with stdout piped is headless already, so this pins the rule and is not the
+/// failure the other cases show.
+#[test]
+fn a_typed_step_beats_a_false_no_browser_variable() {
+    let (output, _store) = sign_in(
+        &[("XURL_NO_BROWSER", "0")],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let document = stdout_document(&output);
+    assert_eq!(document["would_succeed"], true, "{document}");
+}
+
+/// A typed `--no-browser=false` beside a typed step contradicts itself, and
+/// the run is refused as the sign-in refuses its other arguments: exit 2, the
+/// `invalid-args` envelope, both flags named, and no key that envelope lacks.
+#[test]
+fn a_typed_no_browser_false_beside_a_typed_step_is_refused_naming_both() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser=false",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let refusal = stderr_document(&output);
+    assert_eq!(refusal["reason"], "invalid-args", "{refusal}");
+    assert_eq!(refusal["exit_code"], 2, "{refusal}");
+    let message = refusal["message"].as_str().expect("a message");
+    assert!(
+        message.contains("--no-browser") && message.contains("--step"),
+        "{message}"
+    );
+
+    let (usual, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+            "--auth-url",
+            "x",
+        ],
+    );
+    assert_eq!(usual.status.code(), Some(2), "{usual:?}");
+    assert_eq!(
+        keys(&refusal),
+        keys(&stderr_document(&usual)),
+        "an argument refusal of this command carries the same keys"
+    );
+}
+
+/// The dry run of that refusal answers at exit 0 with the verdict the real run
+/// reaches, as the sign-in's other argument refusals do.
+#[test]
+fn the_dry_run_of_a_typed_no_browser_false_beside_a_typed_step_would_not_succeed() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser=false",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let document = stdout_document(&output);
+    assert_eq!(document["would_succeed"], false, "{document}");
+    assert_eq!(document["reason"], "invalid-args", "{document}");
+    assert_eq!(document["exit_code"], 2, "{document}");
+}
+
+/// `--auth-url` still belongs to a step, so without one it is refused for the
+/// missing `--step`.
+#[test]
+fn an_auth_url_without_a_step_is_still_refused_for_the_missing_step() {
+    let (output, _store) = sign_in(&[], &["auth", "oauth2", "--auth-url", "x"]);
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("--step"), "{stderr}");
+}
+
+/// The spelling the recovery steps use is unchanged: `--no-browser --step 1`
+/// is the same flow, so its dry run answers as it did.
+#[test]
+fn no_browser_beside_a_step_still_runs() {
+    let (output, _store) = sign_in(
+        &[],
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    );
+
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    assert_eq!(stdout_document(&output)["would_succeed"], true);
 }

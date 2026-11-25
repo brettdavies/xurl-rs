@@ -16,8 +16,9 @@ use super::callback;
 use super::pending;
 use super::token_endpoint::{self, Grant};
 use crate::error::{
-    BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
-    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, Result,
+    AUTH_URL_UNUSABLE, BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH,
+    REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
+    Result,
 };
 use crate::store::{MintedFrom, OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
@@ -109,6 +110,21 @@ fn new_state() -> String {
     URL_SAFE_NO_PAD.encode(bytes)
 }
 
+/// The base of the authorization URL, as `auth` names it.
+///
+/// # Errors
+///
+/// Returns [`Error::InvalidUrl`] if it cannot be parsed.
+fn authorize_url(auth: &Auth) -> Result<Url> {
+    Url::parse(auth.auth_url()).map_err(|e| {
+        Error::invalid_url(format!(
+            "{AUTH_URL_UNUSABLE} '{}' is not one a URL can be built from (cause: {e})",
+            auth.auth_url()
+        ))
+        .with_source(e)
+    })
+}
+
 /// Builds the `OAuth2` authorization URL with all required query parameters.
 ///
 /// # Errors
@@ -116,8 +132,7 @@ fn new_state() -> String {
 /// Returns an error if the base authorization URL cannot be parsed.
 pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Result<String> {
     let scopes = auth.oauth2_scopes().join(" ");
-    let mut auth_url = Url::parse(auth.auth_url())
-        .map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
+    let mut auth_url = authorize_url(auth)?;
     auth_url
         .query_pairs_mut()
         .append_pair("response_type", "code")
@@ -165,8 +180,7 @@ pub(crate) async fn exchange_code_for_token(
     auth.token_store.reload();
     refuse_unless_store_keeps(auth)?;
     let token_url = auth.token_url().to_string();
-    let request = http
-        .post(&token_url)
+    let request = token_endpoint::post(&token_url)?
         .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .form(&[
             ("grant_type", "authorization_code"),
@@ -374,7 +388,8 @@ where
 /// that a subsequent call to [`run_remote_step2`] can complete the exchange.
 ///
 /// Returns the authorization URL that the user should open in a browser
-/// on another machine.
+/// on another machine. The saved flow names the app the sign-in is for: the
+/// one `auth` names, else the store's active app.
 ///
 /// # Errors
 ///
@@ -383,10 +398,7 @@ where
 /// for, and an error if the authorization URL is invalid or the pending state
 /// file cannot be written.
 pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<String> {
-    refuse_unless_store_keeps(auth)?;
-    if pending_path.exists() {
-        tracing::warn!(target: "xdk::auth", "overwriting previous pending auth flow");
-    }
+    check_remote_step1(auth, pending_path)?;
 
     let state = new_state();
     let (verifier, challenge) = generate_code_verifier_and_challenge();
@@ -402,7 +414,10 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
         code_verifier: verifier,
         state,
         client_id: auth.client_id().to_string(),
-        app_name: auth.app_name().to_string(),
+        app_name: auth
+            .token_store
+            .get_active_app_name(auth.app_name())
+            .to_string(),
         created_at: now,
         scopes: auth
             .oauth2_scopes()
@@ -454,6 +469,23 @@ pub async fn run_remote_step2(
     pending::delete(pending_path)?;
 
     Ok(access_token)
+}
+
+/// [`Auth::check_remote_oauth2_step1`]: the refusals [`run_remote_step1`]
+/// meets before it saves the flow, in the order it meets them, and the
+/// warning it gives when the flow it saves replaces one.
+///
+/// # Errors
+///
+/// As [`run_remote_step1`], up to the save.
+pub(crate) fn check_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<()> {
+    refuse_unless_store_keeps(auth)?;
+    authorize_url(auth)?;
+    pending::check_save_target(pending_path)?;
+    if std::fs::symlink_metadata(pending_path).is_ok_and(|meta| meta.is_file()) {
+        tracing::warn!(target: "xdk::auth", "overwriting previous pending auth flow");
+    }
+    Ok(())
 }
 
 /// [`Auth::check_remote_oauth2_step2`]: the refusals [`run_remote_step2`]
@@ -612,15 +644,13 @@ impl RefreshedToken {
 /// [`Error::Auth`], and one the endpoint did not process is the failure any
 /// request to X reports.
 pub(crate) async fn refresh_grant(
-    http: &reqwest::Client,
     token_url: &str,
     timeout: Duration,
     client_id: &str,
     client_secret: &str,
     refresh_token: &str,
 ) -> Result<RefreshedToken> {
-    let request = http
-        .post(token_url)
+    let request = token_endpoint::post(token_url)?
         .timeout(timeout)
         .form(&[
             ("grant_type", "refresh_token"),
@@ -692,12 +722,14 @@ pub(crate) async fn refresh_grant(
 /// before the grant so the refresh token is not spent on a pair the store
 /// could not keep. When the refresh itself fails:
 /// [`Error::Auth`] when the token endpoint refuses the refresh token or the
-/// client, or answers with no access token; [`Error::Http`] when it does not
-/// answer; [`Error::Api`] when it answers a failure status that is no OAuth
-/// refusal, such as a 5xx, a 429 (with `reset_at` when it names its reset), or
-/// a proxy's 404; [`Error::TokenEndpointForbidden`] when that status is a 403;
-/// and [`Error::InvalidUrl`] when the token URL is not one a request can go
-/// to. A failed refresh writes nothing to the store.
+/// client with an RFC 6749 section 5.2 error code, or answers with no access
+/// token; [`Error::Http`] when it does not answer; [`Error::Api`] when it
+/// answers a 404, a 408, a 429 (with `reset_at` when it names its reset), or a
+/// 5xx that is no OAuth refusal; [`Error::TokenEndpointForbidden`] when that
+/// status is a 403; [`Error::TokenEndpointUnexpected`] when it is any other
+/// status, a 400 or a 401 with no such code and a redirect among them; and
+/// [`Error::InvalidUrl`] when the token URL is not one a request can go to. A
+/// failed refresh writes nothing to the store.
 /// A failed `/2/users/me` lookup is not an error.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,
@@ -726,7 +758,6 @@ pub async fn refresh_oauth2_token(
     }
 
     let refreshed = refresh_grant(
-        http,
         auth.token_url(),
         Duration::from_secs(auth.http_timeout_secs()),
         auth.client_id(),

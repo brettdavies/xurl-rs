@@ -33,6 +33,7 @@ use std::fmt::Write as _;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use pretty_assertions::StrComparison;
 use tempfile::TempDir;
@@ -107,15 +108,57 @@ enum Store {
     Writable,
 }
 
+/// What a case's skill home holds before the run. Each capture builds its
+/// own, so a skill verb that writes there is seen by no other case.
+#[derive(Clone, Copy)]
+enum SkillHome {
+    /// The destination is a plain file, which neither skill verb clones over.
+    BlockedSkillDir,
+    /// The destination already holds a file, so an install refuses to clone
+    /// over it.
+    PopulatedSkillDir,
+    /// The destination is a clone of the bundle, which an update replaces.
+    Bundle,
+    /// Nothing installed, nothing in the way.
+    Empty,
+}
+
+impl SkillHome {
+    fn build(self, home: &Path) {
+        let skills = home.join(".claude").join("skills");
+        match self {
+            Self::BlockedSkillDir => {
+                std::fs::create_dir_all(&skills).expect("skills dir");
+                std::fs::write(skills.join("xurl-rs"), b"").expect("blocking file");
+            }
+            Self::PopulatedSkillDir => {
+                let dest = skills.join("xurl-rs");
+                std::fs::create_dir_all(&dest).expect("skill dir");
+                std::fs::write(dest.join("SKILL.md"), b"").expect("existing file");
+            }
+            Self::Bundle => {
+                let git_dir = skills.join("xurl-rs").join(".git");
+                std::fs::create_dir_all(&git_dir).expect("git dir");
+                std::fs::write(
+                    git_dir.join("config"),
+                    "[remote \"origin\"]\n\turl = https://github.com/brettdavies/xurl-rs-skill.git\n",
+                )
+                .expect("git config");
+            }
+            Self::Empty => {}
+        }
+    }
+}
+
 #[derive(Default)]
 struct Case {
     name: String,
     args: Vec<String>,
     env: Vec<(&'static str, String)>,
     unset_home: bool,
-    /// A scratch directory to present as `XURL_SKILL_HOME`; substituted on
-    /// output.
-    skill_home: Option<PathBuf>,
+    /// The skill home to present as `XURL_SKILL_HOME`; its path is
+    /// substituted on output.
+    skill_home: Option<SkillHome>,
     stdin: Option<&'static str>,
     /// Working directory for the spawn, so a file argument can stay relative.
     cwd: Option<PathBuf>,
@@ -329,6 +372,8 @@ struct Scratch {
     /// A loopback port held for the whole run, so a case can ask `xr` to
     /// bind a port another listener holds.
     held: std::net::TcpListener,
+    /// How many directories [`Scratch::fresh_dir`] has handed out.
+    fresh: AtomicUsize,
 }
 
 impl Scratch {
@@ -336,6 +381,7 @@ impl Scratch {
         Self {
             dir: TempDir::new().expect("tempdir"),
             held: std::net::TcpListener::bind("127.0.0.1:0").expect("a port to hold"),
+            fresh: AtomicUsize::new(0),
         }
     }
 
@@ -347,34 +393,12 @@ impl Scratch {
             .to_string()
     }
 
-    fn writable_store(&self) -> PathBuf {
-        let dir = self.dir.path().join("writable-store");
-        std::fs::create_dir_all(&dir).expect("store dir");
-        dir.join(".xurl")
-    }
-
-    /// The seeded store, written on the first call and shared by every case
-    /// that asks for it.
-    fn oauth2_store(&self) -> PathBuf {
-        let store = self.dir.path().join("oauth2-store").join(".xurl");
-        if store.exists() {
-            return store;
-        }
-        std::fs::create_dir_all(store.parent().expect("parent")).expect("store dir");
-        let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
-        ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
-            .expect("add_app");
-        ts.set_default_app("myapp").expect("set_default_app");
-        let _ = ts.remove_app("default");
-        ts.save_oauth2_token_for_app(
-            "myapp",
-            "alice",
-            "ACCESS-TOKEN-VALUE",
-            "REFRESH-TOKEN-VALUE",
-            4_000_000_000,
-        )
-        .expect("save_oauth2");
-        store
+    /// An empty directory no other capture uses, for what one run may write.
+    fn fresh_dir(&self) -> PathBuf {
+        let n = self.fresh.fetch_add(1, Ordering::Relaxed);
+        let dir = self.dir.path().join(format!("capture-{n}"));
+        std::fs::create_dir_all(&dir).expect("capture dir");
+        dir
     }
 
     /// A directory holding one small file to upload, named by the return.
@@ -384,51 +408,6 @@ impl Scratch {
         std::fs::create_dir_all(&dir).expect("upload dir");
         std::fs::write(dir.join(NAME), b"golden media bytes").expect("upload file");
         (dir, NAME)
-    }
-
-    /// A skill home whose destination is a plain file, which neither skill
-    /// verb clones over.
-    fn skill_home_with_blocked_skill_dir(&self) -> PathBuf {
-        let home = self.dir.path().join("home-blocked");
-        let skills = home.join(".claude").join("skills");
-        std::fs::create_dir_all(&skills).expect("skills dir");
-        std::fs::write(skills.join("xurl-rs"), b"").expect("blocking file");
-        home
-    }
-
-    /// A skill home whose destination already holds a file, so an install
-    /// refuses to clone over it.
-    fn skill_home_with_populated_skill_dir(&self) -> PathBuf {
-        let home = self.dir.path().join("home-populated");
-        let dest = home.join(".claude").join("skills").join("xurl-rs");
-        std::fs::create_dir_all(&dest).expect("skill dir");
-        std::fs::write(dest.join("SKILL.md"), b"").expect("existing file");
-        home
-    }
-
-    /// A skill home whose destination is a clone of the bundle, which an
-    /// update replaces.
-    fn skill_home_with_bundle(&self) -> PathBuf {
-        let home = self.dir.path().join("home-bundle");
-        let git_dir = home
-            .join(".claude")
-            .join("skills")
-            .join("xurl-rs")
-            .join(".git");
-        std::fs::create_dir_all(&git_dir).expect("git dir");
-        std::fs::write(
-            git_dir.join("config"),
-            "[remote \"origin\"]\n\turl = https://github.com/brettdavies/xurl-rs-skill.git\n",
-        )
-        .expect("git config");
-        home
-    }
-
-    /// An empty skill home: nothing installed, nothing in the way.
-    fn empty_skill_home(&self) -> PathBuf {
-        let home = self.dir.path().join("home-empty");
-        std::fs::create_dir_all(&home).expect("home dir");
-        home
     }
 
     /// A `PATH` holding only a `git` that refuses every clone with a fixed
@@ -746,7 +725,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             )
         },
         Case {
-            skill_home: Some(scratch.skill_home_with_bundle()),
+            skill_home: Some(SkillHome::Bundle),
             env: vec![("PATH", scratch.path_with_git_that_writes_nothing())],
             unix_only: Some(
                 "the empty git is a `#!/bin/sh` script, and on Windows \
@@ -758,21 +737,21 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             )
         },
         Case {
-            skill_home: Some(scratch.skill_home_with_populated_skill_dir()),
+            skill_home: Some(SkillHome::PopulatedSkillDir),
             ..reason_case(
                 "destination-not-empty",
                 &["--output", "json", "skill", "install", "claude_code"],
             )
         },
         Case {
-            skill_home: Some(scratch.skill_home_with_blocked_skill_dir()),
+            skill_home: Some(SkillHome::BlockedSkillDir),
             ..reason_case(
                 "destination-is-file",
                 &["--output", "json", "skill", "install", "claude_code"],
             )
         },
         Case {
-            skill_home: Some(scratch.empty_skill_home()),
+            skill_home: Some(SkillHome::Empty),
             env: vec![("PATH", scratch.path_without_git())],
             ..reason_case(
                 "git-not-found",
@@ -780,7 +759,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             )
         },
         Case {
-            skill_home: Some(scratch.empty_skill_home()),
+            skill_home: Some(SkillHome::Empty),
             env: vec![("PATH", scratch.path_with_refusing_git())],
             unix_only: Some(
                 "the refusing git is a `#!/bin/sh` script, and on Windows \
@@ -792,7 +771,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             )
         },
         Case {
-            skill_home: Some(scratch.empty_skill_home()),
+            skill_home: Some(SkillHome::Empty),
             ..reason_case(
                 "not-installed",
                 &["--output", "json", "skill", "update", "--all"],
@@ -803,9 +782,9 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
 
 /// What `skill update` answers for a destination that holds something other
 /// than the bundle, in a real run and a dry run.
-fn skill_update_refusal_cases(scratch: &Scratch) -> Vec<Case> {
+fn skill_update_refusal_cases() -> Vec<Case> {
     let refused = |name: &str, args: &[&str]| Case {
-        skill_home: Some(scratch.skill_home_with_populated_skill_dir()),
+        skill_home: Some(SkillHome::PopulatedSkillDir),
         ..case(name, args)
     };
     vec![
@@ -1165,6 +1144,17 @@ fn dry_run_cases() -> Vec<Case> {
             &["--output", "json", "--dry-run", "notes", "remove", "note-1"],
         ),
         case(
+            "dry-run-invalid-draft-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "drafts",
+                "remove",
+                "draft-1",
+            ],
+        ),
+        case(
             "dry-run-note-needs-source-url",
             &[
                 "--output",
@@ -1378,6 +1368,17 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-webhook-url-has-credentials",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "add",
+                "https://user:pw@example.com/webhook",
+            ],
+        ),
+        case(
             "dry-run-invalid-webhook-id",
             &[
                 "--output",
@@ -1497,6 +1498,43 @@ fn dry_run_cases() -> Vec<Case> {
                 "bookmark-folders",
                 "posts",
                 "rust",
+            ],
+        ),
+        case(
+            "dry-run-no-broadcast-changes",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "update",
+                "1YqKDqWqdPLGV",
+            ],
+        ),
+        case(
+            "dry-run-empty-broadcast-title",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "update",
+                "1YqKDqWqdPLGV",
+                "--title",
+                " ",
+            ],
+        ),
+        case(
+            "dry-run-invalid-chat-option",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "update",
+                "1YqKDqWqdPLGV",
+                "--chat-option",
+                "7",
             ],
         ),
         case(
@@ -1646,37 +1684,43 @@ fn commands_in(help: &str) -> Vec<String> {
         .collect()
 }
 
-/// Root help plus every subcommand's help, found by walking the tree.
-fn help_cases(bin: &str) -> Vec<Case> {
-    let mut cases = Vec::new();
-    let mut pending = vec![Vec::<String>::new()];
-    while let Some(command_path) = pending.pop() {
-        let mut args = command_path.clone();
-        args.push("--help".to_string());
-        let output = common::xr_std_at(bin)
-            .args(&args)
-            .stdin(Stdio::null())
-            .output()
-            .expect("spawn xr --help");
-        let help = String::from_utf8(output.stdout).expect("help is utf-8");
-        for sub in commands_in(&help) {
-            let mut next = command_path.clone();
-            next.push(sub);
-            pending.push(next);
+/// Root help plus every subcommand's help, found by walking the tree one
+/// level at a time and captured as it is found, so each page spawns once.
+fn help_pages(bin: &str, api: &MockApi, scratch: &Scratch) -> Vec<(Case, Captured)> {
+    let mut found = Vec::new();
+    let mut level: Vec<Vec<String>> = vec![Vec::new()];
+    while !level.is_empty() {
+        let cases: Vec<Case> = level
+            .iter()
+            .map(|command_path| {
+                let mut args = command_path.clone();
+                args.push("--help".to_string());
+                let name = if command_path.is_empty() {
+                    "help".to_string()
+                } else {
+                    format!("help-{}", command_path.join("-"))
+                };
+                Case {
+                    name,
+                    args,
+                    ..Case::default()
+                }
+            })
+            .collect();
+        let captured = capture_all(&cases.iter().collect::<Vec<_>>(), bin, api, scratch);
+        let mut next = Vec::new();
+        for ((command_path, case), actual) in level.iter().zip(cases).zip(captured) {
+            for sub in commands_in(&actual.stdout) {
+                let mut path = command_path.clone();
+                path.push(sub);
+                next.push(path);
+            }
+            found.push((case, actual));
         }
-        let name = if command_path.is_empty() {
-            "help".to_string()
-        } else {
-            format!("help-{}", command_path.join("-"))
-        };
-        cases.push(Case {
-            name,
-            args,
-            ..Case::default()
-        });
+        level = next;
     }
-    cases.sort_by(|a, b| a.name.cmp(&b.name));
-    cases
+    found.sort_by(|a, b| a.0.name.cmp(&b.0.name));
+    found
 }
 
 /// What a shortcut prints when X answers it: the typed response, as a
@@ -1695,34 +1739,92 @@ fn success_cases() -> Vec<Case> {
     ]
 }
 
-fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
-    let mut cases = help_cases(bin);
-    cases.extend(static_cases());
-    cases.extend(verbose_cases());
-    cases.extend(reason_cases(scratch));
-    cases.extend(dry_run_cases());
-    cases.extend(skill_update_refusal_cases(scratch));
-    cases.extend(text_cases());
-    cases.extend(success_cases());
+/// Every case with its capture. A case that holds only on Unix has none
+/// elsewhere.
+fn captured_cases(bin: &str, api: &MockApi, scratch: &Scratch) -> Vec<(Case, Option<Captured>)> {
+    let mut runs: Vec<(Case, Option<Captured>)> = help_pages(bin, api, scratch)
+        .into_iter()
+        .map(|(case, actual)| (case, Some(actual)))
+        .collect();
+    let rest: Vec<Case> = other_cases(scratch);
+    let runs_here = |case: &Case| cfg!(unix) || case.unix_only.is_none();
+    let runnable: Vec<&Case> = rest.iter().filter(|case| runs_here(case)).collect();
+    let mut captured = capture_all(&runnable, bin, api, scratch).into_iter();
+    for case in rest {
+        let actual =
+            runs_here(&case).then(|| captured.next().expect("one capture per runnable case"));
+        runs.push((case, actual));
+    }
     let mut seen = BTreeSet::new();
-    for c in &cases {
+    for (c, _) in &runs {
         assert!(
             seen.insert(c.name.clone()),
             "duplicate case name {}",
             c.name
         );
     }
+    runs
+}
+
+fn other_cases(scratch: &Scratch) -> Vec<Case> {
+    let mut cases = static_cases();
+    cases.extend(verbose_cases());
+    cases.extend(reason_cases(scratch));
+    cases.extend(dry_run_cases());
+    cases.extend(skill_update_refusal_cases());
+    cases.extend(text_cases());
+    cases.extend(success_cases());
     cases
+}
+
+/// Captures each case on the walk's threads, in the order given.
+fn capture_all(cases: &[&Case], bin: &str, api: &MockApi, scratch: &Scratch) -> Vec<Captured> {
+    common::invoke::walk(
+        cases,
+        async || (),
+        async |(): &(), case: &&Case| capture(case, bin, api, scratch),
+    )
+}
+
+/// The file name of a token store under `XURL_TOKEN_STORE`. It is not the
+/// directory layout's `auth.yml`, so `xr` opens it as the single file it is.
+const STORE_FILE: &str = ".xurl";
+
+/// A store in `dir` carrying one app with an OAuth2 token, for the case that
+/// asks for it alone.
+fn seeded_oauth2_store(dir: &Path) -> PathBuf {
+    let store = dir.join(STORE_FILE);
+    let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+    ts.set_default_app("myapp").expect("set_default_app");
+    let _ = ts.remove_app("default");
+    ts.save_oauth2_token_for_app(
+        "myapp",
+        "alice",
+        "ACCESS-TOKEN-VALUE",
+        "REFRESH-TOKEN-VALUE",
+        4_000_000_000,
+    )
+    .expect("save_oauth2");
+    store
 }
 
 /// Spawns one case and returns its output with the run-varying values
 /// replaced by placeholders.
 fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured {
     let mut cmd = match case.store {
-        Store::OAuth2 => common::xr_std_with_store_at(bin, &scratch.oauth2_store()),
-        Store::Writable => common::xr_std_with_store_at(bin, &scratch.writable_store()),
+        Store::OAuth2 => {
+            common::xr_std_with_store_at(bin, &seeded_oauth2_store(&scratch.fresh_dir()))
+        }
+        Store::Writable => common::xr_std_with_store_at(bin, &scratch.fresh_dir().join(STORE_FILE)),
         Store::Empty | Store::BearerEnv => common::xr_std_at(bin),
     };
+    let skill_home = case.skill_home.map(|kind| {
+        let home = scratch.fresh_dir();
+        kind.build(&home);
+        home
+    });
     if matches!(case.store, Store::BearerEnv) {
         cmd.env("XURL_BEARER_TOKEN", BEARER);
     }
@@ -1737,7 +1839,7 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     if case.unset_home {
         cmd.env_remove("HOME");
     }
-    if let Some(skill_home) = &case.skill_home {
+    if let Some(skill_home) = &skill_home {
         cmd.env("XURL_SKILL_HOME", skill_home);
     }
     if let Some(cwd) = &case.cwd {
@@ -1788,7 +1890,7 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
             );
         }
         text = text.replace(&missing_file_error, CAPTURED_MISSING_FILE_ERROR);
-        if let Some(skill_home) = &case.skill_home {
+        if let Some(skill_home) = &skill_home {
             let home = skill_home.to_str().expect("utf-8 path");
             let in_json = serde_json::to_string(home).expect("a path serializes");
             text = text
@@ -1988,18 +2090,15 @@ fn xr_output_matches_the_golden_fixtures() {
     let dir = golden_dir();
     std::fs::create_dir_all(&dir).expect("golden dir");
 
-    let cases = all_cases(&bin, &scratch);
+    let runs = captured_cases(&bin, &api, &scratch);
     let validators = validator_reasons();
     let mut failures = Vec::new();
     let mut expected_files = BTreeSet::new();
 
-    for case in &cases {
+    for (case, actual) in &runs {
         let file = dir.join(format!("{}.{FIXTURE_EXT}", case.name));
         expected_files.insert(file.clone());
-        if !cfg!(unix) && case.unix_only.is_some() {
-            continue;
-        }
-        let actual = capture(case, &bin, &api, &scratch);
+        let Some(actual) = actual else { continue };
 
         // A `dry-run-<code>` case exists to pin that validator's refusal, so
         // its envelope must still name the code as its `rule`: a bless would
@@ -2011,7 +2110,7 @@ fn xr_output_matches_the_golden_fixtures() {
             .filter(|code| validators.contains(*code));
         for (key, expected) in [("reason", case.reason), ("rule", pinned)] {
             let Some(expected) = expected else { continue };
-            let found = envelope_field(&actual, key);
+            let found = envelope_field(actual, key);
             if found.as_deref() != Some(expected) {
                 failures.push(format!(
                     "== {} ==\ntrigger no longer yields {key} {expected:?}: found {found:?}\nstdout:\n{}\nstderr:\n{}",
@@ -2021,7 +2120,7 @@ fn xr_output_matches_the_golden_fixtures() {
         }
 
         if bless {
-            std::fs::write(&file, render_fixture(case, &actual)).expect("write fixture");
+            std::fs::write(&file, render_fixture(case, actual)).expect("write fixture");
             continue;
         }
         let Ok(bytes) = std::fs::read(&file) else {
@@ -2039,7 +2138,7 @@ fn xr_output_matches_the_golden_fixtures() {
                 continue;
             }
         };
-        if let Some(report) = diff_report(&case.name, &expected, &actual) {
+        if let Some(report) = diff_report(&case.name, &expected, actual) {
             failures.push(report);
         }
     }
@@ -2417,7 +2516,7 @@ fn a_refusing_dry_run_carries_the_message_and_step_of_its_real_run() {
             args,
             env: case.env.clone(),
             unset_home: case.unset_home,
-            skill_home: case.skill_home.clone(),
+            skill_home: case.skill_home,
             stdin: case.stdin,
             cwd: case.cwd.clone(),
             reason: None,

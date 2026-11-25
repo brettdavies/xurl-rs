@@ -31,8 +31,9 @@
 #
 # Flags:
 #   --smoke-home PATH   Run smoke and multi-app against the store at PATH/.xurl/auth.yml instead of
-#                       seeding one; exits 2 naming that path when it holds no store
-#   --no-cleanup        Keep $SMOKE_HOME after exit (default: shred on exit)
+#                       seeding one; exits 2 naming that path when it holds no store. PATH is never
+#                       shredded
+#   --no-cleanup        Keep the $SMOKE_HOME a gate seeded after exit (default: shred on exit)
 #   --tag TAG           Override LAST_TAG resolution (default: the newest `v[0-9]*` tag)
 #   --staging-url URL   Run surface-smoke against this deployed URL (default: STAGING_URL_DEFAULT
 #                       from release.env; with neither, the local server at $LOCAL_URL)
@@ -97,10 +98,61 @@ require_built_binary() {
   }
 }
 
-# EXIT trap. cleanup_canon runs first: under set -e a failing cleanup_smoke (from
-# _lib.sh) would end the trap before it. ---------------------------------------
+# EXIT trap. cleanup_canon runs first: under set -e a failing cleanup_gate_dirs
+# would end the trap before it. ------------------------------------------------
 
-trap 'cleanup_canon; cleanup_smoke' EXIT
+# The home a gate seeded; empty when the caller named one, by --smoke-home or an
+# exported SMOKE_HOME. A named home is never shredded.
+SEEDED_HOME=""
+
+# Every directory shreddable_dir made, one per line. A gate shreds its own at its
+# end; the trap shreds each one still on disk, so a failing command, SIGINT, or
+# SIGTERM leaves none behind. SIGKILL runs no trap.
+SHREDDABLE_DIRS=""
+
+# The api-contract gate's scratch directory, which holds a git worktree of the
+# previous release at $API_TMPDIR/prev. Empty once the gate has removed both.
+API_TMPDIR=""
+
+# Removes API_TMPDIR with the worktree in it, then prunes the registration a
+# worktree add leaves in the repository when it is interrupted. The directory
+# holds source and no credentials, so a plain trash or rm is enough. Without a
+# worktree to remove or a registration to prune, git fails and that is fine; only
+# a directory that stays is reported.
+remove_api_tmpdir() {
+  [[ -n "$API_TMPDIR" ]] || return 0
+  local dir="$API_TMPDIR" failed=0
+  API_TMPDIR=""
+  git worktree remove --force "$dir/prev" >/dev/null 2>&1 || true
+  if command -v gio >/dev/null 2>&1; then
+    gio trash "$dir" 2>/dev/null || rm -rf "$dir" || failed=1
+  else
+    rm -rf "$dir" || failed=1
+  fi
+  git worktree prune >/dev/null 2>&1 || true
+  return "$failed"
+}
+
+# Tries every directory, since under set -e one that fails to shred would end the
+# trap before the rest. The seeded home goes through cleanup_smoke, which keeps
+# it under --no-cleanup; a gate's own directory is shredded under either, and the
+# api-contract gate's is removed under either.
+cleanup_gate_dirs() {
+  local dir failed=0
+  remove_api_tmpdir || failed=1
+  while IFS= read -r dir; do
+    [[ -n "$dir" ]] || continue
+    if [[ "$dir" == "$SEEDED_HOME" ]]; then
+      SMOKE_HOME="$SEEDED_HOME"
+      cleanup_smoke || failed=1
+    else
+      shred_tmpdir "$dir" || failed=1
+    fi
+  done <<<"$SHREDDABLE_DIRS"
+  return "$failed"
+}
+
+trap 'cleanup_canon; cleanup_gate_dirs' EXIT
 
 # The token store inside a home: the directory layout `xr` keeps at
 # ~/.xurl/auth.yml. Every gate addresses a store through this one function.
@@ -108,8 +160,26 @@ smoke_store() {
   printf '%s/.xurl/auth.yml' "$1"
 }
 
+# shreddable_dir VAR NAME: a new directory NAME-XXXXXX that shred_tmpdir removes,
+# named in VAR and recorded for the EXIT trap. The caller's shell makes it, since
+# a command substitution would take the record to a subshell that ends. It sits
+# under TMPDIR where shred_tmpdir accepts that root and under /tmp elsewhere, as
+# on macOS, where TMPDIR is under /var/folders. The case repeats shred_tmpdir's
+# list of roots. Its locals carry a prefix that no VAR a caller passes can shadow.
+shreddable_dir() {
+  local _sd_root="${TMPDIR:-/tmp}" _sd_dir
+  case "$_sd_root" in
+    /tmp/* | "$HOME"/*) ;;
+    *) _sd_root=/tmp ;;
+  esac
+  _sd_dir=$(mktemp -d "${_sd_root%/}/$2-XXXXXX")
+  SHREDDABLE_DIRS+="$_sd_dir"$'\n'
+  printf -v "$1" '%s' "$_sd_dir"
+}
+
 seed_smoke_store() {
-  SMOKE_HOME="$(mktemp -d -t xr-preflight-XXXXXX)"
+  shreddable_dir SMOKE_HOME xr-preflight
+  SEEDED_HOME="$SMOKE_HOME"
   local store
   store=$(smoke_store "$SMOKE_HOME")
 
@@ -156,8 +226,9 @@ seed_smoke_store() {
     ' "$store"
 }
 
-# The exit trap's guard compares the path as written, and `"$HOME"/*` matches
-# `$HOME/`, so the home goes to the trap without a trailing slash, `.`, or `..`.
+# A home the caller names is held as a plain path, with no trailing slash, `.`, or
+# `..`, so the store path a gate prints is the one it read and the shred guard,
+# which compares a path as written, refuses `$HOME` in any spelling if one reaches it.
 plain_dir() {
   local dir
   if [[ -n "$1" ]] && dir=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -L); then
@@ -168,13 +239,10 @@ plain_dir() {
 }
 
 # A home the caller names is read as it is. One that holds no store refuses
-# rather than seeding another, and keeps the exit trap from shredding a
-# directory this run did not create.
+# rather than seeding another.
 ensure_smoke_home() {
   if [[ -n "$SMOKE_HOME" ]]; then
     [[ -f "$(smoke_store "$SMOKE_HOME")" ]] && return 0
-    # shellcheck disable=SC2034  # read by _lib.sh's EXIT-trap cleanup
-    NO_CLEANUP=1
     echo "no token store at $(smoke_store "$SMOKE_HOME"): --smoke-home reads the directory layout, <home>/.xurl/auth.yml" >&2
     exit 2
   fi
@@ -287,13 +355,14 @@ gate_api_contract() {
   require_built_binary
   local last_tag tmpdir
   last_tag="${LAST_TAG:-$(last_release_tag)}"
-  tmpdir=$(mktemp -d -t xr-api-XXXXXX)
+  API_TMPDIR=$(mktemp -d -t xr-api-XXXXXX)
+  tmpdir="$API_TMPDIR"
 
   # Command surface diff
   if git worktree add --detach "$tmpdir/prev" "$last_tag" >/dev/null 2>&1; then
     if (cd "$tmpdir/prev" && cargo build --release --bin xr >/dev/null 2>&1); then
       local empty
-      empty=$(mktemp -d)
+      shreddable_dir empty xr-api-empty
       XURL_TOKEN_STORE="$empty/.xurl" "$tmpdir/prev/target/release/xr" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u >"$tmpdir/prev-cmds.txt"
       XURL_TOKEN_STORE="$empty/.xurl" "$BIN_PATH" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u >"$tmpdir/head-cmds.txt"
       local removed added
@@ -345,19 +414,12 @@ gate_api_contract() {
     gate_skip "cargo-semver-checks" "not installed (cargo binstall cargo-semver-checks)"
   fi
 
-  # $tmpdir held a git worktree of source, no creds; regular trash is fine.
-  if command -v gio >/dev/null 2>&1; then
-    gio trash "$tmpdir" 2>/dev/null || rm -rf "$tmpdir"
-  else
-    rm -rf "$tmpdir"
-  fi
+  remove_api_tmpdir
 }
 
 # Gate: smoke ----------------------------------------------------------------
 #
 # Project-authored: live X API checks driven against the store in $SMOKE_HOME.
-# The typed-wire step is the exception: live_smoke opens the library's default
-# store, ~/.xurl/auth.yml, and ignores XURL_TOKEN_STORE.
 
 gate_smoke() {
   header "Real-world smoke (live X API)"
@@ -384,7 +446,7 @@ gate_smoke() {
   # Bearer env one-shot
   local app_bearer empty
   app_bearer=$(read_1p "X App - Bird (dev)" credential)
-  empty=$(mktemp -d)
+  shreddable_dir empty xr-smoke-empty
   out=$(XURL_TOKEN_STORE="$(smoke_store "$empty")" XURL_BEARER_TOKEN="$app_bearer" "$BIN_PATH" search "rust" --max-results 1 --auth app --output json 2>&1 | jaq -c '.data | length > 0')
   unset app_bearer
   if [[ "$out" == "true" ]]; then
@@ -530,7 +592,7 @@ gate_multi_app() {
   # its first registration as the default before any sign-in happens, and the
   # sign-in handler's job here is to leave that answer alone.
   local fresh fresh_store dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
-  fresh=$(mktemp -d)
+  shreddable_dir fresh xr-multi-fresh
   fresh_store=$(smoke_store "$fresh")
   dev_cid=$(read_1p "X App - Bird (dev)" oauth2_client_id)
   dev_csec=$(read_1p "X App - Bird (dev)" oauth2_client_secret)

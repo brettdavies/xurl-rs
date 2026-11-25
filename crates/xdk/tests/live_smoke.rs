@@ -3,10 +3,11 @@
 //! The mocked suite proves the response types match the vendored spec; only a
 //! live read proves they match what X sends. Each run spends one post read and
 //! one user read on a pay-as-you-go credential, so the test is ignored by
-//! default and refuses to run unless `XURL_LIVE_SMOKE=1`.
+//! default and refuses to run unless `XURL_LIVE_SMOKE=1` and `XURL_TOKEN_STORE`
+//! names the token-store file to read; it never falls back to `~/.xurl/auth.yml`.
 //!
 //! ```sh
-//! XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored
+//! XURL_TOKEN_STORE=<store> XURL_LIVE_SMOKE=1 cargo test --test live_smoke -- --ignored
 //! ```
 //!
 //! `XURL_APP` selects the store app, `XURL_LIVE_SMOKE_AUTH` pins the scheme
@@ -28,7 +29,7 @@ use tracing::{Event, Metadata, Subscriber, span};
 use xdk::api::auth_matrix::WireScheme;
 use xdk::api::{Client, Post, VOCABULARY_TARGET, deserialize_response};
 use xdk::auth::Auth;
-use xdk::config::Config;
+use xdk::config::{Config, EnvOverrides};
 
 const DEFAULT_POST_ID: &str = "1585341984679469056";
 const USERNAME: &str = "elonmusk";
@@ -43,8 +44,15 @@ fn live_client() -> (Client, Option<WireScheme>) {
         Some("1"),
         "refusing to spend a post read and a user read on the live X API without XURL_LIVE_SMOKE=1"
     );
+    let store = env("XURL_TOKEN_STORE").unwrap_or_else(|| {
+        panic!("refusing to open a token store the caller did not name; set XURL_TOKEN_STORE to its path")
+    });
     let cfg = Config::new();
-    let mut auth = Auth::new(&cfg);
+    let mut auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        std::path::Path::new(&store),
+        &EnvOverrides::from_env(),
+    );
     if let Some(app) = env("XURL_APP") {
         auth.with_app_name(&app);
     }

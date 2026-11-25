@@ -22,16 +22,16 @@ use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, Redirec
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMute, ChatMutedResult, Community,
-    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    IngestRegion, LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
-    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
-    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    Broadcast, BroadcastChatMessage, BroadcastUpdated, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
+    FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
+    Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated, ProvisionedResult, RepostedResult,
+    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Command-to-response-type mapping entry.
@@ -141,6 +141,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: generate::<ApiResponse<Broadcast>>,
     },
     SchemaEntry {
+        commands: &["broadcasts update"],
+        type_name: "ApiResponse<BroadcastUpdated>",
+        schema: generate::<ApiResponse<BroadcastUpdated>>,
+    },
+    SchemaEntry {
         commands: &["broadcasts scheduled list"],
         type_name: "ApiResponse<Vec<ScheduledBroadcast>>",
         schema: generate::<ApiResponse<Vec<ScheduledBroadcast>>>,
@@ -220,6 +225,16 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: generate::<ApiResponse<Vec<Note>>>,
     },
     SchemaEntry {
+        commands: &["drafts list"],
+        type_name: "ApiResponse<Vec<PostDraft>>",
+        schema: generate::<ApiResponse<Vec<PostDraft>>>,
+    },
+    SchemaEntry {
+        commands: &["drafts add"],
+        type_name: "ApiResponse<PostDraftCreated>",
+        schema: generate::<ApiResponse<PostDraftCreated>>,
+    },
+    SchemaEntry {
         commands: &["communities search"],
         type_name: "ApiResponse<Vec<Community>>",
         schema: generate::<ApiResponse<Vec<Community>>>,
@@ -243,6 +258,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["trends place"],
         type_name: "ApiResponse<Vec<Trend>>",
         schema: generate::<ApiResponse<Vec<Trend>>>,
+    },
+    SchemaEntry {
+        commands: &["trends locations"],
+        type_name: "ApiResponse<Vec<TrendLocation>>",
+        schema: generate::<ApiResponse<Vec<TrendLocation>>>,
     },
     SchemaEntry {
         commands: &["trends personal"],
@@ -277,6 +297,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "broadcasts remove",
             "broadcasts scheduled cancel",
             "notes remove",
+            "drafts remove",
             "media subtitles remove",
             "webhooks remove",
             "webhooks stream-links remove",
@@ -528,6 +549,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "communities",
     "conversations",
     "dm-events",
+    "drafts",
     "completions",
     "examples",
     "lists",

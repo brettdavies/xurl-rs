@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8280
+stdout_len: 8582
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -40,6 +40,7 @@ broadcasts sources region      IngestRegion
 broadcasts sources remove      ApiResponse<StreamSourceDeleted>
 broadcasts sources stream-key  ApiResponse<StreamSourceKey>
 broadcasts sources update      ApiResponse<StreamSource>
+broadcasts update              ApiResponse<BroadcastUpdated>
 calls get                      ApiResponse<XCall>
 calls scheduled add            ApiResponse<ScheduledCall>
 calls scheduled cancel         ApiResponse<ScheduledCallCancelled>
@@ -60,6 +61,9 @@ dm-events get                  ApiResponse<DmEvent>
 dm-events remove               ApiResponse<DeletedResult>
 dm-unblock                     ApiResponse<DmBlockResult>
 dms                            ApiResponse<Vec<DmEvent>>
+drafts add                     ApiResponse<PostDraftCreated>
+drafts list                    ApiResponse<Vec<PostDraft>>
+drafts remove                  ApiResponse<DeletedResult>
 follow                         ApiResponse<FollowingResult>
 followers                      ApiResponse<Vec<User>>
 following                      ApiResponse<Vec<User>>
@@ -119,6 +123,7 @@ stream rules count             ApiResponse<StreamRuleCounts>
 stream rules list              ApiResponse<Vec<StreamRule>>
 stream rules remove            ApiResponse<Option<Vec<StreamRule>>>
 timeline                       ApiResponse<Vec<Post>>
+trends locations               ApiResponse<Vec<TrendLocation>>
 trends personal                ApiResponse<Vec<PersonalizedTrend>>
 trends place                   ApiResponse<Vec<Trend>>
 unblock                        ApiResponse<BlockingResult>

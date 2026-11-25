@@ -97,6 +97,7 @@ pub const OVERRIDES: &[(&str, &[&str])] = &[
         ],
     ),
     ("calls scheduled update", &[SAMPLE, "--title", "Retro"]),
+    ("broadcasts update", &[SAMPLE, "--title", "Retro"]),
 ];
 
 /// The command tree, built once and read by every thread of a walk: building
@@ -106,6 +107,11 @@ static TREE: LazyLock<clap::Command> = LazyLock::new(|| {
     root.build();
     root
 });
+
+/// The built command tree, whose root carries the global flags.
+pub fn tree() -> &'static clap::Command {
+    &TREE
+}
 
 /// The command at `path` in the built tree.
 pub fn command_at(path: &str) -> &'static clap::Command {
@@ -298,6 +304,7 @@ pub async fn run_xr(origin: &str, seed: &Seed, name: &str, args: &[String], dry_
         skill_home: Some(skill_home.to_string_lossy().into_owned()),
         config_dirs: BTreeMap::new(),
     };
+    let flag_env = xurl::cli::env::FlagEnv::default();
     let file_arg = file.to_string_lossy().into_owned();
     let mut argv = vec!["xr".to_string()];
     if dry_run {
@@ -318,6 +325,7 @@ pub async fn run_xr(origin: &str, seed: &Seed, name: &str, args: &[String], dry_
         &store,
         &overrides,
         &skill_env,
+        &flag_env,
     );
     // A run against a local server has nothing to wait for. One that does
     // not return is waiting on a listener, a prompt, or a stream.

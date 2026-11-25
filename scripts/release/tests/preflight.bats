@@ -28,6 +28,15 @@ printf 'store=%s default=%s dev_without_oauth2=%s prod_without_oauth2=%s args=%s
   "$(yq '.default_app' "$store" 2>/dev/null)" \
   "$(yq '.apps.bird_dev.oauth2_tokens == null' "$store" 2>/dev/null)" \
   "$(yq '.apps.bird_prod.oauth2_tokens == null' "$store" 2>/dev/null)" "$*" >>"$STUB_XR_LOG"
+line="$store $*"
+if [[ -n "${STUB_XR_FAIL:-}" && "$line" == $STUB_XR_FAIL ]]; then
+  echo "stub: refused by the test" >&2
+  exit 1
+fi
+if [[ -n "${STUB_XR_HANG:-}" && "$line" == $STUB_XR_HANG ]]; then
+  : >"$STUB_XR_LOG.hung"
+  exec sleep 30
+fi
 app=""
 args=("$@")
 for ((i = 0; i < ${#args[@]}; i++)); do
@@ -75,12 +84,20 @@ EOF
 
   cat >"$T/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
-echo "cargo $*" >>"$STUB_XR_LOG"
+echo "cargo store=${XURL_TOKEN_STORE-unset} $*" >>"$STUB_XR_LOG"
+if [[ -n "${STUB_CARGO_HANG:-}" && "$*" == $STUB_CARGO_HANG ]]; then
+  : >"$STUB_XR_LOG.hung"
+  exec sleep 30
+fi
+if [[ -n "${STUB_CARGO_RM_GIT_LINK:-}" && "$(basename "$PWD")" == prev ]]; then
+  rm -f "$PWD/.git"
+fi
 EOF
 
   cat >"$T/op/read_field.sh" <<'EOF'
 #!/usr/bin/env bash
 echo "$1|$2" >>"$STUB_OP_LOG"
+[ -z "${STUB_OP_FAIL:-}" ] || exit 1
 echo "stub-value"
 EOF
   chmod +x "$T"/bin/* "$T/op/read_field.sh"
@@ -95,7 +112,7 @@ teardown() {
 }
 
 preflight() {
-  cd "$REPO_ROOT" && HOME="${PF_HOME:-$T/home}" TMPDIR="${PF_HOME:-$T/home}/tmp" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" \
+  cd "${PF_REPO:-$REPO_ROOT}" && HOME="${PF_HOME:-$T/home}" TMPDIR="${PF_TMPDIR:-${PF_HOME:-$T/home}/tmp}" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" \
     PATH="$T/bin:$PATH" STUB_XR_LOG="$T/xr.log" STUB_OP_LOG="$T/op.log" \
     run bash scripts/release/preflight.sh "$@"
 }
@@ -180,6 +197,7 @@ named_store() {
   [ "$(yq '.apps | keys | join(",")' "$seeded/.xurl/auth.yml")" = "bird_dev,bird_prod" ]
   [ "$(yq '.default_app' "$seeded/.xurl/auth.yml")" = bird_dev ]
   refute_in "^store=$seeded/.xurl " "$T/xr.log"
+  grep -q "^cargo store=$seeded/.xurl/auth.yml test --test live_smoke -- --ignored$" "$T/xr.log"
 }
 
 @test "a store the gate seeds is shredded on exit unless --no-cleanup is given" {
@@ -188,10 +206,182 @@ named_store() {
   [ -z "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-preflight-*')" ]
 }
 
-# The exit trap shreds only under /tmp and $HOME, and matches `"$HOME"/*`, which
-# a trailing slash or a `..` brings the home itself under. The home sits outside
-# /tmp so that only the $HOME arm of the guard can let it through.
-@test "a --smoke-home that names \$HOME by another spelling is not shredded" {
+@test "a store the gate seeds is shredded when the seed fails before it is written" {
+  STUB_OP_FAIL=1 preflight smoke
+  [ "$status" -ne 0 ]
+  [ -z "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-preflight-*')" ]
+}
+
+# gate_dirs_left: the directories a gate made under TMPDIR that no gate removed.
+gate_dirs_left() {
+  find "$T/home/tmp" -maxdepth 1 \( -name 'xr-preflight-*' -o -name 'xr-smoke-empty-*' -o -name 'xr-multi-fresh-*' -o -name 'xr-api-empty-*' -o -name 'xr-api-??????' \)
+}
+
+@test "a smoke gate whose command fails partway shreds its own directory and the home it seeded" {
+  STUB_XR_FAIL='*/xr-smoke-empty-*' preflight smoke
+  [ "$status" -ne 0 ]
+  grep -q "^store=$T/home/tmp/xr-smoke-empty-[^/]*/\.xurl/auth\.yml .*args=search rust " "$T/xr.log"
+  [ -z "$(gate_dirs_left)" ]
+}
+
+@test "a gate that fails partway still shreds its own directory under --no-cleanup, and keeps only the home it seeded" {
+  STUB_XR_FAIL='*/xr-smoke-empty-*' preflight --no-cleanup smoke
+  [ "$status" -ne 0 ]
+  grep -q "^store=$T/home/tmp/xr-smoke-empty-[^/]*/\.xurl/auth\.yml " "$T/xr.log"
+  [ -z "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-smoke-empty-*')" ]
+  [ -f "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-preflight-*')/.xurl/auth.yml" ]
+}
+
+@test "a multi-app gate whose command fails partway shreds the store it seeded and leaves the --smoke-home it was given" {
+  named_store "$T/home/named"
+  echo keep >"$T/home/named/notes.txt"
+  cp -p "$T/home/named/.xurl/auth.yml" "$T/before.yml"
+  STUB_XR_FAIL='*/xr-multi-fresh-*/.xurl/auth.yml auth oauth1 *' preflight --smoke-home "$T/home/named" multi-app
+  [ "$status" -ne 0 ]
+  grep -q "^store=$T/home/tmp/xr-multi-fresh-[^/]*/\.xurl/auth\.yml .*args=auth oauth1 " "$T/xr.log"
+  [ -z "$(gate_dirs_left)" ]
+  cmp "$T/before.yml" "$T/home/named/.xurl/auth.yml"
+  [ ! -e "$T/home/named/.xurl/auth.yml.bak" ]
+  [ "$(cat "$T/home/named/notes.txt")" = keep ]
+}
+
+# The api-contract gate adds a worktree of the previous tag to the repository it
+# runs in, so these tests run it in a throwaway one: a copy of the scripts and a
+# single tag. Its stubbed cargo builds nothing, so the gate's next command, the
+# previous release's xr, is the one that fails.
+api_repo() {
+  PF_REPO="$T/repo"
+  mkdir -p "$PF_REPO/scripts"
+  cp -R "$REPO_ROOT/scripts/release" "$PF_REPO/scripts/release"
+  git -C "$PF_REPO" init --quiet
+  git -C "$PF_REPO" config user.name test
+  git -C "$PF_REPO" config user.email test@example.invalid
+  git -C "$PF_REPO" config commit.gpgsign false
+  git -C "$PF_REPO" config tag.gpgsign false
+  git -C "$PF_REPO" add -A
+  git -C "$PF_REPO" commit --quiet -m base
+  git -C "$PF_REPO" tag v0.0.0
+}
+
+# worktrees_left: the worktrees of the throwaway repository beyond its own.
+worktrees_left() {
+  git -C "$PF_REPO" worktree list --porcelain | grep -c '^worktree ' | awk '{print $1 - 1}'
+}
+
+@test "an api-contract gate whose command fails partway removes its worktree and its directory" {
+  api_repo
+  preflight --tag v0.0.0 api-contract
+  [ "$status" -ne 0 ]
+  grep -q '^cargo .* build --release --bin xr$' "$T/xr.log"
+  [ -z "$(gate_dirs_left)" ]
+  [ "$(worktrees_left)" -eq 0 ]
+  [ -z "$(find "$PF_REPO/.git/worktrees" -mindepth 1 -maxdepth 1 2>/dev/null)" ]
+}
+
+# Without its .git link the worktree fails git's validation, so `git worktree
+# remove` refuses it and only the prune after the directory goes drops the entry.
+@test "an api-contract gate that fails once its worktree has lost its .git link leaves no registration" {
+  api_repo
+  STUB_CARGO_RM_GIT_LINK=1 preflight --tag v0.0.0 api-contract
+  [ "$status" -ne 0 ]
+  [ -z "$(gate_dirs_left)" ]
+  [ "$(worktrees_left)" -eq 0 ]
+  [ -z "$(find "$PF_REPO/.git/worktrees" -mindepth 1 -maxdepth 1 2>/dev/null)" ]
+}
+
+# The run gets its own session, so the signal reaches the whole group and not
+# the test runner. SIGINT is left out: a background job of this shell starts with
+# it ignored, and bash cannot trap what it inherited as ignored.
+@test "a SIGTERM that ends a gate mid-run shreds the directory it made and the home it seeded" {
+  command -v setsid >/dev/null || skip "setsid is not installed"
+  cd "$REPO_ROOT"
+  HOME="$T/home" TMPDIR="$T/home/tmp" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" PATH="$T/bin:$PATH" \
+    STUB_XR_LOG="$T/xr.log" STUB_OP_LOG="$T/op.log" STUB_XR_HANG='*/xr-smoke-empty-*' \
+    setsid bash -c 'echo $$ >"$1"; shift; exec bash scripts/release/preflight.sh "$@"' _ "$T/pgid" smoke >"$T/out" 2>&1 &
+  run_pid=$!
+  for _ in $(seq 100); do
+    [ -e "$T/xr.log.hung" ] && break
+    sleep 0.1
+  done
+  [ -e "$T/xr.log.hung" ]
+  [ -n "$(gate_dirs_left)" ]
+  kill -TERM -- "-$(cat "$T/pgid")"
+  wait "$run_pid" || true
+  [ -z "$(gate_dirs_left)" ]
+}
+
+@test "a SIGTERM that ends an api-contract gate mid-build removes its worktree and its directory" {
+  command -v setsid >/dev/null || skip "setsid is not installed"
+  api_repo
+  cd "$PF_REPO"
+  HOME="$T/home" TMPDIR="$T/home/tmp" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" PATH="$T/bin:$PATH" \
+    STUB_XR_LOG="$T/xr.log" STUB_OP_LOG="$T/op.log" STUB_CARGO_HANG='build *' \
+    setsid bash -c 'echo $$ >"$1"; shift; exec bash scripts/release/preflight.sh "$@"' _ "$T/pgid" --tag v0.0.0 api-contract >"$T/out" 2>&1 &
+  run_pid=$!
+  for _ in $(seq 100); do
+    [ -e "$T/xr.log.hung" ] && break
+    sleep 0.1
+  done
+  [ -e "$T/xr.log.hung" ]
+  [ -n "$(gate_dirs_left)" ]
+  [ "$(worktrees_left)" -eq 1 ]
+  kill -TERM -- "-$(cat "$T/pgid")"
+  wait "$run_pid" || true
+  [ -z "$(gate_dirs_left)" ]
+  [ "$(worktrees_left)" -eq 0 ]
+}
+
+# TMPDIR outside /tmp and $HOME is where macOS keeps it. Each home a gate made
+# is read from the stub's log: a count under TMPDIR proves nothing once the
+# homes sit elsewhere.
+@test "every directory a gate makes is removed on exit when TMPDIR sits outside /tmp and \$HOME, and a --smoke-home survives" {
+  OUTSIDE_TMP=$(mktemp -d /var/tmp/xr-preflight-bats-XXXXXX)
+  PF_TMPDIR="$OUTSIDE_TMP"
+  for gate in smoke multi-app; do
+    rm -f "$T/xr.log"
+    preflight "$gate"
+    [[ "$output" != *"refusing to shred"* ]]
+    [ "$status" -eq 0 ]
+    homes=$(grep -oE 'store=[^ ]+/\.xurl/auth\.yml' "$T/xr.log" | sed -e 's/^store=//' -e 's|/\.xurl/auth\.yml$||' | sort -u)
+    [ "$(printf '%s\n' "$homes" | wc -l)" -eq 2 ]
+    while IFS= read -r home; do
+      [ ! -e "$home" ]
+    done <<<"$homes"
+  done
+  named_store "$T/home/named"
+  echo keep >"$T/home/named/notes.txt"
+  cp -p "$T/home/named/.xurl/auth.yml" "$T/before.yml"
+  preflight --smoke-home "$T/home/named" smoke
+  [ "$status" -eq 0 ]
+  cmp "$T/before.yml" "$T/home/named/.xurl/auth.yml"
+  [ "$(cat "$T/home/named/notes.txt")" = keep ]
+}
+
+@test "a --smoke-home survives exit without --no-cleanup, and the live test gets its store" {
+  named_store "$T/home"
+  echo keep >"$T/home/notes.txt"
+  cp -p "$T/home/.xurl/auth.yml" "$T/before.yml"
+  preflight --smoke-home "$T/home" smoke
+  [ "$status" -eq 0 ]
+  cmp "$T/before.yml" "$T/home/.xurl/auth.yml"
+  [ "$(cat "$T/home/notes.txt")" = keep ]
+  grep -q "^cargo store=$T/home/.xurl/auth.yml test --test live_smoke -- --ignored$" "$T/xr.log"
+}
+
+@test "a home the caller names survives exit when no gate runs, and when SMOKE_HOME names it" {
+  named_store "$T/home"
+  cp -p "$T/home/.xurl/auth.yml" "$T/before.yml"
+  preflight --smoke-home "$T/home" --help
+  [ "$status" -eq 0 ]
+  cmp "$T/before.yml" "$T/home/.xurl/auth.yml"
+  SMOKE_HOME="$T/home" preflight smoke
+  [ "$status" -eq 0 ]
+  cmp "$T/before.yml" "$T/home/.xurl/auth.yml"
+}
+
+# A named home is read, never shredded, whichever way it spells $HOME. The home
+# sits outside /tmp so that only the $HOME arm of the shred guard could pass it.
+@test "a --smoke-home that names \$HOME by another spelling is read and left alone" {
   OUTSIDE_TMP=$(mktemp -d /var/tmp/xr-preflight-bats-XXXXXX)
   PF_HOME="$OUTSIDE_TMP"
   mkdir -p "$PF_HOME/tmp" "$PF_HOME/sub"
@@ -199,7 +389,8 @@ named_store() {
     named_store "$PF_HOME"
     echo keep >"$PF_HOME/notes.txt"
     preflight --smoke-home "$spelling" smoke
-    [[ "$output" == *"refusing to shred outside /tmp or \$HOME: $PF_HOME"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"refusing to shred"* ]]
     [ -f "$PF_HOME/.xurl/auth.yml" ]
     [ "$(cat "$PF_HOME/notes.txt")" = keep ]
   done

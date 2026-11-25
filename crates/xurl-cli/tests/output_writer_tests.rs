@@ -24,6 +24,8 @@ fn print_message_writes_to_supplied_writer_text() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -43,6 +45,8 @@ fn print_message_json_wraps_as_envelope() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -64,6 +68,8 @@ fn info_writes_nothing_when_quiet() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -82,6 +88,8 @@ fn status_writes_nothing_when_quiet() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -100,6 +108,8 @@ fn info_writes_nothing_when_format_is_json() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -118,6 +128,8 @@ fn status_writes_nothing_when_format_is_json() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -136,6 +148,8 @@ fn info_writes_message_when_text_and_not_quiet() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -155,6 +169,8 @@ fn print_response_emits_json_in_json_format() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let value = serde_json::json!({"id": "abc", "n": 7});
@@ -177,6 +193,8 @@ fn print_response_no_ansi_in_json_format() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let value = serde_json::json!({"id": "abc"});
@@ -201,6 +219,8 @@ fn print_response_text_no_color_writes_pretty_json() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let value = serde_json::json!({"k": "v"});
@@ -222,6 +242,8 @@ fn print_stream_line_writes_with_trailing_newline() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -241,6 +263,8 @@ fn print_error_writes_to_error_writer_only() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut err_buf: Vec<u8> = Vec::new();
@@ -262,6 +286,8 @@ fn print_error_emits_structured_json_when_format_is_json() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut err_buf: Vec<u8> = Vec::new();
@@ -289,6 +315,8 @@ fn print_error_auth_method_mismatch_envelope_shape_r10() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut err_buf: Vec<u8> = Vec::new();
@@ -359,6 +387,8 @@ fn print_error_auth_method_mismatch_envelope_empty_intersection_shape() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut err_buf: Vec<u8> = Vec::new();
@@ -399,6 +429,8 @@ fn print_error_does_not_write_to_unrelated_stdout_buffer() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut stdout_buf: Vec<u8> = Vec::new();
@@ -425,6 +457,8 @@ fn verbose_writes_under_text_when_verbose_flag_on() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -446,6 +480,8 @@ fn verbose_suppressed_under_json_even_when_verbose_on() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -467,6 +503,8 @@ fn verbose_suppressed_under_quiet() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -485,6 +523,8 @@ fn verbose_suppressed_when_verbose_flag_off() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -503,6 +543,8 @@ fn warning_writes_under_text() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -527,6 +569,8 @@ fn warning_suppressed_under_json() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -548,6 +592,8 @@ fn warning_under_jsonl_also_suppressed() {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     };
     let mut buf: Vec<u8> = Vec::new();
@@ -577,6 +623,8 @@ fn fmt_cfg(format: OutputFormat) -> OutputConfig {
         raw: false,
         no_interactive: false,
         response_schema: None,
+        app_from_env: None,
+        format_spelling: Default::default(),
         warnings: Default::default(),
     }
 }
@@ -822,9 +870,9 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
     body.exit_code = 2;
     body.message = Some("no app carries client credentials.".to_string());
     body.app = Some("blank".to_string());
-    body.next_step = Some(xurl::cli::hints::NextStep::select_app(
+    body.next_step = Some(json_config().carry(xurl::cli::hints::NextStep::select_app(
         "xr auth oauth2 --app work".to_string(),
-    ));
+    )));
     let emitted = body.into_value().to_string();
     assert_round_trips(&emitted, "client-credentials-missing");
     assert!(

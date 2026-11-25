@@ -19,19 +19,22 @@ use xdk::store::TokenStore;
 /// The command a usage error of `xr auth oauth2` closes on the help of.
 const OAUTH2_COMMAND: &str = "xr auth oauth2";
 
-/// Arguments of `xr auth oauth2`: whether to suppress the browser, which
-/// manual step to run, the redirect URL that step 2 exchanges, the scopes to
-/// request instead of every one, and the username label for the saved token.
-pub(super) struct Oauth2Args {
+/// Arguments of `xr auth oauth2`: whether to suppress the browser and whether
+/// `--no-browser` was typed, which manual step to run, the redirect URL that
+/// step 2 exchanges, the scopes to request instead of every one, the username
+/// label for the saved token, and the words the run was invoked with.
+pub(super) struct Oauth2Args<'a> {
     pub(super) no_browser: bool,
+    pub(super) no_browser_typed: bool,
     pub(super) step: Option<u8>,
     pub(super) auth_url: Option<String>,
     pub(super) scopes: Option<Vec<String>>,
     pub(super) username: Option<String>,
+    pub(super) invocation: &'a [String],
 }
 
 pub(super) async fn oauth2(
-    args: Oauth2Args,
+    args: Oauth2Args<'_>,
     mut auth: Auth,
     cfg: &Config,
     flags: AuthGlobalFlags,
@@ -41,10 +44,12 @@ pub(super) async fn oauth2(
 ) -> CommandResult<()> {
     let Oauth2Args {
         no_browser,
+        no_browser_typed,
         step,
         auth_url,
         scopes,
         username,
+        invocation,
     } = args;
     let AuthGlobalFlags {
         dry_run,
@@ -59,25 +64,29 @@ pub(super) async fn oauth2(
             "username": username,
         })
     };
+    if no_browser_typed && !no_browser && step.is_some() {
+        let message = "--no-browser=false cannot be used with --step: a typed --step runs the \
+                       no-browser flow.";
+        if dry_run {
+            out.print_dry_run_invalid_args(stdout, &dry_run_ctx(), message, " ", OAUTH2_COMMAND);
+            return Ok(());
+        }
+        return Err(refused_argument(message, out, stderr));
+    }
     if let Some(scopes) = scopes
         && let Err(error) = auth.with_oauth2_scopes(&scopes)
     {
         return Err(if dry_run {
-            Failure::DryRunRefusal {
+            Failure::DryRunInvalid {
                 ctx: dry_run_ctx(),
                 error,
             }
         } else {
-            error.into()
+            Failure::refused(error)
         });
     }
-    // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
-    // harness) and the user did not pass `--no-browser` (or set
-    // `XURL_NO_BROWSER`). Opening a browser the caller can't see would
-    // silently strand the flow, so promote to the remote two-step
-    // path and surface the auth URL on stdout.
-    let auto_engage_no_browser = !no_browser && !std::io::stdout().is_terminal();
-    let effective_no_browser = no_browser || auto_engage_no_browser;
+    let effective_no_browser =
+        runs_no_browser_flow(no_browser, step, std::io::stdout().is_terminal());
     // The interactive flow reads neither `--step` nor `--auth-url`.
     let refused = if effective_no_browser {
         auth_url_refusal(step, auth_url.as_deref()).map(str::to_string)
@@ -94,6 +103,7 @@ pub(super) async fn oauth2(
                 auth_url: auth_url.as_deref(),
                 refused,
                 ctx: dry_run_ctx(),
+                invocation,
             },
             out,
             stdout,
@@ -105,18 +115,21 @@ pub(super) async fn oauth2(
     let username_arg = username.as_deref().unwrap_or("");
     let client = crate::cli::commands::make_client(cfg, auth)?;
     // Refuse before any URL is built or pending file written when the store
-    // cannot be loaded or written, the target app has no client id to sign in
-    // with, or the store holds no app by the name `--app` gives. Step 2 checks
-    // the app after the saved flow, whose owner names the app to run it under.
+    // cannot be loaded or written, the store holds no app by the name `--app`
+    // gives, or the target app has no client id to sign in with. An app the
+    // store does not hold has no client id to lack, so it is named first.
+    // Step 2 checks the app after the saved flow, whose owner names the app to
+    // run it under, so it leaves an app the store does not hold to that check.
     let refusal = {
         let auth = client.auth().await?;
         auth.token_store.refuse_unless_writable()?;
-        let refusal =
-            client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false);
-        if refusal.is_none() && !(effective_no_browser && step == Some(2)) {
-            auth.token_store.refuse_if_app_missing(auth.app_name())?;
+        match auth.token_store.refuse_if_app_missing(auth.app_name()) {
+            Err(error) if !(effective_no_browser && step == Some(2)) => {
+                return Err(Failure::from(error));
+            }
+            Err(_) => None,
+            Ok(()) => client_credentials_missing(&auth, app_explicit, invocation, out),
         }
-        refusal
     };
     if let Some(body) = refusal {
         out.emit_error_envelope(stderr, body);
@@ -192,7 +205,11 @@ pub(super) async fn oauth2(
                             url,
                             instructions: format!(
                                 "Open the URL in a browser, authorize, then run '{}'",
-                                step_two(username_arg, &app, "<redirect-url>")
+                                crate::cli::rerun::name_format(
+                                    &step_two(username_arg, &app, "<redirect-url>"),
+                                    &out.format,
+                                    out.format_spelling
+                                )
                             ),
                         };
                         out.print_response(stdout, &document.into_value());
@@ -264,6 +281,14 @@ pub(super) async fn oauth2(
     Ok(())
 }
 
+/// Whether the sign-in runs the no-browser flow: it was asked for, a typed
+/// `--step` names it, or stdout is no terminal. Opening a browser nobody can
+/// see (a piped run, CI, an agent harness) would strand the flow, so the
+/// auth URL goes to stdout instead.
+fn runs_no_browser_flow(no_browser: bool, step: Option<u8>, stdout_is_terminal: bool) -> bool {
+    no_browser || step.is_some() || !stdout_is_terminal
+}
+
 /// What a dry run of `xr auth oauth2` knows of the run it stands for.
 struct DryRun<'a> {
     auth: &'a Auth,
@@ -274,6 +299,7 @@ struct DryRun<'a> {
     /// What the headless flow refuses about `--auth-url` itself.
     refused: Option<String>,
     ctx: serde_json::Value,
+    invocation: &'a [String],
 }
 
 /// Answers a dry run of `xr auth oauth2` with the verdict the real run
@@ -297,6 +323,7 @@ fn dry_run_answer(
         auth_url,
         refused,
         ctx,
+        invocation,
     } = plan;
     if let Some(message) = refused {
         out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
@@ -305,15 +332,16 @@ fn dry_run_answer(
     if let Err(error) = auth.token_store.refuse_unless_writable() {
         return Err(Failure::DryRunRefusal { ctx, error });
     }
-    if let Some(body) =
-        client_credentials_missing(auth, app_explicit, out.format.is_structured(), true)
-    {
-        out.print_dry_run_error_body(stdout, &ctx, body);
-        return Ok(());
-    }
     let step2 = headless && step == Some(2);
-    if !step2 && let Err(error) = auth.token_store.refuse_if_app_missing(auth.app_name()) {
-        return Err(Failure::DryRunRefusal { ctx, error });
+    match auth.token_store.refuse_if_app_missing(auth.app_name()) {
+        Err(error) if !step2 => return Err(Failure::DryRunRefusal { ctx, error }),
+        Err(_) => {}
+        Ok(()) => {
+            if let Some(body) = client_credentials_missing(auth, app_explicit, invocation, out) {
+                out.print_dry_run_error_body(stdout, &ctx, body);
+                return Ok(());
+            }
+        }
     }
     if step2 {
         let redirect_url = match auth_url {
@@ -329,6 +357,11 @@ fn dry_run_answer(
         };
         let pending_path = xdk::auth::pending::pending_path_for_store(&auth.token_store.file_path);
         if let Err(error) = auth.check_remote_oauth2_step2(redirect_url.as_deref(), &pending_path) {
+            return Err(Failure::DryRunRefusal { ctx, error });
+        }
+    } else if headless {
+        let pending_path = xdk::auth::pending::pending_path_for_store(&auth.token_store.file_path);
+        if let Err(error) = auth.check_remote_oauth2_step1(&pending_path) {
             return Err(Failure::DryRunRefusal { ctx, error });
         }
     }
@@ -515,15 +548,18 @@ pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult
 ///
 /// The effective client id comes from the [`Auth`] accessor, so `CLIENT_ID`
 /// exported in the environment counts regardless of how the app was
-/// selected. When another app does carry credentials the hint names it;
-/// otherwise the hint is registration, whose values only the caller has. A
-/// dry run's hint reruns the sign-in under `--dry-run`.
+/// selected. When another app does carry credentials the hint names it, and
+/// runs `invocation` again from its first step under that app; otherwise the
+/// hint is registration, whose values only the caller has. `invocation` names
+/// `--dry-run` when the run is one, so a dry run's hint reruns the sign-in as
+/// a rehearsal.
 fn client_credentials_missing(
     auth: &Auth,
     app_explicit: bool,
-    structured: bool,
-    dry_run: bool,
+    invocation: &[String],
+    out: &OutputConfig,
 ) -> Option<ErrorBody> {
+    let structured = out.format.is_structured();
     if !auth.client_id().is_empty() {
         return None;
     }
@@ -543,11 +579,7 @@ fn client_credentials_missing(
     let (prose, next_step) = match credentialed.first() {
         Some(alternative) => (
             format!("app {target:?} has no client credentials; app {alternative:?} does."),
-            NextStep::select_app(
-                NextStep::sign_in(Some(alternative), structured)
-                    .command
-                    .unwrap_or_default(),
-            ),
+            NextStep::select_app_sign_in(invocation, structured, alternative),
         ),
         None => (
             if app_explicit {
@@ -558,11 +590,7 @@ fn client_credentials_missing(
             NextStep::register_app(),
         ),
     };
-    let next_step = if dry_run {
-        next_step.under_dry_run()
-    } else {
-        next_step
-    };
+    let next_step = out.carry(next_step);
     // The text derives from the built value, so the prose and the
     // machine-readable step cannot name different commands.
     let message = match next_step.display_invocation() {
@@ -582,7 +610,20 @@ fn client_credentials_missing(
 
 #[cfg(test)]
 mod tests {
-    use super::step_two;
+    use super::{runs_no_browser_flow, step_two};
+
+    #[test]
+    fn a_typed_step_names_the_no_browser_flow_on_a_terminal() {
+        assert!(runs_no_browser_flow(false, Some(1), true));
+        assert!(runs_no_browser_flow(false, Some(2), true));
+    }
+
+    #[test]
+    fn the_browser_flow_runs_only_on_a_terminal_with_neither_flag() {
+        assert!(!runs_no_browser_flow(false, None, true));
+        assert!(runs_no_browser_flow(true, None, true));
+        assert!(runs_no_browser_flow(false, None, false));
+    }
 
     #[test]
     fn step_two_carries_the_name_and_app_step_one_was_given() {

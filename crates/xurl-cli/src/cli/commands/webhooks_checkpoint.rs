@@ -63,7 +63,7 @@ fn write_failed(out: &OutputConfig, stderr: &mut dyn Write, error: &Error) {
         let record = json!({
             "status": "checkpoint-failed",
             "cause": error.to_string(),
-            "next_step": NextStep::fix_input(None),
+            "next_step": out.carry(NextStep::fix_input(None)),
         });
         let _ = writeln!(stderr, "{record}");
     } else {

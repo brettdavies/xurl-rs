@@ -7,6 +7,7 @@ mod media_upload;
 mod request;
 pub mod response;
 pub mod shortcuts;
+mod url_authority;
 
 pub use endpoints::is_streaming_endpoint;
 #[allow(unused_imports)]
@@ -24,6 +25,10 @@ pub use media::{
     handle_media_append_request, is_media_append_request, media_status_auth_preflight,
     media_upload_preflight,
 };
+// The cut of a URL around its authority, which `validate_webhook_url` reads
+// the userinfo and port from and `xr webhooks add` and `xr webhooks listen
+// --forward` print their URL without the userinfo of; an embedder reads a URL
+// with `url::Url`.
 pub(crate) use request::api_error;
 pub use request::{
     AuthPreflight, Call, Client, ClientBuilder, DEFAULT_TIMEOUT_SECS, MultipartOptions,
@@ -36,19 +41,23 @@ pub use response::types::{
     AccountActivitySubscription, AccountActivitySubscriptionCount, AccountActivitySubscriptions,
     AnalyticsBucket, AnalyticsMetrics, ApiError, ApiResponse, ArticleDraft, ArticlePublished,
     BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast,
-    BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult, ChatMute, ChatMutedResult,
-    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
-    FollowingResult, HiddenResult, Includes, IngestRegion, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, Media, MediaAnalytics, MediaAnalyticsBucket, MediaMetadataResult,
-    MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsClusterPost,
-    NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post,
-    PostAnalytics, PostCount, PostPublicMetrics, ProvisionedResult, ReferencedPost, RepostedResult,
-    ResponseMeta, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallInvitee,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,
-    StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted, StreamSourceKey,
-    SubscribedResult, Trend, UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall, deserialize_response,
+    BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    DmSentResult, FollowingResult, HiddenResult, Includes, IngestRegion, LikedResult, List,
+    ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaAnalyticsBucket,
+    MediaMetadataResult, MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse,
+    MutingResult, NewsClusterPost, NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated,
+    PostDraftMedia, PostDraftReply, PostDraftThreadPost, PostPublicMetrics, ProvisionedResult,
+    ReferencedPost, RepostedResult, ResponseMeta, ScheduledBroadcast, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallInvitee, ScheduledCallRsvp, ScheduledCallUpdated, Space,
+    StreamRule, StreamRuleAppCount, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
+    UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]
 pub use shortcuts::{VideoCategory, resolve_post_id, resolve_username};
+#[doc(hidden)]
+pub use url_authority::{UrlParts, split_special_url};

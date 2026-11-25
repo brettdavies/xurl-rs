@@ -69,6 +69,18 @@ serve and the endpoint accepts, trying OAuth2, then OAuth1, then the Bearer. A s
 on an endpoint that accepts both, and the Bearer drives the call only when no login serves the endpoint or `--auth app`
 names it. Multi-app is supported in the token store; `xr auth status` enumerates them.
 
+An app named with `--app` (or `XURL_APP`) is one the store holds, or the run is refused: a name the store does not hold
+exits 77 with reason `token-store` before any request goes out, with the name in `value` and the apps the store holds
+in `held`, and no other app's credential (nor `XURL_BEARER_TOKEN`) stands in for it. The `message` ends with
+`(from XURL_APP)` when `XURL_APP` gave the name, no `--app` overrode it, and the command was not given the name as an
+argument of its own (a store command such as `auth default <name>` reads that one): `OutputConfig::app_from_env`
+carries that, read from clap's value source, so the library's `Error::AppNotFound` stays free of it. An empty name is
+the default app.
+A `--dry-run` answers the same refusal with `would_succeed: false` and no `auth` key. `Error::AppNotFound` carries the
+name and the apps the store holds, and store commands return it too. A store file that could not be loaded holds no apps
+to check the name against: the name is not refused there, the stored credentials are out of reach, and
+`XURL_BEARER_TOKEN`, when set, serves the run as it does without `--app`.
+
 On exit 77 the error names what to do next. Read it from the envelope rather than guessing:
 
 ```bash
@@ -96,11 +108,26 @@ or the bearer token with `--auth` has not asked for a login. A raw request is he
 for its method and path, a path that carries an id taking those of the template it fits, and to every scheme when the
 matrix lists none.
 
+A request X refused over its credential carries `auth`, the object its dry run carries without `token_expired`, and the
+step `rejected_hint` in `crates/xurl-cli/src/cli/credential_step.rs` chooses. `crates/xurl-cli/src/cli/commands/sent.rs`
+reads the credential with `Call::stored_credential` before each send and hands it to `Failure::Rejected`, so no library
+error changes. A request that carries its own `Authorization` header reads none, so its 401 and 403 keep their envelope.
+A 401 (exit 77, `auth-required`) takes the step that gets the same credential again: the sign-in for an OAuth2 login,
+under its name and always `--app` its app; `fix-input` with the `template` that stores an OAuth1 pair or a bearer token
+in its app; and `fix-input` with `docs` alone for `XURL_BEARER_TOKEN`, which belongs to no app. A 403 (exit 1,
+`forbidden`) is a credential refusal only when its problem `type` ends in `/problems/unsupported-authentication`, which
+X gives a scheme the endpoint does not take; its step is the one a request no stored credential serves takes, over the
+schemes the command accepts but the refused one, and a command with no row in `accepted_auth.rs` keeps its envelope.
+Every other 403 keeps its envelope, with no `auth` key: X's generic `about:blank` 403 for a login that lacks a scope
+names no credential, and an enrollment refusal is about the app. A 401 on the status read after `xr media upload`
+finished keeps the `resume-wait` template and carries no `auth` key.
+
 Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
 `invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,
 `invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):
-`command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped.
-`resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media processing reached its deadline with the
+`command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped. An
+`invalid-args` refusal with an environment variable on a side takes `fix-input` instead. `resume-wait` rides on reason
+`processing-timeout` (exit 1): a wait on media processing reached its deadline with the
 job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the
 `xr media status <media_id> --wait=<secs>` that waits again for twice as long. It also rides on `network-error`,
 `server-error`, and `api-error` on a 408 when the request that failed was a status read after `xr media upload`
@@ -119,11 +146,14 @@ fits `--rate-limit-max-wait` (60 seconds unless set).
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`, and `api-error` on a 408) says nothing was wrong with the
 request. `fix-input` (`not-found`, `invalid-request`, `validation-failed`, `io`, `forbidden` for a token endpoint's 403,
-`token-store` for an app or login name the store refuses, and the skill verbs' machine-state reasons) says the same
-invocation fails again until its input or the state it read changes. Under `token-store`, it carries `xr auth status`,
+`api-error` for a token endpoint answer with no OAuth error code, `token-store` for an app or login name the store
+refuses, and the skill verbs' machine-state reasons) says the same invocation fails again until its input or the state
+it read changes. Under `token-store`, it carries `xr auth status`,
 which lists what the store holds. Under `address-in-use`, a port another process holds, it carries `listen` again on
-`--port 0`: a `command`, or a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t`
-given before a command word that takes it, it carries the invocation with the flag after the word, and for an old `xr
+`--port 0`: a `command`, or a `template` that hides each `-H` value. Under `invalid-args`, for a refusal with an
+environment variable on a side, it carries `docs` alone, the README section on how a flag and a variable resolve, since
+no help page shows which variable is set and no `xr` command changes a caller's environment; for `-u`, `--auth`, or
+`-t` given before a command word that takes it, it carries the invocation with the flag after the word, and for an old `xr
 schema` name or a bare scope word (`envelope`), the `xr schema` invocation that works; for an `xr schema --path` segment
 that names no property, it carries a `template` ending in `<property>` beside `known_properties`. Under `auth-required`,
 for a `webhooks listen` whose app has no secret to verify X's signatures by, it carries a `template` that stores the
@@ -131,13 +161,15 @@ secret `--secret` names: the OAuth1 credentials under `--secret oauth1`, the app
 oauth2 --step 2` whose redirect URL did not parse, or whose saved flow belongs to another stored app, it carries a
 `template` that runs step 2 again with the URL, which holds an authorization code, left as `<redirect-url>`. For a 401
 on the status read after `xr media upload` finished, it carries the command that resumes the wait as a `template`, to
-run once the credential works, since reading again under the same credential fails the same way. A 403 from the token
-endpoint on that read, which a refresh during the wait meets, carries the same template, to run once `TOKEN_URL` and the
-proxy are fixed. For a 403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the
-token endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other
-status) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the
-invocation with `--force`, under the `--app` the refusal's `app` key names: it is never a `command`, so an agent that
-runs every command it is handed cannot confirm a deletion by accident. `run-command` names the sibling skill verb that
+run once the credential works, since reading again under the same credential fails the same way. So does an answer from
+the token endpoint on that read, which a refresh during the wait meets, whose JSON `error` is none of the six codes of
+RFC 6749 section 5.2 (`REFUSAL_CODES` in `crates/xdk/src/auth/token_endpoint.rs`), other than a 404, a 408, a 429, or a
+5xx: the template runs once `TOKEN_URL` and the proxy are fixed, and `docs` names the README section on the token
+endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other status)
+names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and
+carries a `template`, the invocation with `--force`, under the `--app` the refusal's `app` key names: it is never a
+`command`, so an agent that runs every command it is handed cannot confirm a deletion by accident. `run-command` names
+the sibling skill verb that
 repairs `destination-not-empty` or `not-installed`. Under `destination-not-empty` from `skill update` itself, whose
 directory holds something other than the bundle, the step is `fix-input` and `refused_dir` names the directory, since
 nothing but the caller moves what `xr` did not install.
@@ -193,8 +225,13 @@ kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and th
 `validation` refusal also carries `rule`, the validator's kebab-case code for the input rule it broke, and its `message`
 is the sentence for that rule, from the one function in `crates/xurl-cli/src/cli/output/validation.rs` that text output
 and any help stating the rule also call. When the rule names the offending input, `value` carries it as given, always a
-string. It also carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table
-under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
+string: a validator's closure answers `Result<(), Invalid>`, and `checked` and `checked_each` in
+`crates/xurl-cli/src/cli/commands/mod.rs` build the refusal with the input, the first one a batch refused. A rule no
+single input broke (`too-many-ids`, `mixed-ids-and-handles`, `no-list-changes`) carries none, and so does a blank input
+to those two builders, which has nothing to name. For `--forward` and `webhooks add`, `value` never repeats a URL with
+an `@` in it, and a dry run's `url` and `forward.url` drop its username and password, since it may hold a credential. It
+also carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table under "Which
+Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
 `crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
 fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
 caller finishes or decides on first: angle-bracket placeholders to fill; under `confirm`, the invocation that destroys
@@ -202,13 +239,42 @@ once it runs; or, after a 401 or a 429 with no reset on the status read after `x
 once the credential works or the window passes. A new error picks an existing action where one fits, and does not ship
 without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
 
+A step that runs `xr` answers in the output format the failed run did. `NextStep` has no `Serialize`, and every envelope
+field that holds a step holds a `CarriedStep`, which only `OutputConfig::carry` makes: it puts the format after the
+program word of each step but `show-help`, spelled as the run chose it: `--json` or `--jsonl` when that flag,
+`XURL_JSON`, or `XURL_JSONL` decided the format, `--output <format>` otherwise. A step built by running the invocation
+again also keeps `--dry-run` and `--app` as flags: `explicit_invocation` writes what `XURL_DRY_RUN` and `XURL_APP` chose
+after the program word, so the step runs the same in a shell without the variable; the sign-in that answers a refused
+`auth oauth2 --step 2` is such a step. Any other step that signs in or stores a credential is not a rehearsal and takes
+no `--dry-run`, and a sign-in names the app the run used, the default one included. `crates/xurl-cli/src/cli/rerun.rs`
+holds the tables.
+
+Two settings resolve by layer in `crates/xurl-cli/src/cli/settings.rs`: the output format (`--output`, `--json`,
+`--jsonl`) and the page token (`--cursor`, `--after`). A typed spelling beats every variable of its setting, and of
+several typed spellings the last wins, across the command word too, which the resolver reads from argv. With none typed,
+two variables that name a value are refused with both named, and one decides. A boolean variable that reads false
+(`XURL_JSON=0`) and an empty variable name no value. `crates/xurl-cli/src/cli/env.rs` reads `XURL_JSON`, `XURL_JSONL`,
+`XURL_CURSOR`, and `XURL_AFTER` into `FlagEnv`, which `run_with_env` takes as data beside `XURL_OUTPUT` on
+`EnvOverrides`, and none of the five binds in clap, since clap counts a value read from the environment as typed. A
+variable that decides a setting is then checked against the arguments clap declares in conflict with its spelling, so
+`XURL_CURSOR` beside `--page` is refused, and a refusal that has a variable on a side names it as an environment
+variable, carries a `tip:` line that says which edit clears it, and takes a `fix-input` step with `docs` alone. A
+refusal is `invalid-args` at exit 2, in the format
+the caller named, which `output_intent` reads from the same layers and never refuses. Every parse of argv goes through
+`crates/xurl-cli/src/cli/parse.rs`, which removes the binding of a boolean flag whose variable reads as the flag's
+absent value, so a false variable is unset for the flags that keep a binding;
+`crates/xurl-cli/tests/parse_path_guard.rs` fails for a parse anywhere else. A flag with a second spelling and a
+variable goes in the settings table with no `env =` and overrides every spelling of its setting;
+`crates/xurl-cli/tests/flag_env_guard.rs` fails for a variable bound to an overriding flag, for an override outside the
+table, and for a conflict between a flag and a variable whose refusal leaves the variable unnamed.
+
 `--dry-run` sends nothing and changes no stored credential on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
-invalid input, for a request no stored credential serves, for a sign-in whose arguments, client id, saved flow, or
-redirect URL the real run refuses, or for a store write or an expired OAuth2 login's refresh the token store would
-refuse; `reason` says which, `exit_code` is the code the real run would end on, and each refusal carries the keys of the
-real run's error envelope, `message` and `next_step` among them. An invalid input answers with its real run's `reason`,
-`validation`, its `rule`, and the sentence for that rule as `message`; a step that reruns the invocation keeps
+invalid input, for a request no stored credential serves, for a sign-in whose arguments, client id, authorize URL, saved
+flow, or redirect URL the real run refuses, or for a store write or an expired OAuth2 login's refresh the token store
+would refuse; `reason` says which, `exit_code` is the code the real run would end on, and each refusal carries the keys
+of the real run's error envelope, `message` and `next_step` among them. An invalid input answers with its real run's
+`reason`, `validation`, its `rule`, and the sentence for that rule as `message`; a step that reruns the invocation keeps
 `--dry-run`. `auth` names the credential the request would go out under (the `app` it is stored under, its `scheme`, and
 for OAuth2 `username` and `token_expired`), read offline: an expired token is reported and not refreshed once the store
 passes the check the refresh makes before it asks X, and whether X still accepts the credential is not checked. The flag
@@ -288,7 +354,9 @@ never the tests.
   four. A command with a post id argument checks it with `valid_post_id` before any other input, so a value that is
   neither digits nor a post URL is refused as `invalid-post-id` before a request goes out (`post --clip` has its own
   rule, `invalid-clip-post-id`); `crates/xurl-cli/tests/post_id_guard.rs` fails for a command that accepts one or sends
-  first.
+  first. Every input a command validates is named in the refusal: `crates/xurl-cli/tests/validation_value_guard.rs` runs
+  each command once per argument with a malformed value, for real and under `--dry-run`, and fails for a validation
+  refusal that leaves that value out of `value`.
 - **Accepted auth.** A row in `crates/xurl-cli/src/cli/accepted_auth.rs` naming the endpoints the command's requests
   reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
   schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes
@@ -308,6 +376,13 @@ never the tests.
 - **Examples page.** An `xr <family>` line under the use-case section it belongs to in
   `crates/xurl-cli/src/cli/commands/examples.rs`. `crates/xurl-cli/tests/agentic_tests.rs` fails for a family the page
   never invokes.
+- **Step context.** Nothing to add for a command: its steps reach an envelope through `OutputConfig::carry`, which the
+  type of each envelope's `next_step` demands. A new global flag takes a row in `CARRIED_GLOBALS` or in
+  `DROPPED_GLOBALS` with its reason, and a new `NextAction` a row in `FORMAT_POLICY`, both in
+  `crates/xurl-cli/src/cli/rerun.rs`. `crates/xurl-cli/tests/rerun_walk.rs` fails for a flag or an action with neither,
+  and runs every command over every store shape, as a real run, a dry run, and a run under `--app`, failing for a step
+  that drops what its run asked for. `crates/xurl-cli/tests/rerun_env_tests.rs` spawns `xr` with the variables set and
+  none of the flags.
 - **Completions.** `scripts/generate-completions.sh`; CI's completions freshness gate fails when they are stale.
 - **Audit vocabulary.** A new top-level command word that anc does not count as a standard verb goes in
   `domain_verbs` in `.anc.toml`. CI's `Agent-native audit` warns once too few of `xr`'s commands use standard or
@@ -382,11 +457,11 @@ The line between the crates holds on four rules; a change that crosses one belon
    `xdk::auth`, `xdk::store`, `xdk::config`, `xdk::webhooks`); it never writes to stdout or stderr and never opens a
    browser. It reads the process environment in one place, `EnvOverrides::from_env`, which takes the client variables
    (`CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`,
-   `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, the skill hosts'
-   config- and base-directory variables (named in `crates/xurl-cli/src/cli/skill_install/skill.json`), and the `PATH`
-   and `PATHEXT` that find a `webhooks listen` program are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the
-   loopback OAuth2 callback listener, binding the webhook receiver, and reading or writing `~/.xurl/auth.yml` are
-   network and file I/O, and belong to the library.
+   `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`, `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, `XURL_AFTER`,
+   `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, the skill hosts' config- and base-directory variables (named in
+   `crates/xurl-cli/src/cli/skill_install/skill.json`), and the `PATH` and `PATHEXT` that find a `webhooks listen`
+   program are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the loopback OAuth2 callback listener, binding
+   the webhook receiver, and reading or writing `~/.xurl/auth.yml` are network and file I/O, and belong to the library.
 3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, `webhooks`,
    and `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming
    the `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests
@@ -444,15 +519,15 @@ scripts/hooks/pre-push                      # local CI mirror (fmt, clippy, next
                                             # cargo-hack powerset when installed)
 ```
 
-cargo-nextest runs the tests, locally and in CI's two `Tests` jobs, each test in its own process across every binary at
+cargo-nextest runs the tests, locally and in CI's four `Tests` jobs, each test in its own process across every binary at
 once. Plain `cargo test` passes too, but it is not the path CI runs. It runs a binary's tests in one process, so the
 rules below hold under both runners. `.config/nextest.toml` holds two profiles: `default`, which the hook runs and which
 stops at the first failure, and `ci`, which runs everything, eight tests at a time, and reruns a failed test once. Under
 either, a test that fails and then passes on a retry fails the run, labeled `FLKY-FL`, which says to hunt a race rather
 than a regression; a retry from `--retries` counts the same. Both end a hung test after five minutes and name it, as
-`TIMEOUT` under `default` and `TRY n TMT` under `ci`'s retry. Each CI job adds `--partition hash:k/2`, which picks the
-half of the tests it runs. Tests that cannot share a machine go in a nextest test group with limited concurrency, not a
-serial run of everything.
+`TIMEOUT` under `default` and `TRY n TMT` under `ci`'s retry. Each CI job adds `--partition hash:k/4`, which picks the
+quarter of the tests it runs. Tests that cannot share a machine go in a nextest test group with limited concurrency, not
+a serial run of everything.
 
 A development build run by hand moves a single-file `~/.xurl` into the directory layout like any other `xr`, and a
 released `xr` 4.3.0 or earlier cannot read the store afterwards. Set `XURL_TOKEN_STORE` to a scratch path for a manual

@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{Run, act_from_me, list_for_user, list_owned_by};
+use super::{Run, act_from_me, checked, list_for_user, list_owned_by};
 use crate::cli::BookmarkFoldersCommands;
 use crate::cli::failure::CommandResult;
 use xdk::api::Client;
@@ -32,7 +32,7 @@ pub(super) async fn run(action: BookmarkFoldersCommands, run: Run<'_>) -> Comman
             common,
         } => {
             let ctx = json!({"command": "bookmark-folders-posts", "folder_id": folder_id});
-            let validate = || shortcuts::validate_bookmark_folder_id(&folder_id);
+            let validate = || checked(shortcuts::validate_bookmark_folder_id, &folder_id);
             list_owned_by(
                 run,
                 ctx,
@@ -46,7 +46,7 @@ pub(super) async fn run(action: BookmarkFoldersCommands, run: Run<'_>) -> Comman
         }
         BookmarkFoldersCommands::Add { name, common } => {
             let ctx = json!({"command": "bookmark-folders-add", "name": name});
-            let validate = || shortcuts::validate_bookmark_folder_name(&name);
+            let validate = || checked(shortcuts::validate_bookmark_folder_name, &name);
             act_from_me(run, ctx, validate, &common, |client, my_id| {
                 client.create_bookmark_folder(my_id, &name)
             })

@@ -81,6 +81,7 @@ pub const ROWS: &[Row] = &[
         &[ep::LOOKUP_USERS_BY_USERNAME, ep::REMOVE_CHAT_MUTE],
     ),
     row("broadcasts remove", &[ep::DELETE_BROADCAST]),
+    row("broadcasts update", &[ep::UPDATE_BROADCAST]),
     row(
         "broadcasts scheduled add",
         &[ep::CREATE_SCHEDULED_BROADCAST],
@@ -143,6 +144,9 @@ pub const ROWS: &[Row] = &[
         &[ep::LOOKUP_USERS_BY_USERNAME, ep::UNBLOCK_DMS],
     ),
     row("dms", &[ep::GET_DM_EVENTS]),
+    row("drafts add", &[ep::CREATE_POST_DRAFT]),
+    row("drafts list", &[ep::GET_POST_DRAFTS]),
+    row("drafts remove", &[ep::DELETE_POST_DRAFT]),
     row(
         "follow",
         &[ep::GET_ME, ep::LOOKUP_USERS_BY_USERNAME, ep::FOLLOW_USER],
@@ -247,6 +251,7 @@ pub const ROWS: &[Row] = &[
     row("stream rules list", &[ep::GET_STREAM_RULES]),
     row("stream rules remove", &[ep::UPDATE_STREAM_RULES]),
     row("timeline", &[ep::GET_ME, ep::GET_TIMELINE]),
+    row("trends locations", &[ep::GET_TREND_LOCATIONS]),
     row("trends personal", &[ep::GET_PERSONALIZED_TRENDS]),
     row("trends place", &[ep::GET_TRENDS]),
     row(

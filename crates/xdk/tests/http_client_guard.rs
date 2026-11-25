@@ -1,11 +1,12 @@
 //! One HTTP client for X, built once, with no timeout-free fallback.
 //!
-//! Every request, token exchange, refresh, and `/2/users/me` lookup goes
-//! through the client `Client` owns. A `reqwest::Client::new()` fallback would put
-//! the whole process on a timeout-free client the moment the builder failed,
-//! so the library keeps exactly one construction site for X and it returns an
-//! error instead. The webhook forward talks to the caller's own endpoint, not
-//! to X, with redirects off, so it builds the one other client.
+//! Every request to the X API and `/2/users/me` lookup goes through the client
+//! `Client` owns. A `reqwest::Client::new()` fallback would put the whole
+//! process on a timeout-free client the moment the builder failed, so the
+//! library keeps exactly one construction site for X and it returns an error
+//! instead. The token endpoint's requests carry a credential in their form, so
+//! they go out on a client with redirects off, and so does the webhook forward,
+//! which talks to the caller's own endpoint, not to X: each builds its own.
 
 use std::path::Path;
 
@@ -57,17 +58,22 @@ fn no_client_new_fallback_survives_under_src() {
 }
 
 #[test]
-fn the_http_client_is_built_in_exactly_one_place_for_x_and_one_for_forwards() {
+fn the_http_client_is_built_in_exactly_one_place_for_x_and_one_each_for_grants_and_forwards() {
     let pattern = regex::Regex::new(r"reqwest::Client::(builder|new)\(").unwrap();
     let hits = source_hits(&pattern);
     assert_eq!(
         hits.len(),
-        2,
-        "every request to X shares the one client `Client` builds, and every forward \
-         the one `UrlTarget` builds:\n{}",
+        3,
+        "every request to X shares the one client `Client` builds, every grant the \
+         one `token_endpoint::post` builds, and every forward the one `UrlTarget` \
+         builds:\n{}",
         hits.join("\n")
     );
-    for site in ["src/api/request/mod.rs", "src/webhooks/forward.rs"] {
+    for site in [
+        "src/api/request/mod.rs",
+        "src/auth/token_endpoint.rs",
+        "src/webhooks/forward.rs",
+    ] {
         assert!(
             hits.iter().any(|hit| hit.contains(site)),
             "a construction site lives in {site}: {hits:?}"

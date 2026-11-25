@@ -1,7 +1,9 @@
-//! `xr trends place` and `xr trends personal` read the trends for a place,
-//! by its Yahoo WOEID, and the caller's personalized trends. A WOEID that
-//! is not a positive integer, or a `--max` outside 1 to 50, is refused by
-//! the parser; the personalized trends take a user login only.
+//! `xr trends place`, `xr trends personal`, and `xr trends locations` read the
+//! trends for a place, by its Yahoo WOEID, the caller's personalized trends,
+//! and the places that have trends. A WOEID that is not a positive integer,
+//! or a `--max` outside 1 to 50, is refused by the parser; the personalized
+//! trends take a user login only, and the places take a login or a bearer
+//! token.
 
 mod common;
 
@@ -11,7 +13,7 @@ use tempfile::TempDir;
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-use common::{oauth2_store, run_in_process as run};
+use common::{oauth1_store, oauth2_store, run_in_process as run};
 
 fn json_out(stdout: &str) -> serde_json::Value {
     serde_json::from_str(stdout.trim()).expect("JSON on stdout")
@@ -150,6 +152,68 @@ async fn personal_with_only_a_bearer_is_an_auth_mismatch() {
         &store,
         &server.uri(),
         &["--output", "json", "trends", "personal"],
+    )
+    .await;
+
+    assert_ne!(code, 0, "stderr: {stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
+    assert_eq!(envelope["reason"], "auth-method-mismatch");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn locations_lists_every_place_with_its_woeid_under_a_bearer() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/trends/locations"))
+        .and(query_param(
+            "trend_location.fields",
+            "country,country_code,name,parent_id,place_type,woeid",
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": [
+                {"woeid": 1, "name": "Worldwide", "place_type": "supername"},
+                {
+                    "woeid": 23_424_977,
+                    "name": "United States",
+                    "place_type": "country",
+                    "country": "United States",
+                    "country_code": "US",
+                    "parent_id": 1
+                }
+            ]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &["trends", "locations", "--output", "json"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body = json_out(&stdout);
+    assert_eq!(body["data"][0]["woeid"], 1);
+    assert_eq!(body["data"][1]["country_code"], "US");
+    assert_eq!(body["data"][1]["parent_id"], 1);
+}
+
+#[tokio::test]
+async fn locations_with_only_an_oauth1_login_is_an_auth_mismatch() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &["--output", "json", "trends", "locations"],
     )
     .await;
 

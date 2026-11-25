@@ -261,6 +261,11 @@ impl Auth {
     /// The redirect URI is always re-resolved (env-precedence is enforced
     /// inside the resolver itself, so re-running unconditionally produces
     /// the right value).
+    ///
+    /// A name the store does not hold names no credential: the store-derived
+    /// values come out empty, and a request through a [`Client`](crate::api::Client)
+    /// refuses it with [`Error::AppNotFound`]. [`Self::refuse_if_app_missing`]
+    /// is that check on its own.
     pub fn with_app_name(&mut self, app_name: &str) {
         self.app_name = app_name.to_string();
         let app = self.token_store.resolve_app(app_name);
@@ -350,6 +355,21 @@ impl Auth {
         Ok(format!("Bearer {access_token}"))
     }
 
+    /// Refuses the app this `Auth` names when the store does not hold it. An
+    /// empty name is the default app, and a store that could not be loaded is
+    /// left to the credential refusal that names the file.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::AppNotFound`] naming the app and the apps the store
+    /// holds.
+    pub fn refuse_if_app_missing(&self) -> Result<()> {
+        if self.token_store.load_failed() {
+            return Ok(());
+        }
+        self.token_store.refuse_if_app_missing(&self.app_name)
+    }
+
     /// Whether a stored `OAuth2` token would serve a request for `username`.
     ///
     /// Empty-caller precedence: `default_user` (via the first named token),
@@ -359,6 +379,9 @@ impl Auth {
     /// must not silently receive a salvage-state token under their name.
     #[must_use]
     pub fn has_oauth2_token(&self, username: &str) -> bool {
+        if self.refuse_if_app_missing().is_err() {
+            return false;
+        }
         let app_name = self.app_name.as_str();
         let first = self
             .token_store
@@ -371,7 +394,10 @@ impl Auth {
                     .get_oauth2_token_unnamed_for_app(app_name)
                     .is_some()
         } else {
-            self.token_store.get_oauth2_token(username).is_some() || first
+            self.token_store
+                .get_oauth2_token_for_app(app_name, username)
+                .is_some()
+                || first
         }
     }
 
@@ -396,12 +422,14 @@ impl Auth {
     ///
     /// Returns an error if the authorization flow or the opener fails, or if
     /// the token exchange does: [`Error::Http`] when the token endpoint does
-    /// not answer, [`Error::Api`] when it answers a failure status that is no
-    /// OAuth refusal, such as a 5xx, a 429 (with `reset_at` when it names its
-    /// reset), or a proxy's 404, [`Error::TokenEndpointForbidden`] when that
-    /// status is a 403, [`Error::InvalidUrl`] when the token URL is not one a
-    /// request can go to, and [`Error::Auth`] when it refuses the code or the
-    /// client. A store file that exists but cannot be loaded, or that holds no
+    /// not answer, [`Error::Api`] when it answers a 404, a 408, a 429 (with
+    /// `reset_at` when it names its reset), or a 5xx that is no OAuth refusal,
+    /// [`Error::TokenEndpointForbidden`] when that status is a 403,
+    /// [`Error::TokenEndpointUnexpected`] when it is any other status, a 400
+    /// or a 401 with no RFC 6749 section 5.2 error code and a redirect among
+    /// them, [`Error::InvalidUrl`] when the token URL is not one a request can
+    /// go to, and [`Error::Auth`] when it refuses the code or the client with
+    /// such a code. A store file that exists but cannot be loaded, or that holds no
     /// app by the name set with [`Self::with_app_name`], is
     /// [`Error::TokenStore`], and a store the save cannot write is
     /// [`Error::Io`] as the save would return it, each met before the listener
@@ -445,6 +473,22 @@ impl Auth {
     /// pending state file cannot be written.
     pub fn remote_oauth2_step1(&self, pending_path: &std::path::Path) -> Result<String> {
         oauth2::run_remote_step1(self, pending_path)
+    }
+
+    /// Every refusal [`Self::remote_oauth2_step1`] meets before it saves the
+    /// flow, in the order that step meets them, and the warning it gives when
+    /// the flow it saves replaces one.
+    ///
+    /// Sends nothing and writes nothing.
+    ///
+    /// # Errors
+    ///
+    /// The errors [`Self::remote_oauth2_step1`] names, up to the save.
+    // `xr --dry-run auth oauth2 --step 1` is the only caller; an embedder runs
+    // the step itself.
+    #[doc(hidden)]
+    pub fn check_remote_oauth2_step1(&self, pending_path: &std::path::Path) -> Result<()> {
+        oauth2::check_remote_step1(self, pending_path)
     }
 
     /// Runs step 2 of the remote `OAuth2` PKCE flow.

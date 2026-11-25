@@ -112,10 +112,16 @@
             "context": "ci / Shellcheck"
           },
           {
-            "context": "ci / Tests (1/2)"
+            "context": "ci / Tests (1/4)"
           },
           {
-            "context": "ci / Tests (2/2)"
+            "context": "ci / Tests (2/4)"
+          },
+          {
+            "context": "ci / Tests (3/4)"
+          },
+          {
+            "context": "ci / Tests (4/4)"
           },
           {
             "context": "ci / Windows check"

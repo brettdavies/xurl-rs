@@ -25,22 +25,24 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::error::{ContextKind, ContextValue, ErrorKind};
-use clap::{CommandFactory, FromArgMatches, Parser};
+use clap::{CommandFactory, FromArgMatches};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
     Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, invoked_help,
     nearest_command, rejected_word, suggestion_for_rejected,
 };
+use crate::cli::env::FlagEnv;
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::Failure;
 use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::reparse::{
     color_choice, equals_form_hint, failing_command, lenient_cli, output_intent,
-    parse_past_stray_words, parse_without_display_flags, raw_choice,
+    parse_past_stray_words, parse_without_display_flags, raw_choice, resolved_command,
 };
 use crate::cli::retired_verbs;
+use crate::cli::settings::{self, Variables};
 use crate::cli::skill_install::SkillEnv;
 use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
@@ -89,7 +91,17 @@ where
         .filter(|p| !p.is_empty())
         .map_or_else(Config::default_store_path, PathBuf::from);
     let skill_env = crate::cli::env::skill_from_process(&overrides);
-    run_with_env(args, stdout, stderr, &store_path, &overrides, &skill_env).await
+    let flag_env = crate::cli::env::flags_from_process();
+    run_with_env(
+        args,
+        stdout,
+        stderr,
+        &store_path,
+        &overrides,
+        &skill_env,
+        &flag_env,
+    )
+    .await
 }
 
 /// Canonical CLI entrypoint — runs the `xr` dispatcher with explicit writers
@@ -123,7 +135,11 @@ where
 {
     let overrides = crate::cli::env::from_process();
     let skill_env = crate::cli::env::skill_from_process(&overrides);
-    run_with_env(args, stdout, stderr, store_path, &overrides, &skill_env).await
+    let flag_env = crate::cli::env::flags_from_process();
+    run_with_env(
+        args, stdout, stderr, store_path, &overrides, &skill_env, &flag_env,
+    )
+    .await
 }
 
 /// The worker entrypoint — everything [`run_with_store_path`] does, with the
@@ -192,14 +208,24 @@ where
     };
     let args_vec: Vec<OsString> = args.into_iter().map(Into::into).collect();
     run_inner(
-        args_vec, stdout, stderr, store_path, overrides, &skill_env, hooks,
+        args_vec,
+        stdout,
+        stderr,
+        store_path,
+        Environment {
+            overrides,
+            skill: &skill_env,
+            flags: &FlagEnv::default(),
+        },
+        hooks,
     )
     .await
 }
 
-/// [`run_with_overrides`] with the skill-destination environment supplied as
-/// data too: `XURL_SKILL_HOME` and each host's config- and base-directory
-/// variable, which `overrides` does not carry.
+/// [`run_with_overrides`] with the rest of the environment supplied as data
+/// too: `XURL_SKILL_HOME` and each host's config- and base-directory variable
+/// in `skill_env`, and `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, and
+/// `XURL_AFTER` in `flag_env`, none of which `overrides` carries.
 pub async fn run_with_env<I, S>(
     args: I,
     stdout: &mut dyn Write,
@@ -207,6 +233,7 @@ pub async fn run_with_env<I, S>(
     store_path: &Path,
     overrides: &xdk::config::EnvOverrides,
     skill_env: &SkillEnv,
+    flag_env: &FlagEnv,
 ) -> i32
 where
     I: IntoIterator<Item = S>,
@@ -218,11 +245,21 @@ where
         stdout,
         stderr,
         store_path,
-        overrides,
-        skill_env,
+        Environment {
+            overrides,
+            skill: skill_env,
+            flags: flag_env,
+        },
         &RunHooks::default(),
     )
     .await
+}
+
+/// The environment a run reads, as data.
+struct Environment<'a> {
+    overrides: &'a xdk::config::EnvOverrides,
+    skill: &'a SkillEnv,
+    flags: &'a FlagEnv,
 }
 
 async fn run_inner(
@@ -230,25 +267,35 @@ async fn run_inner(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
     store_path: &Path,
-    overrides: &xdk::config::EnvOverrides,
-    skill_env: &SkillEnv,
+    environment: Environment<'_>,
     hooks: &RunHooks,
 ) -> i32 {
+    let Environment {
+        overrides,
+        skill: skill_env,
+        flags: flag_env,
+    } = environment;
+    let variables = Variables::new(overrides.output.as_deref(), flag_env);
     // Parsed in two steps, formatting a failure as `Cli::try_parse_from`
     // does, so the matches stay to name the command that ran.
-    let parsed = Cli::command()
-        .try_get_matches_from(args_vec.iter())
+    let parsed = crate::cli::parse::try_matches(args_vec.iter(), std::convert::identity)
         .and_then(|matches| Cli::from_arg_matches(&matches).map(|cli| (cli, matches)))
         .map_err(|e| e.format(&mut Cli::command()));
     let (cli, matches) = match parsed {
         Ok(parsed) => parsed,
         Err(e) => {
-            return render_parse_error(&e, &args_vec, overrides, stdout, stderr);
+            return render_parse_error(&e, &args_vec, overrides, variables, stdout, stderr);
         }
     };
 
+    let output = match settings::resolve_output(&matches, &args_vec, variables) {
+        Ok(answer) => answer,
+        Err(refused) => {
+            return render_refused(&refused, &args_vec, overrides, variables, stderr);
+        }
+    };
     let out = OutputConfig::new_with_no_color(
-        cli.effective_output(),
+        output.value.clone(),
         cli.quiet,
         cli.verbose,
         cli.color,
@@ -258,8 +305,23 @@ async fn run_inner(
     .with_no_interactive(cli.no_interactive)
     .with_response_schema(crate::cli::commands::schema::pointer_for(&matched_path(
         &matches,
-    )));
+    )))
+    .with_app_from_env(app_from_env(&cli, &matches))
+    .with_format_spelling(crate::cli::rerun::FormatSpelling::of(output.decision));
     crate::cli::panic_hook::publish(&out);
+    let page_token = match settings::resolve_page_token(&matches, &args_vec, variables) {
+        Ok(answer) => answer,
+        Err(refused) => {
+            return render_refused(&refused, &args_vec, overrides, variables, stderr);
+        }
+    };
+    if let Err(refused) =
+        settings::refuse_conflicts(&matches, &[output.decision, page_token.decision])
+    {
+        return render_refused(&refused, &args_vec, overrides, variables, stderr);
+    }
+    let page_token = page_token.value;
+    let invocation = crate::cli::rerun::explicit_invocation(&args_vec, &cli);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
     if let Some(ref cmd) = cli.command {
@@ -371,7 +433,8 @@ async fn run_inner(
         }
         Classified::Raw => {}
     }
-    if let Some(misplaced) = crate::cli::misplaced_flags::misplaced(&cli, &args_vec) {
+    let explicit_args: Vec<OsString> = invocation.iter().map(OsString::from).collect();
+    if let Some(misplaced) = crate::cli::misplaced_flags::misplaced(&cli, &explicit_args) {
         return render_misplaced_flags(&misplaced, &args_vec, &out, stderr);
     }
 
@@ -412,15 +475,27 @@ async fn run_inner(
     // turns them into the stderr lines the flags call for, for this dispatch
     // and this thread only.
     let diagnostics = Diagnostics::new(out.clone());
-    let dispatched = crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides, hooks)
-        .with_subscriber(diagnostics)
-        .await;
-    let invocation = || -> Vec<String> {
-        args_vec
-            .iter()
-            .map(|a| a.to_string_lossy().into_owned())
-            .collect()
+    let recovery = Recovery {
+        snapshot: &snapshot,
+        args: &args_vec,
+        invocation: &invocation,
+        structured,
+        media: &media,
     };
+    let dispatched = crate::cli::commands::run(
+        cli,
+        &out,
+        stdout,
+        stderr,
+        auth,
+        overrides,
+        hooks,
+        &invocation,
+        no_browser_typed(&matches),
+        page_token,
+    )
+    .with_subscriber(diagnostics)
+    .await;
     let code = match dispatched {
         Ok(()) => EXIT_SUCCESS,
         Err(Failure::Emitted { exit_code }) => exit_code,
@@ -431,7 +506,7 @@ async fn run_inner(
         }
         Err(Failure::Unconfirmed(ctx)) => {
             let app = ctx.get("app").and_then(serde_json::Value::as_str);
-            let next_step = NextStep::confirm(&invocation(), app);
+            let next_step = NextStep::confirm(&invocation, app);
             out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR, next_step);
             EXIT_GENERAL_ERROR
         }
@@ -440,13 +515,7 @@ async fn run_inner(
             EXIT_GENERAL_ERROR
         }
         Err(Failure::DryRunRefusal { ctx, error }) => {
-            let hint = recovery_hint(
-                &error,
-                &snapshot,
-                &naming_dry_run(&args_vec),
-                structured,
-                &media,
-            );
+            let hint = recovery.hint(&error);
             out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref());
             EXIT_SUCCESS
         }
@@ -463,17 +532,35 @@ async fn run_inner(
             let code = error.exit_code();
             let hint =
                 crate::cli::hints::resume_after_upload_hint(&error, &media_id, waited, &media)
-                    .or_else(|| recovery_hint(&error, &snapshot, &args_vec, structured, &media));
+                    .or_else(|| recovery.hint(&error));
             out.print_error_after_upload(stderr, &error, code, hint.as_ref(), &media_id);
             code
         }
-        Err(Failure::Error(e)) => {
-            let code = e.exit_code();
-            match recovery_hint(&e, &snapshot, &args_vec, structured, &media) {
-                Some(hint) => out.print_error_with_hint(stderr, &e, code, &hint),
-                None => out.print_error(stderr, &e, code),
+        Err(Failure::Rejected { error, credential }) => {
+            let code = error.exit_code();
+            let hint = crate::cli::credential_step::rejected_hint(
+                &snapshot,
+                &error,
+                &credential,
+                &invocation,
+                structured,
+            );
+            match hint {
+                Some(hint) => {
+                    let auth = crate::cli::envelope::DryRunAuth::sent_under(
+                        credential.scheme.as_wire(),
+                        credential.app.clone(),
+                        credential.username.clone(),
+                    );
+                    out.print_rejected(stderr, &error, code, &hint, auth);
+                }
+                None => recovery.print(&out, stderr, &error),
             }
             code
+        }
+        Err(Failure::Error(e)) => {
+            recovery.print(&out, stderr, &e);
+            e.exit_code()
         }
     };
     // Every failure above wrote its envelope, which took the warnings with it.
@@ -481,62 +568,62 @@ async fn run_inner(
     code
 }
 
-/// `args` with `--dry-run` named. `XURL_DRY_RUN` selects a dry run with no flag
-/// in argv, and a step built from argv would then rerun the invocation as a
-/// real run.
-fn naming_dry_run(args: &[OsString]) -> Vec<OsString> {
-    let named = args
-        .iter()
-        .skip(1)
-        .map_while(|arg| arg.to_str().filter(|arg| *arg != "--"))
-        .any(|arg| arg == "--dry-run" || arg.starts_with("--dry-run="));
-    let mut named_args = args.to_vec();
-    if !named {
-        named_args.insert(args.len().min(1), OsString::from("--dry-run"));
-    }
-    named_args
+/// What a recovery hint is chosen from: the store as this run loaded it, the
+/// invocation as given and as [`explicit_invocation`] writes it, and the media
+/// command's credential.
+struct Recovery<'a> {
+    snapshot: &'a xdk::store::snapshot::StoreSnapshot,
+    args: &'a [OsString],
+    invocation: &'a [String],
+    structured: bool,
+    media: &'a crate::cli::hints::MediaCredential,
 }
 
-/// The recovery hint for a library error, chosen from the store as this
-/// run loaded it and the invocation as given. A dry run's refusal takes the
-/// same hint its real run would.
-fn recovery_hint(
-    error: &xdk::error::Error,
-    snapshot: &xdk::store::snapshot::StoreSnapshot,
-    args: &[OsString],
-    structured: bool,
-    media: &crate::cli::hints::MediaCredential,
-) -> Option<crate::cli::hints::Hint> {
-    let invocation: Vec<String> = args
-        .iter()
-        .map(|a| a.to_string_lossy().into_owned())
-        .collect();
-    if let Some(missing) = crate::cli::credential_step::missing_credential(error) {
-        return Some(crate::cli::credential_step::no_credential_hint(
-            missing,
-            snapshot,
-            &invocation,
-            structured,
-        ));
+impl Recovery<'_> {
+    /// Prints `error`, with the step [`Self::hint`] chooses when it chooses one.
+    fn print(&self, out: &OutputConfig, stderr: &mut dyn Write, error: &xdk::error::Error) {
+        let code = error.exit_code();
+        match self.hint(error) {
+            Some(hint) => out.print_error_with_hint(stderr, error, code, &hint),
+            None => out.print_error(stderr, error, code),
+        }
     }
-    crate::cli::hints::unloadable_store_hint(snapshot, error)
-        .or_else(|| crate::cli::hints::store_name_hint(error))
-        .or_else(|| crate::cli::hints::enrollment_hint(error))
-        .or_else(|| crate::cli::hints::resume_wait_hint(error, media))
-        .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))
-        .or_else(|| crate::cli::hints::no_signing_secret_hint(snapshot, error, &invocation))
-        .or_else(|| crate::cli::hints::sign_in_again_hint(error, &invocation))
-        .or_else(|| crate::cli::hints::redirect_url_again_hint(error, &invocation))
-        .or_else(|| crate::cli::hints::pending_app_hint(snapshot, error, &invocation))
-        .or_else(|| crate::cli::hints::sign_in_fault_hint(error))
-        .or_else(|| {
-            crate::cli::hints::refresh_refused_hint(snapshot, error, &invocation, structured)
-        })
-        .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
-        .or_else(|| {
-            crate::cli::credential_step::mismatch_hint(snapshot, error, &invocation, structured)
-        })
-        .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
+
+    /// The recovery hint for a library error. A dry run's refusal takes the
+    /// same hint its real run would, and a step that runs the invocation
+    /// again names `--dry-run` because the invocation does.
+    fn hint(&self, error: &xdk::error::Error) -> Option<crate::cli::hints::Hint> {
+        let Self {
+            snapshot,
+            args,
+            invocation,
+            structured,
+            media,
+        } = *self;
+        if let Some(missing) = crate::cli::credential_step::missing_credential(error) {
+            return Some(crate::cli::credential_step::no_credential_hint(
+                missing, snapshot, invocation, structured,
+            ));
+        }
+        crate::cli::hints::unloadable_store_hint(snapshot, error)
+            .or_else(|| crate::cli::hints::store_name_hint(error))
+            .or_else(|| crate::cli::hints::enrollment_hint(error))
+            .or_else(|| crate::cli::hints::resume_wait_hint(error, media))
+            .or_else(|| crate::cli::hints::address_in_use_hint(error, invocation))
+            .or_else(|| crate::cli::hints::no_signing_secret_hint(snapshot, error, invocation))
+            .or_else(|| crate::cli::hints::sign_in_again_hint(error, invocation))
+            .or_else(|| crate::cli::hints::redirect_url_again_hint(error, invocation))
+            .or_else(|| crate::cli::hints::pending_app_hint(snapshot, error, invocation))
+            .or_else(|| crate::cli::hints::sign_in_fault_hint(error))
+            .or_else(|| {
+                crate::cli::hints::refresh_refused_hint(snapshot, error, invocation, structured)
+            })
+            .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
+            .or_else(|| {
+                crate::cli::credential_step::mismatch_hint(snapshot, error, invocation, structured)
+            })
+            .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
+    }
 }
 
 /// The credential words of `media upload` and `media status`, the commands
@@ -599,6 +686,7 @@ fn render_parse_error(
     error: &clap::Error,
     args: &[OsString],
     overrides: &xdk::config::EnvOverrides,
+    variables: Variables<'_>,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
@@ -617,7 +705,14 @@ fn render_parse_error(
                         .and_then(|cli| unknown_word(&cli))
                         .is_some()
                 {
-                    return render_parse_error(&without_flag, args, overrides, stdout, stderr);
+                    return render_parse_error(
+                        &without_flag,
+                        args,
+                        overrides,
+                        variables,
+                        stdout,
+                        stderr,
+                    );
                 }
                 None
             }
@@ -630,17 +725,7 @@ fn render_parse_error(
         return EXIT_SUCCESS;
     }
 
-    let intent = output_intent(args, overrides.output.as_deref());
-    // Quiet and verbose are unparsed here, and neither changes an error
-    // envelope, so the provisional config leaves both off.
-    let out = OutputConfig::new_with_no_color(
-        intent.unwrap_or(OutputFormat::Text),
-        false,
-        false,
-        color_choice(args),
-        raw_choice(args),
-        overrides.no_color,
-    );
+    let out = provisional_output(args, overrides, variables);
 
     let rejected = rejected_word(error);
     let past_stray_words = rejected.as_ref().and_then(|_| parse_past_stray_words(args));
@@ -687,6 +772,47 @@ fn render_parse_error(
     render_invalid_args(error, args, &out, stderr)
 }
 
+/// The config an error is rendered under before the run has one: the format
+/// the caller named in argv or a variable, and the color and raw choices
+/// argv and its variables make.
+///
+/// Quiet and verbose are unparsed here, and neither changes an error
+/// envelope, so the provisional config leaves both off.
+fn provisional_output(
+    args: &[OsString],
+    overrides: &xdk::config::EnvOverrides,
+    variables: Variables<'_>,
+) -> OutputConfig {
+    OutputConfig::new_with_no_color(
+        output_intent(args, variables).unwrap_or(OutputFormat::Text),
+        false,
+        false,
+        color_choice(args),
+        raw_choice(args),
+        overrides.no_color,
+    )
+}
+
+/// A refusal of the output format or the page token as the `Error:` line or
+/// the `invalid-args` envelope, in the format the caller named.
+fn render_refused(
+    refused: &settings::Refused,
+    args: &[OsString],
+    overrides: &xdk::config::EnvOverrides,
+    variables: Variables<'_>,
+    stderr: &mut dyn Write,
+) -> i32 {
+    let out = provisional_output(args, overrides, variables);
+    let command = invoked_help(args);
+    let command = command.strip_suffix(" --help").unwrap_or(&command);
+    if refused.from_variable {
+        out.print_invalid_args_from_variable(stderr, &refused.body, "\n\n", command);
+    } else {
+        out.print_invalid_args(stderr, &refused.body, "\n\n", command);
+    }
+    EXIT_USAGE_ERROR
+}
+
 /// A clap failure in `xr`'s dialect, as the `Error:` line or the
 /// `invalid-args` envelope.
 ///
@@ -708,16 +834,31 @@ fn render_invalid_args(
         .strip_suffix(CLAP_HELP_FOOTER)
         .unwrap_or(body)
         .trim_end();
-    let command = failing_command(error, args);
-    // clap puts its own tips between the error line and the usage line.
-    let body = match equals_form_hint(error, args, &command) {
-        Some(hint) => match body.split_once("\n\nUsage:") {
-            Some((failure, usage)) => format!("{failure}\n\n  tip: {hint}\n\nUsage:{usage}"),
-            None => format!("{body}\n\n  tip: {hint}"),
-        },
-        None => body.to_string(),
+    let from_variable = crate::cli::conflict_source::refusal_for(error, args);
+    let command = if from_variable.is_some() {
+        resolved_command(args)
+    } else {
+        failing_command(error, args)
     };
-    out.print_invalid_args(stderr, &body, "\n\n", &command);
+    // clap puts its own tips between the error line and the usage line.
+    let body = if let Some(refusal) = &from_variable {
+        refusal.replacing(body)
+    } else {
+        match equals_form_hint(error, args, &command) {
+            Some(hint) => match body.split_once("\n\nUsage:") {
+                Some((failure, usage)) => {
+                    format!("{failure}\n\n  tip: {hint}\n\nUsage:{usage}")
+                }
+                None => format!("{body}\n\n  tip: {hint}"),
+            },
+            None => body.to_string(),
+        }
+    };
+    if from_variable.is_some() {
+        out.print_invalid_args_from_variable(stderr, &body, "\n\n", &command);
+    } else {
+        out.print_invalid_args(stderr, &body, "\n\n", &command);
+    }
     EXIT_USAGE_ERROR
 }
 
@@ -745,7 +886,7 @@ fn help_command_page(args: &[OsString]) -> String {
         .first()
         .cloned()
         .unwrap_or_else(|| OsString::from(ROOT_COMMAND));
-    Cli::try_parse_from([bin, "help".into(), "help".into()])
+    crate::cli::parse::try_cli([bin, "help".into(), "help".into()])
         .err()
         .map(|e| e.to_string())
         .unwrap_or_default()
@@ -776,15 +917,16 @@ fn render_misplaced_flags(
         "{named} {verb} before the command word, where only a raw request reads {pronoun}."
     );
     let (message, next_step) = match &misplaced.moved {
-        Some(moved) => (
-            format!("{problem} Run: {moved}"),
-            NextStep::fix_input_with(moved.clone()),
-        ),
+        Some(moved) => {
+            let step = out.carry(NextStep::fix_input_with(moved.clone()));
+            let run = step.command.as_deref().unwrap_or(moved);
+            (format!("{problem} Run: {run}"), step)
+        }
         None => {
             let help = invoked_help(args);
             (
                 format!("{problem} Try '{help}'."),
-                NextStep::show_help(help),
+                out.carry(NextStep::show_help(help)),
             )
         }
     };
@@ -847,6 +989,8 @@ fn render_schema_refusal(
             } else {
                 format!("it has {}", known.join(", "))
             };
+            let step = out.carry(NextStep::fix_input_template(template));
+            let template = step.template.clone().unwrap_or_default();
             out.emit_error_envelope(
                 stderr,
                 ErrorBody {
@@ -857,7 +1001,7 @@ fn render_schema_refusal(
                     )),
                     path: Some(path),
                     known_properties: Some(known),
-                    next_step: Some(NextStep::fix_input_template(template)),
+                    next_step: Some(step),
                     ..ErrorBody::default()
                 },
             );
@@ -871,7 +1015,7 @@ fn render_schema_refusal(
         }
         Refusal::ScopeWord(word) => {
             let flag = format!("--{word}");
-            let alone = Cli::try_parse_from(["xr", "schema", flag.as_str()]).is_ok();
+            let alone = crate::cli::parse::try_cli(["xr", "schema", flag.as_str()]).is_ok();
             let problem = format!(
                 "'{word}' names a scope of `xr schema`, not a command; it is the flag {flag}."
             );
@@ -879,13 +1023,14 @@ fn render_schema_refusal(
         }
     };
     let (message, next_step) = match run {
-        Some(run) => (
-            format!("{problem} Run: {run}"),
-            NextStep::fix_input_with(run),
-        ),
+        Some(run) => {
+            let step = out.carry(NextStep::fix_input_with(run));
+            let run = step.command.clone().unwrap_or_default();
+            (format!("{problem} Run: {run}"), step)
+        }
         None => (
             format!("{problem} Try 'xr schema --help'."),
-            NextStep::show_help("xr schema --help".to_string()),
+            out.carry(NextStep::show_help("xr schema --help".to_string())),
         ),
     };
     out.emit_error_envelope(
@@ -900,6 +1045,48 @@ fn render_schema_refusal(
         },
     );
     EXIT_USAGE_ERROR
+}
+
+/// The app name `XURL_APP` gave, when `--app` did not override it and the
+/// command was not also given the name as an argument of its own: a store
+/// command that takes an app's name reads that name, not `XURL_APP`.
+fn app_from_env(cli: &Cli, matches: &clap::ArgMatches) -> Option<String> {
+    let name = cli.app.as_deref()?;
+    let from_env = matches.value_source("app") == Some(clap::parser::ValueSource::EnvVariable);
+    (from_env && !given_as_argument(matches, name)).then(|| name.to_string())
+}
+
+/// Whether `--no-browser` was typed on `xr auth oauth2`. The sign-in reads a
+/// `bool`, which cannot tell a typed `false` from the default.
+fn no_browser_typed(matches: &clap::ArgMatches) -> bool {
+    if matched_path(matches) != "auth oauth2" {
+        return false;
+    }
+    let mut leaf = matches;
+    while let Some((_, sub)) = leaf.subcommand() {
+        leaf = sub;
+    }
+    leaf.value_source("no_browser") == Some(clap::parser::ValueSource::CommandLine)
+}
+
+/// Whether any argument of the matched command other than `--app` carries `name`.
+fn given_as_argument(matches: &clap::ArgMatches, name: &str) -> bool {
+    let mut current = matches;
+    loop {
+        let carried = current.ids().any(|id| {
+            id.as_str() != "app"
+                && current
+                    .get_raw(id.as_str())
+                    .is_some_and(|mut raw| raw.any(|value| value == name))
+        });
+        if carried {
+            return true;
+        }
+        match current.subcommand() {
+            Some((_, sub)) => current = sub,
+            None => return false,
+        }
+    }
 }
 
 /// The words of the subcommand clap matched, empty for a raw request.
@@ -986,7 +1173,7 @@ fn render_unknown_command(
             message: Some(message),
             command: Some(word.to_string()),
             suggestion: suggestion.name().map(str::to_string),
-            next_step: Some(NextStep::show_help(format!("{target} --help"))),
+            next_step: Some(out.carry(NextStep::show_help(format!("{target} --help")))),
             ..ErrorBody::default()
         },
     );

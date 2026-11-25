@@ -28,8 +28,8 @@ _xr() {
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '-F+[File to upload (for multipart requests)]:FILE:_default' \
 '--file=[File to upload (for multipart requests)]:FILE:_default' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -48,15 +48,15 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add trace header to request]' \
 '--trace[Add trace header to request]' \
 '-s[Force streaming mode]' \
 '--stream[Force streaming mode]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -83,8 +83,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -103,13 +103,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -124,8 +124,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -144,13 +144,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -165,8 +165,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -185,13 +185,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -206,8 +206,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -226,19 +226,221 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':post_id -- Post ID or URL to delete:_default' \
 && ret=0
+;;
+(drafts)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__drafts_commands" \
+"*::: :->drafts" \
+&& ret=0
+
+    case $state in
+    (drafts)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-drafts-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+'*--media-id=[Media ID(s) to attach (repeatable)]:MEDIA_IDS:_default' \
+'--reply-to=[The post the draft replies to\: its id or URL]:POST:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':text -- The text of the draft:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':draft_id -- Draft ID, as `xr drafts list` prints it:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__drafts__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-drafts-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
 ;;
 (read)
 _arguments "${_arguments_options[@]}" : \
@@ -247,8 +449,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -267,13 +469,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -290,8 +492,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -310,13 +512,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -333,8 +535,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -353,13 +555,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -370,13 +572,13 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -395,13 +597,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -415,8 +617,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -435,13 +637,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -457,8 +659,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -477,13 +679,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -497,8 +699,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -517,13 +719,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -539,8 +741,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -559,13 +761,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -581,8 +783,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -601,13 +803,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -623,8 +825,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -643,13 +845,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -665,8 +867,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -685,13 +887,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -705,8 +907,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -725,14 +927,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--cached[Answer from the account the store holds for the login (id, username, display name) with no request; ask X when it holds none yet. \`source\` says which answered]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -745,8 +947,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -765,13 +967,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -787,8 +989,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -807,13 +1009,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -828,8 +1030,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -848,13 +1050,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -867,8 +1069,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -887,13 +1089,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -907,8 +1109,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -927,13 +1129,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -947,8 +1149,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -967,13 +1169,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -987,8 +1189,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1007,13 +1209,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1027,8 +1229,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1047,13 +1249,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1067,8 +1269,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1087,13 +1289,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1107,8 +1309,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1127,13 +1329,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1147,8 +1349,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1167,13 +1369,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1189,8 +1391,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1209,13 +1411,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1225,8 +1427,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1245,11 +1447,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1272,8 +1474,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1292,13 +1494,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1313,8 +1515,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1333,13 +1535,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1353,8 +1555,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1373,13 +1575,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1431,8 +1633,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1451,13 +1653,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1470,8 +1672,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1490,13 +1692,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1510,8 +1712,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1530,13 +1732,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1553,8 +1755,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1573,13 +1775,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1595,8 +1797,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1615,13 +1817,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1634,8 +1836,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1654,13 +1856,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1674,8 +1876,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1694,13 +1896,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1716,8 +1918,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1736,13 +1938,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1755,8 +1957,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1775,13 +1977,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1795,8 +1997,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1815,13 +2017,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1837,8 +2039,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1857,13 +2059,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1876,8 +2078,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1896,13 +2098,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1923,8 +2125,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -1943,13 +2145,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -1990,8 +2192,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2010,13 +2212,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2028,8 +2230,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2048,11 +2250,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2074,8 +2276,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2094,13 +2296,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2114,8 +2316,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2134,13 +2336,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2157,8 +2359,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2177,13 +2379,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2199,8 +2401,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2219,13 +2421,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2276,8 +2478,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2296,11 +2498,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2321,8 +2523,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2341,13 +2543,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2361,8 +2563,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2381,14 +2583,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2434,8 +2636,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2454,13 +2656,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2474,8 +2676,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2494,13 +2696,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2516,8 +2718,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2536,13 +2738,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2552,8 +2754,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2572,11 +2774,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2600,8 +2802,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2620,13 +2822,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2642,8 +2844,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2662,13 +2864,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2684,8 +2886,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2704,13 +2906,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2723,8 +2925,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2743,13 +2945,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2762,8 +2964,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2782,13 +2984,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2804,8 +3006,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2824,13 +3026,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2846,8 +3048,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2866,13 +3068,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2883,8 +3085,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2903,11 +3105,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2930,8 +3132,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2950,13 +3152,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -2970,8 +3172,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -2990,13 +3192,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3011,8 +3213,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3031,13 +3233,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3089,8 +3291,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3109,14 +3311,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--private[Only you can see the list]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3132,8 +3334,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3152,15 +3354,15 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '(--public)--private[Make the list private]' \
 '--public[Make the list public]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3174,8 +3376,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3194,14 +3396,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3215,8 +3417,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3235,13 +3437,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3255,8 +3457,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3275,13 +3477,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3295,8 +3497,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3315,13 +3517,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3335,8 +3537,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3355,13 +3557,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3480,8 +3682,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3500,11 +3702,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3527,8 +3729,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3547,13 +3749,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3567,8 +3769,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3587,13 +3789,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3636,8 +3838,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3656,11 +3858,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3684,8 +3886,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3704,13 +3906,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3724,8 +3926,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3744,13 +3946,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3793,8 +3995,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3813,11 +4015,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3841,8 +4043,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3861,13 +4063,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3881,8 +4083,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3901,13 +4103,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3921,8 +4123,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3941,13 +4143,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -3963,8 +4165,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -3983,13 +4185,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4040,8 +4242,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4060,11 +4262,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4082,8 +4284,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4102,11 +4304,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4129,8 +4331,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4149,13 +4351,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4169,8 +4371,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4189,14 +4391,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--validate-only[Have X check the rule and save nothing (the endpoint'\''s \`dry_run\`). This sends a request; \`--dry-run\` sends none]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4210,8 +4412,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4230,15 +4432,15 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '--validate-only[Have X check the removal and delete nothing (the endpoint'\''s \`dry_run\`); it needs no confirmation. This sends a request; \`--dry-run\` sends none]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4252,8 +4454,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4272,13 +4474,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4384,8 +4586,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4404,11 +4606,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4432,8 +4634,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4452,13 +4654,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4471,8 +4673,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4491,14 +4693,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4541,8 +4743,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4561,11 +4763,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4589,8 +4791,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4609,16 +4811,16 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--trustworthy-sources[The note cites trustworthy sources]' \
 '--media-note[The note is about the post'\''s media]' \
 '--test[Test mode, for an app X is still admitting to the program]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4633,8 +4835,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4653,13 +4855,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4675,8 +4877,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4695,14 +4897,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--test[Test mode, for an app X is still admitting to the program]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4717,8 +4919,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4737,14 +4939,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--test[Test mode, for an app X is still admitting to the program]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4757,8 +4959,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4777,14 +4979,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4839,8 +5041,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4859,11 +5061,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4886,8 +5088,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4906,13 +5108,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4926,8 +5128,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -4946,13 +5148,52 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(locations)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -4978,6 +5219,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(locations)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -4994,8 +5239,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5014,11 +5259,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5041,8 +5286,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5061,13 +5306,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5080,8 +5325,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5100,13 +5345,55 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+'--title=[New title]:TITLE:_default' \
+'--chat-option=[Who can chat, 0 to 6\: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts you follow, 5 your subscribers, 6 accounts followed by an account you follow]:N:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5120,8 +5407,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5140,14 +5427,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5158,8 +5445,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5178,11 +5465,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5205,8 +5492,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5225,13 +5512,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5244,8 +5531,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5264,13 +5551,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5289,8 +5576,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5309,14 +5596,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--replay[Let people watch the broadcast after it ends]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5334,8 +5621,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5354,14 +5641,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--replay[Let people watch the broadcast after it ends]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5375,8 +5662,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5395,14 +5682,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5457,8 +5744,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5477,11 +5764,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5504,8 +5791,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5524,13 +5811,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5569,8 +5856,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5589,11 +5876,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5614,8 +5901,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5634,13 +5921,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5653,8 +5940,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5673,13 +5960,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5693,8 +5980,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5713,13 +6000,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5766,8 +6053,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5786,11 +6073,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5813,8 +6100,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5833,13 +6120,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5854,8 +6141,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5874,13 +6161,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5895,8 +6182,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5915,13 +6202,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -5968,8 +6255,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -5988,11 +6275,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6013,8 +6300,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6033,13 +6320,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6052,8 +6339,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6072,13 +6359,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6092,8 +6379,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6112,13 +6399,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6132,8 +6419,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6152,13 +6439,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6172,8 +6459,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6192,13 +6479,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6213,8 +6500,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6233,13 +6520,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6253,8 +6540,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6273,14 +6560,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6356,6 +6643,10 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -6535,8 +6826,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6555,11 +6846,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6580,8 +6871,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6600,13 +6891,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6617,8 +6908,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6637,11 +6928,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6666,8 +6957,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6686,13 +6977,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6705,8 +6996,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6725,13 +7016,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6752,8 +7043,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6772,14 +7063,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--no-notify[Send invitees no email about it]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6803,8 +7094,8 @@ this-and-following\:"The named occurrence and every one after it"))' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6823,14 +7114,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--no-notify[Send invitees no email about it]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6848,8 +7139,8 @@ this-and-following\:"The named occurrence and every one after it"))' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6868,15 +7159,15 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--no-notify[Send invitees no email about the cancellation]' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -6894,8 +7185,8 @@ this-and-following\:"The named occurrence and every one after it"))' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -6914,13 +7205,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7050,8 +7341,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7070,11 +7361,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7095,8 +7386,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7115,13 +7406,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7134,8 +7425,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7154,13 +7445,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7174,8 +7465,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7194,13 +7485,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7214,8 +7505,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7234,14 +7525,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7252,8 +7543,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7272,11 +7563,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7297,8 +7588,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7317,13 +7608,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7336,8 +7627,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7356,13 +7647,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7376,8 +7667,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7396,13 +7687,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7416,8 +7707,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7436,13 +7727,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7456,8 +7747,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7476,14 +7767,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7539,8 +7830,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7559,11 +7850,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7584,8 +7875,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7604,13 +7895,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7623,8 +7914,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7643,13 +7934,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7663,8 +7954,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7683,14 +7974,14 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7749,8 +8040,8 @@ oauth1\:"The app'\''s \`OAuth1\` consumer secret (API Secret Key)"))' \
 '--checkpoint=[Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so \`xr webhooks replay --from-checkpoint\` can request what a stop missed. The file holds {"last_event_at"\: <Unix seconds>}]:FILE:_files' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7769,12 +8060,12 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--allow-unsigned[Also print a POST that carries no signature, for a local test with curl. A POST with a wrong signature is refused either way]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7791,8 +8082,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7811,13 +8102,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7940,8 +8231,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -7960,11 +8251,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -7981,13 +8272,13 @@ never\:"Never emit ANSI color escapes"))' \
             (oauth2)
 _arguments "${_arguments_options[@]}" : \
 '--no-browser=[Enable manual two-step flow for headless machines (SSH, containers)]::NO_BROWSER:(true false)' \
-'--step=[Step number\: 1 (generate auth URL) or 2 (complete exchange)]:STEP:_default' \
+'--step=[Step of the no-browser flow\: 1 (generate auth URL) or 2 (complete exchange)]:STEP:_default' \
 '--auth-url=[Redirect URL from browser (step 2). Use '\''-'\'' to read from stdin (recommended on shared machines)]:AUTH_URL:_default' \
 '*--scopes=[Request only these comma-separated scopes, plus offline.access (default\: every scope)]:SCOPES:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8006,11 +8297,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8028,8 +8319,8 @@ _arguments "${_arguments_options[@]}" : \
 '--token-secret-file=[File holding the token secret; '\''-'\'' reads it from stdin]:PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8048,11 +8339,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8064,8 +8355,8 @@ _arguments "${_arguments_options[@]}" : \
 '--bearer-token-file=[File holding the bearer token; '\''-'\'' reads it from stdin]:PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8084,11 +8375,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8098,8 +8389,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8118,11 +8409,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8133,8 +8424,8 @@ _arguments "${_arguments_options[@]}" : \
 '--oauth2-username=[Clear \`OAuth2\` token for username]:OAUTH2_USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8153,15 +8444,15 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--all[Clear all authentication]' \
 '--oauth1[Clear \`OAuth1\` tokens]' \
 '--bearer[Clear bearer token]' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8171,8 +8462,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8191,11 +8482,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8217,8 +8508,8 @@ _arguments "${_arguments_options[@]}" : \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback)]:REDIRECT_URI:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8237,11 +8528,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8256,8 +8547,8 @@ _arguments "${_arguments_options[@]}" : \
 '--redirect-uri=[\`OAuth2\` redirect URI (https or http on loopback); empty string clears]:REDIRECT_URI:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8276,11 +8567,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8291,8 +8582,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8311,12 +8602,12 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8327,8 +8618,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8347,11 +8638,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8361,8 +8652,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8381,11 +8672,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8403,8 +8694,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8423,11 +8714,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8438,8 +8729,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8458,11 +8749,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8570,8 +8861,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8590,11 +8881,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8710,8 +9001,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8730,11 +9021,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8760,8 +9051,8 @@ _arguments "${_arguments_options[@]}" : \
 '*--header=[Request headers]:HEADERS:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8780,13 +9071,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Trace header]' \
 '--trace[Trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8804,8 +9095,8 @@ _arguments "${_arguments_options[@]}" : \
 '*--header=[Request headers]:HEADERS:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8824,13 +9115,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Trace header]' \
 '--trace[Trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8844,8 +9135,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8864,13 +9155,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8887,8 +9178,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8907,13 +9198,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8927,8 +9218,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8947,13 +9238,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -8965,8 +9256,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -8985,11 +9276,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9013,8 +9304,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9033,13 +9324,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9056,8 +9347,8 @@ _arguments "${_arguments_options[@]}" : \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9076,13 +9367,13 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9193,8 +9484,8 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9213,11 +9504,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9235,8 +9526,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9254,13 +9545,13 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '()--all[Install into every known host in one invocation]' \
 '--dry-run[Print the resolved git command without spawning]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9271,8 +9562,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9290,13 +9581,13 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '()--all[Update every known host in one invocation]' \
 '--dry-run[Print the resolved plan without removing or cloning]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9340,8 +9631,8 @@ _arguments "${_arguments_options[@]}" : \
 '--path=[Print the node at a dot path into the command'\''s \`data\`, or into the wrapper with \`--common\`]:DOT_PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9360,16 +9651,16 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
 '(--path)--full[Print the command'\''s complete standalone schema, as committed under \`schema/responses/\`]' \
 '--common[Print the API response wrapper every typed command shares, with its shared definitions]' \
 '--list[List all commands and their response types]' \
 '--all[Output all schemas as a single JSON document]' \
 '--envelope[Output the canonical agent-native output envelope schema]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9380,8 +9671,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9400,11 +9691,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9415,8 +9706,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9435,11 +9726,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9449,8 +9740,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9469,11 +9760,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9481,11 +9772,11 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`broadcast\`, \`broadcasts\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-muted\`, \`chat-mutes\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-created\`, \`stream-source-deleted\`, \`stream-source-key\`, \`ingest-region\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
+'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`drafts\`, \`draft-created\`, \`broadcast\`, \`broadcasts\`, \`broadcast-updated\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-muted\`, \`chat-mutes\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`trend-locations\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-created\`, \`stream-source-deleted\`, \`stream-source-key\`, \`ingest-region\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+'--app=[Use a specific registered app (overrides default). A name the store does not hold is refused]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\` \[env\: XURL_OUTPUT\]]:OUTPUT:((text\:"Default\: colored, human-readable"
 json\:"Machine-readable JSON, no color"
 jsonl\:"JSON Lines (useful for streaming)"
 ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
@@ -9504,11 +9795,11 @@ always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
 '--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
-'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it \[env\: XURL_CURSOR\]]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'(--page)--after=[Documented alias for \`--cursor\` \[env\: XURL_AFTER\]]:TOKEN:_default' \
+'--json[Shorthand for \`--output json\` \[env\: XURL_JSON\]]' \
+'--jsonl[Shorthand for \`--output jsonl\` \[env\: XURL_JSONL\]]' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
@@ -9542,6 +9833,34 @@ _arguments "${_arguments_options[@]}" : \
 (delete)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
+;;
+(drafts)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__drafts_commands" \
+"*::: :->drafts" \
+&& ret=0
+
+    case $state in
+    (drafts)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-drafts-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
 ;;
 (read)
 _arguments "${_arguments_options[@]}" : \
@@ -10111,6 +10430,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(locations)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
         esac
     ;;
 esac
@@ -10132,6 +10455,10 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -10683,6 +11010,7 @@ _xr_commands() {
 'reply:Reply to a post' \
 'quote:Quote a post' \
 'delete:Delete a post' \
+'drafts:Your post drafts\: list them, save one, and remove one' \
 'read:Read a post' \
 'analytics:Report impressions and engagement for your posts over a time window' \
 'search-counts:Count the recent posts that match a query, per time bucket' \
@@ -11149,6 +11477,7 @@ _xr__subcmd__broadcasts_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
+'update:Change the title of one of your broadcasts, or who can chat' \
 'remove:Delete one of your broadcasts and its replay' \
 'scheduled:Schedule broadcasts and change or cancel them' \
 'chat:Read a broadcast'\''s chat' \
@@ -11200,6 +11529,7 @@ _xr__subcmd__broadcasts__subcmd__help_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
+'update:Change the title of one of your broadcasts, or who can chat' \
 'remove:Delete one of your broadcasts and its replay' \
 'scheduled:Schedule broadcasts and change or cancel them' \
 'chat:Read a broadcast'\''s chat' \
@@ -11373,6 +11703,11 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__stream-key_comma
 _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts help sources update commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__list_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__list_commands() {
@@ -11675,6 +12010,11 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__stream-key_commands() {
 _xr__subcmd__broadcasts__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources update commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__calls_commands] )) ||
 _xr__subcmd__calls_commands() {
@@ -12025,6 +12365,61 @@ _xr__subcmd__dms_commands() {
     local commands; commands=()
     _describe -t commands 'xr dms commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__drafts_commands] )) ||
+_xr__subcmd__drafts_commands() {
+    local commands; commands=(
+'list:List your post drafts, newest first' \
+'add:Save a post draft without publishing it' \
+'remove:Delete a post draft' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr drafts commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__drafts__subcmd__add_commands] )) ||
+_xr__subcmd__drafts__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr drafts add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__drafts__subcmd__help_commands] )) ||
+_xr__subcmd__drafts__subcmd__help_commands() {
+    local commands; commands=(
+'list:List your post drafts, newest first' \
+'add:Save a post draft without publishing it' \
+'remove:Delete a post draft' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr drafts help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__drafts__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__drafts__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr drafts help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__drafts__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__drafts__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr drafts help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__drafts__subcmd__help__subcmd__list_commands] )) ||
+_xr__subcmd__drafts__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr drafts help list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__drafts__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__drafts__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr drafts help remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__drafts__subcmd__list_commands] )) ||
+_xr__subcmd__drafts__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr drafts list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__drafts__subcmd__remove_commands] )) ||
+_xr__subcmd__drafts__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr drafts remove commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__examples_commands] )) ||
 _xr__subcmd__examples_commands() {
     local commands; commands=()
@@ -12052,6 +12447,7 @@ _xr__subcmd__help_commands() {
 'reply:Reply to a post' \
 'quote:Quote a post' \
 'delete:Delete a post' \
+'drafts:Your post drafts\: list them, save one, and remove one' \
 'read:Read a post' \
 'analytics:Report impressions and engagement for your posts over a time window' \
 'search-counts:Count the recent posts that match a query, per time bucket' \
@@ -12282,6 +12678,7 @@ _xr__subcmd__help__subcmd__broadcasts_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
+'update:Change the title of one of your broadcasts, or who can chat' \
 'remove:Delete one of your broadcasts and its replay' \
 'scheduled:Schedule broadcasts and change or cancel them' \
 'chat:Read a broadcast'\''s chat' \
@@ -12450,6 +12847,11 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__update_commands(
     local commands; commands=()
     _describe -t commands 'xr help broadcasts sources update commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__update_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts update commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__help__subcmd__calls_commands] )) ||
 _xr__subcmd__help__subcmd__calls_commands() {
     local commands; commands=(
@@ -12600,6 +13002,30 @@ _xr__subcmd__help__subcmd__dm-unblock_commands() {
 _xr__subcmd__help__subcmd__dms_commands() {
     local commands; commands=()
     _describe -t commands 'xr help dms commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__drafts_commands] )) ||
+_xr__subcmd__help__subcmd__drafts_commands() {
+    local commands; commands=(
+'list:List your post drafts, newest first' \
+'add:Save a post draft without publishing it' \
+'remove:Delete a post draft' \
+    )
+    _describe -t commands 'xr help drafts commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__drafts__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__drafts__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help drafts add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__drafts__subcmd__list_commands] )) ||
+_xr__subcmd__help__subcmd__drafts__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help drafts list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__drafts__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__drafts__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help drafts remove commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__examples_commands] )) ||
 _xr__subcmd__help__subcmd__examples_commands() {
@@ -13040,8 +13466,14 @@ _xr__subcmd__help__subcmd__trends_commands() {
     local commands; commands=(
 'place:List the trends for a place, by its Yahoo WOEID (1 is worldwide)' \
 'personal:List the trends X picks for you' \
+'locations:List every place X reports trends for, each with the WOEID \`place\` takes' \
     )
     _describe -t commands 'xr help trends commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__trends__subcmd__locations_commands] )) ||
+_xr__subcmd__help__subcmd__trends__subcmd__locations_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help trends locations commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__trends__subcmd__personal_commands] )) ||
 _xr__subcmd__help__subcmd__trends__subcmd__personal_commands() {
@@ -14099,6 +14531,7 @@ _xr__subcmd__trends_commands() {
     local commands; commands=(
 'place:List the trends for a place, by its Yahoo WOEID (1 is worldwide)' \
 'personal:List the trends X picks for you' \
+'locations:List every place X reports trends for, each with the WOEID \`place\` takes' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr trends commands' commands "$@"
@@ -14108,6 +14541,7 @@ _xr__subcmd__trends__subcmd__help_commands() {
     local commands; commands=(
 'place:List the trends for a place, by its Yahoo WOEID (1 is worldwide)' \
 'personal:List the trends X picks for you' \
+'locations:List every place X reports trends for, each with the WOEID \`place\` takes' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr trends help commands' commands "$@"
@@ -14116,6 +14550,11 @@ _xr__subcmd__trends__subcmd__help_commands() {
 _xr__subcmd__trends__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'xr trends help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__trends__subcmd__help__subcmd__locations_commands] )) ||
+_xr__subcmd__trends__subcmd__help__subcmd__locations_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr trends help locations commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__trends__subcmd__help__subcmd__personal_commands] )) ||
 _xr__subcmd__trends__subcmd__help__subcmd__personal_commands() {
@@ -14126,6 +14565,11 @@ _xr__subcmd__trends__subcmd__help__subcmd__personal_commands() {
 _xr__subcmd__trends__subcmd__help__subcmd__place_commands() {
     local commands; commands=()
     _describe -t commands 'xr trends help place commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__trends__subcmd__locations_commands] )) ||
+_xr__subcmd__trends__subcmd__locations_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr trends locations commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__trends__subcmd__personal_commands] )) ||
 _xr__subcmd__trends__subcmd__personal_commands() {

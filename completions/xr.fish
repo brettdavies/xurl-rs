@@ -32,8 +32,8 @@ complete -c xr -n "__fish_xr_needs_command" -s u -l username -d '`OAuth2` login 
 complete -c xr -n "__fish_xr_needs_command" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -s F -l file -d 'File to upload (for multipart requests)' -r
-complete -c xr -n "__fish_xr_needs_command" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_needs_command" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_needs_command" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_needs_command" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -56,13 +56,13 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_needs_command" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_needs_command" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_needs_command" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_needs_command" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_needs_command" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_needs_command" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_needs_command" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_needs_command" -s t -l trace -d 'Add trace header to request'
 complete -c xr -n "__fish_xr_needs_command" -s s -l stream -d 'Force streaming mode'
-complete -c xr -n "__fish_xr_needs_command" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_needs_command" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_needs_command" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_needs_command" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_needs_command" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_needs_command" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_needs_command" -s V -l version -d 'Print version'
@@ -70,6 +70,7 @@ complete -c xr -n "__fish_xr_needs_command" -a "post" -d 'Post to X'
 complete -c xr -n "__fish_xr_needs_command" -a "reply" -d 'Reply to a post'
 complete -c xr -n "__fish_xr_needs_command" -a "quote" -d 'Quote a post'
 complete -c xr -n "__fish_xr_needs_command" -a "delete" -d 'Delete a post'
+complete -c xr -n "__fish_xr_needs_command" -a "drafts" -d 'Your post drafts: list them, save one, and remove one'
 complete -c xr -n "__fish_xr_needs_command" -a "read" -d 'Read a post'
 complete -c xr -n "__fish_xr_needs_command" -a "analytics" -d 'Report impressions and engagement for your posts over a time window'
 complete -c xr -n "__fish_xr_needs_command" -a "search-counts" -d 'Count the recent posts that match a query, per time bucket'
@@ -141,8 +142,8 @@ complete -c xr -n "__fish_xr_using_subcommand post" -l auth -d 'Authentication t
 complete -c xr -n "__fish_xr_using_subcommand post" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand post" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand post" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand post" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -165,12 +166,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand post" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand post" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand post" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand post" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand post" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand post" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand post" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand post" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand post" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand post" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand reply" -l media-id -d 'Media ID(s) to attach (repeatable)' -r
@@ -178,8 +179,8 @@ complete -c xr -n "__fish_xr_using_subcommand reply" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand reply" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand reply" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand reply" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand reply" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand reply" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -202,20 +203,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand reply" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reply" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand reply" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand reply" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand reply" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand reply" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand reply" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand reply" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand reply" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand reply" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand reply" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand reply" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand quote" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand quote" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand quote" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand quote" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand quote" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -238,20 +239,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand quote" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quote" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand quote" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand quote" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand quote" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand quote" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand quote" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand quote" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand quote" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand quote" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand quote" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand quote" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand delete" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand delete" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand delete" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand delete" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand delete" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -274,21 +275,174 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand delete" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand delete" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand delete" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand delete" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand delete" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand delete" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
 complete -c xr -n "__fish_xr_using_subcommand delete" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand delete" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand delete" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand delete" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand delete" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand delete" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand delete" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -f -a "list" -d 'List your post drafts, newest first'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -f -a "add" -d 'Save a post draft without publishing it'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -f -a "remove" -d 'Delete a post draft'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and not __fish_seen_subcommand_from list add remove help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l media-id -d 'Media ID(s) to attach (repeatable)' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l reply-to -d 'The post the draft replies to: its id or URL' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from add" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from help" -f -a "list" -d 'List your post drafts, newest first'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from help" -f -a "add" -d 'Save a post draft without publishing it'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from help" -f -a "remove" -d 'Delete a post draft'
+complete -c xr -n "__fish_xr_using_subcommand drafts; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand read" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand read" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand read" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand read" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand read" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -311,12 +465,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand read" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand read" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand read" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand read" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand read" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand read" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand read" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand read" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand read" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand read" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand read" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand read" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand analytics" -l start -d 'Start of the window (RFC 3339 with a zone, such as 2026-10-01T00:00:00Z)' -r
@@ -329,8 +483,8 @@ complete -c xr -n "__fish_xr_using_subcommand analytics" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand analytics" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -353,12 +507,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand analytics" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand analytics" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand analytics" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand analytics" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l granularity -d 'Bucket size (X\'s default is hour)' -r -f -a "minute\t''
@@ -370,8 +524,8 @@ complete -c xr -n "__fish_xr_using_subcommand search-counts" -l auth -d 'Authent
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -394,21 +548,21 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -431,20 +585,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand users" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand users" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand users" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand users" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand users" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -467,12 +621,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand users" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand users" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand users" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand users" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand users" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand users" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand users" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand users" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand users" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand users" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand users" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand users" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s n -l max-results -d 'Number of results (5-100; a lower value is raised to 5, X\'s minimum). Overrides global `--limit` when set' -r
@@ -480,8 +634,8 @@ complete -c xr -n "__fish_xr_using_subcommand user-posts" -l auth -d 'Authentica
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -504,20 +658,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand posts" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand posts" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -540,12 +694,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand posts" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand posts" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand posts" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand posts" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand posts" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand posts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand posts" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand search" -s n -l max-results -d 'Number of results (10-100; a lower value is raised to 10, X\'s minimum). Overrides global `--limit` when set' -r
@@ -553,8 +707,8 @@ complete -c xr -n "__fish_xr_using_subcommand search" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand search" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -577,12 +731,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand search" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand search" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand search" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand search" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand search" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand search" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand search" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand search" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand search" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand likers" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -590,8 +744,8 @@ complete -c xr -n "__fish_xr_using_subcommand likers" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand likers" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand likers" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand likers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand likers" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand likers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -614,12 +768,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand likers" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likers" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand likers" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand likers" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand likers" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand likers" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand likers" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand likers" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand likers" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand likers" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand likers" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand likers" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -627,8 +781,8 @@ complete -c xr -n "__fish_xr_using_subcommand reposters" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -651,12 +805,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand reposters" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand reposters" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand reposters" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s n -l max-results -d 'Number of results (10-100; a lower value is raised to 10, X\'s minimum). Overrides global `--limit` when set' -r
@@ -664,8 +818,8 @@ complete -c xr -n "__fish_xr_using_subcommand quotes" -l auth -d 'Authentication
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -688,20 +842,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -724,21 +878,21 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l cached -d 'Answer from the account the store holds for the login (id, username, display name) with no request; ask X when it holds none yet. `source` says which answered'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand user" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand user" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand user" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand user" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand user" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -761,12 +915,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand user" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand user" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand user" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand user" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand user" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand user" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand user" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand user" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand user" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand user" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand user" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand user" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -774,8 +928,8 @@ complete -c xr -n "__fish_xr_using_subcommand timeline" -l auth -d 'Authenticati
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -798,12 +952,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s n -l max-results -d 'Number of results (5-100; a lower value is raised to 5, X\'s minimum). Overrides global `--limit` when set' -r
@@ -811,8 +965,8 @@ complete -c xr -n "__fish_xr_using_subcommand mentions" -l auth -d 'Authenticati
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -835,20 +989,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand like" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand like" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand like" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand like" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand like" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -871,20 +1025,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand like" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand like" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand like" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand like" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand like" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand like" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand like" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand like" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand like" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand like" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand like" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand like" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -907,20 +1061,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand hide" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand hide" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand hide" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand hide" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand hide" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -943,20 +1097,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand hide" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand hide" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand hide" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand hide" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand hide" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand hide" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand hide" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand hide" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand hide" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand hide" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand hide" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand hide" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -979,20 +1133,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand repost" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand repost" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand repost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand repost" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand repost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1015,20 +1169,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand repost" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand repost" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand repost" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand repost" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand repost" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand repost" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand repost" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand repost" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand repost" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand repost" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand repost" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand repost" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1051,20 +1205,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l auth -d 'Authentication type (this command accepts: oauth2). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1087,20 +1241,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l auth -d 'Authentication type (this command accepts: oauth2). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1123,12 +1277,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -1136,8 +1290,8 @@ complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1160,18 +1314,18 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1194,11 +1348,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -f -a "list" -d 'List the folders you sort bookmarks into'
@@ -1210,8 +1364,8 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1234,12 +1388,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -1247,8 +1401,8 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1271,20 +1425,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l auth -d 'Authentication type (this command accepts: oauth2). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1307,12 +1461,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from help" -f -a "list" -d 'List the folders you sort bookmarks into'
@@ -1324,8 +1478,8 @@ complete -c xr -n "__fish_xr_using_subcommand likes" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand likes" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand likes" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand likes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand likes" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1348,20 +1502,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand likes" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand likes" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand likes" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand likes" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand likes" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand likes" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand likes" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand likes" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand likes" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand likes" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand follow" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand follow" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand follow" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1384,20 +1538,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand follow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand follow" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand follow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand follow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand follow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand follow" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand follow" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand follow" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand follow" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand follow" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand follow" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand follow" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1420,12 +1574,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand following" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -1434,8 +1588,8 @@ complete -c xr -n "__fish_xr_using_subcommand following" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand following" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand following" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand following" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand following" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1458,12 +1612,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand following" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand following" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand following" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand following" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand following" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand following" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand following" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand following" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand following" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand following" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand followers" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -1472,8 +1626,8 @@ complete -c xr -n "__fish_xr_using_subcommand followers" -l auth -d 'Authenticat
 complete -c xr -n "__fish_xr_using_subcommand followers" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand followers" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand followers" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1496,20 +1650,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand followers" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand followers" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand followers" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand followers" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand followers" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand followers" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand followers" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand followers" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand followers" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand followers" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand mute" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand mute" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand mute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand mute" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand mute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1532,20 +1686,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand mute" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand mute" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand mute" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand mute" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand mute" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand mute" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand mute" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand mute" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand mute" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand mute" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand mute" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand mute" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1568,12 +1722,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand muted" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -1581,8 +1735,8 @@ complete -c xr -n "__fish_xr_using_subcommand muted" -l auth -d 'Authentication 
 complete -c xr -n "__fish_xr_using_subcommand muted" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand muted" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand muted" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand muted" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1605,20 +1759,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand muted" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand muted" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand muted" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand muted" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand muted" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand muted" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand muted" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand muted" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand muted" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand muted" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand block" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand block" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand block" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1641,20 +1795,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand block" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand block" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand block" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand block" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand block" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand block" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand block" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand block" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand block" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand block" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1677,12 +1831,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -1690,8 +1844,8 @@ complete -c xr -n "__fish_xr_using_subcommand blocked" -l auth -d 'Authenticatio
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1714,20 +1868,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l auth -d 'Authentication type (this command accepts: app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1750,12 +1904,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -f -a "credits" -d 'Show credits-based usage for the project'
@@ -1764,8 +1918,8 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1788,12 +1942,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from help" -f -a "credits" -d 'Show credits-based usage for the project'
@@ -1802,8 +1956,8 @@ complete -c xr -n "__fish_xr_using_subcommand dm" -l auth -d 'Authentication typ
 complete -c xr -n "__fish_xr_using_subcommand dm" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dm" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dm" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand dm" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1826,18 +1980,18 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand dm" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand dm" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand dm" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand dm" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand dm" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand dm" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand dm" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dm" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1860,11 +2014,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -f -a "start" -d 'Start a group conversation and send its first message'
@@ -1877,8 +2031,8 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1901,20 +2055,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1937,12 +2091,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -1950,8 +2104,8 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -1974,12 +2128,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -1987,8 +2141,8 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2011,12 +2165,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from help" -f -a "start" -d 'Start a group conversation and send its first message'
@@ -2026,8 +2180,8 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2050,11 +2204,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -f -a "get" -d 'Read one direct message, by event id'
@@ -2064,8 +2218,8 @@ complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2088,20 +2242,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2124,13 +2278,13 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from help" -f -a "get" -d 'Read one direct message, by event id'
@@ -2140,8 +2294,8 @@ complete -c xr -n "__fish_xr_using_subcommand dm-block" -l auth -d 'Authenticati
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2164,20 +2318,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2200,12 +2354,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand dms" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -2213,8 +2367,8 @@ complete -c xr -n "__fish_xr_using_subcommand dms" -l auth -d 'Authentication ty
 complete -c xr -n "__fish_xr_using_subcommand dms" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dms" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand dms" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand dms" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand dms" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2237,18 +2391,18 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dms" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand dms" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand dms" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dms" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand dms" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand dms" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand dms" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand dms" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand dms" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand dms" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand dms" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dms" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2271,11 +2425,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -f -a "list" -d 'List the lists you own'
@@ -2300,8 +2454,8 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2324,12 +2478,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -2338,8 +2492,8 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2362,12 +2516,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -2376,8 +2530,8 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2400,20 +2554,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2436,20 +2590,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2472,12 +2626,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -2485,8 +2639,8 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2509,12 +2663,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -2522,8 +2676,8 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2546,18 +2700,18 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2580,11 +2734,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -f -a "list" -d 'List the accounts on a list'
@@ -2596,8 +2750,8 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2620,13 +2774,13 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l private -d 'Only you can see the list'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l name -d 'New name, 1 to 25 characters' -r
@@ -2635,8 +2789,8 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2659,22 +2813,22 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l private -d 'Make the list private'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l public -d 'Make the list public'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2697,21 +2851,21 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2734,20 +2888,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2770,20 +2924,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2806,20 +2960,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2842,12 +2996,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from help" -f -a "list" -d 'List the lists you own'
@@ -2868,8 +3022,8 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2892,11 +3046,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -f -a "search" -d 'Search communities'
@@ -2907,8 +3061,8 @@ complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subco
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2931,20 +3085,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -2967,12 +3121,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from help" -f -a "search" -d 'Search communities'
@@ -2980,8 +3134,8 @@ complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subco
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3004,11 +3158,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -f -a "search" -d 'Search news stories'
@@ -3020,8 +3174,8 @@ complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3044,20 +3198,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3080,12 +3234,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from help" -f -a "search" -d 'Search news stories'
@@ -3093,8 +3247,8 @@ complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3117,11 +3271,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -f -a "search" -d 'Search Spaces by keyword'
@@ -3137,8 +3291,8 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3161,20 +3315,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3197,20 +3351,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3233,12 +3387,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -3246,8 +3400,8 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3270,12 +3424,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from help" -f -a "search" -d 'Search Spaces by keyword'
@@ -3285,8 +3439,8 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3309,19 +3463,19 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -f -a "rules" -d 'List, add, remove, and count the rules that pick the stream\'s posts'
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3344,11 +3498,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -f -a "list" -d 'List the filtered stream\'s rules'
@@ -3360,8 +3514,8 @@ complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3384,11 +3538,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -f -a "draft" -d 'Save a draft X Article from a plain-text body'
@@ -3401,8 +3555,8 @@ complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3425,20 +3579,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3461,13 +3615,13 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from help" -f -a "draft" -d 'Save a draft X Article from a plain-text body'
@@ -3475,8 +3629,8 @@ complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3499,11 +3653,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -f -a "write" -d 'Write a Community Note about a post'
@@ -3526,8 +3680,8 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3550,15 +3704,15 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l trustworthy-sources -d 'The note cites trustworthy sources'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l media-note -d 'The note is about the post\'s media'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l test -d 'Test mode, for an app X is still admitting to the program'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l text -d 'The note\'s text; X requires a source URL in it' -r
@@ -3566,8 +3720,8 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3590,12 +3744,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -3603,8 +3757,8 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3627,13 +3781,13 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l test -d 'Test mode, for an app X is still admitting to the program'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
@@ -3641,8 +3795,8 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3665,21 +3819,21 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l test -d 'Test mode, for an app X is still admitting to the program'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3702,13 +3856,13 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from help" -f -a "write" -d 'Write a Community Note about a post'
@@ -3717,49 +3871,50 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from help" -f -a "written" -d 'List the Community Notes you wrote'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from help" -f -a "remove" -d 'Delete a Community Note you wrote'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l timeout -d 'Request timeout in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -f -a "place" -d 'List the trends for a place, by its Yahoo WOEID (1 is worldwide)'
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -f -a "personal" -d 'List the trends X picks for you'
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -f -a "place" -d 'List the trends for a place, by its Yahoo WOEID (1 is worldwide)'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -f -a "personal" -d 'List the trends X picks for you'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -f -a "locations" -d 'List every place X reports trends for, each with the WOEID `place` takes'
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal locations help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s n -l max-results -d 'Number of trends (1-50; X\'s default is 20). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3782,20 +3937,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3818,66 +3973,104 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "place" -d 'List the trends for a place, by its Yahoo WOEID (1 is worldwide)'
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "personal" -d 'List the trends X picks for you'
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l timeout -d 'Request timeout in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -f -a "list" -d 'List your broadcasts'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -f -a "get" -d 'Read one broadcast, by id'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -f -a "remove" -d 'Delete one of your broadcasts and its replay'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -f -a "scheduled" -d 'Schedule broadcasts and change or cancel them'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -f -a "chat" -d 'Read a broadcast\'s chat'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -f -a "mutes" -d 'Mute people in every chat of your broadcasts'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -f -a "sources" -d 'Manage the RTMP and RTMPS ingest points you stream to'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get remove scheduled chat moderators mutes sources help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from locations" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "place" -d 'List the trends for a place, by its Yahoo WOEID (1 is worldwide)'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "personal" -d 'List the trends X picks for you'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "locations" -d 'List every place X reports trends for, each with the WOEID `place` takes'
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "list" -d 'List your broadcasts'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "get" -d 'Read one broadcast, by id'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "update" -d 'Change the title of one of your broadcasts, or who can chat'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "remove" -d 'Delete one of your broadcasts and its replay'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "scheduled" -d 'Schedule broadcasts and change or cancel them'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "chat" -d 'Read a broadcast\'s chat'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "mutes" -d 'Mute people in every chat of your broadcasts'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "sources" -d 'Manage the RTMP and RTMPS ingest points you stream to'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get update remove scheduled chat moderators mutes sources help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3900,20 +4093,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3936,20 +4129,58 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l title -d 'New title' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l chat-option -d 'Who can chat, 0 to 6: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts you follow, 5 your subscribers, 6 accounts followed by an account you follow' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from update" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -3972,19 +4203,19 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4007,11 +4238,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -f -a "list" -d 'List your scheduled broadcasts'
@@ -4022,8 +4253,8 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4046,19 +4277,19 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -f -a "history" -d 'List a broadcast\'s chat'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4081,11 +4312,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "list" -d 'List your broadcast chat moderators'
@@ -4094,8 +4325,8 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4118,11 +4349,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -f -a "list" -d 'List who is muted in your broadcast chats, and until when'
@@ -4131,8 +4362,8 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4155,11 +4386,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "list" -d 'List your stream sources'
@@ -4172,6 +4403,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "list" -d 'List your broadcasts'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "get" -d 'Read one broadcast, by id'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "update" -d 'Change the title of one of your broadcasts, or who can chat'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "remove" -d 'Delete one of your broadcasts and its replay'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "scheduled" -d 'Schedule broadcasts and change or cancel them'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "chat" -d 'Read a broadcast\'s chat'
@@ -4181,8 +4413,8 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4205,11 +4437,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -f -a "get" -d 'Show an X call: its title, join policy, host, and who is in it'
@@ -4219,8 +4451,8 @@ complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4243,18 +4475,18 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4277,11 +4509,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -f -a "list" -d 'List the calls on your calendar, earliest first'
@@ -4296,8 +4528,8 @@ complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4320,11 +4552,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -f -a "list" -d 'List the webhooks registered for the app'
@@ -4340,8 +4572,8 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4364,20 +4596,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4400,20 +4632,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4436,20 +4668,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4472,19 +4704,19 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4507,11 +4739,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -f -a "count" -d 'Count the subscriptions the app holds and may hold'
@@ -4522,8 +4754,8 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4546,11 +4778,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -f -a "list" -d 'List the webhooks the app\'s filtered stream delivers to'
@@ -4569,8 +4801,8 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l checkpoint -d 'Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so `xr webhooks replay --from-checkpoint` can request what a stop missed. The file holds {"last_event_at": <Unix seconds>}' -r -F
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4593,12 +4825,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l allow-unsigned -d 'Also print a POST that carries no signature, for a local test with curl. A POST with a wrong signature is refused either way'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l from -d 'Start of the window: twelve digits, `yyyymmddhhmm` in UTC' -r
@@ -4608,8 +4840,8 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4632,12 +4864,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from help" -f -a "list" -d 'List the webhooks registered for the app'
@@ -4651,8 +4883,8 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4675,11 +4907,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -f -a "oauth2" -d 'Configure `OAuth2` authentication'
@@ -4692,13 +4924,13 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l no-browser -d 'Enable manual two-step flow for headless machines (SSH, containers)' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l step -d 'Step number: 1 (generate auth URL) or 2 (complete exchange)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l step -d 'Step of the no-browser flow: 1 (generate auth URL) or 2 (complete exchange)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l auth-url -d 'Redirect URL from browser (step 2). Use \'-\' to read from stdin (recommended on shared machines)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l scopes -d 'Request only these comma-separated scopes, plus offline.access (default: every scope)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4721,11 +4953,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l consumer-key -d 'Consumer key' -r
@@ -4737,8 +4969,8 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l token-secret-file -d 'File holding the token secret; \'-\' reads it from stdin' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4761,19 +4993,19 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l bearer-token -d 'Bearer token' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l bearer-token-file -d 'File holding the bearer token; \'-\' reads it from stdin' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4796,17 +5028,17 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4829,18 +5061,18 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l oauth2-username -d 'Clear `OAuth2` token for username' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4863,21 +5095,21 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l all -d 'Clear all authentication'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l oauth1 -d 'Clear `OAuth1` tokens'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l bearer -d 'Clear bearer token'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4900,11 +5132,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -f -a "add" -d 'Register a new X API app'
@@ -4915,8 +5147,8 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4939,11 +5171,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from help" -f -a "oauth2" -d 'Configure `OAuth2` authentication'
@@ -4956,8 +5188,8 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -4980,11 +5212,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -f -a "upload" -d 'Upload media file'
@@ -5002,8 +5234,8 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s H -l header -d 'Request headers' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5026,12 +5258,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s t -l trace -d 'Trace header'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
@@ -5040,8 +5272,8 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s H -l header -d 'Request headers' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5064,20 +5296,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s t -l trace -d 'Trace header'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5100,12 +5332,12 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l start -d 'Start of the window (RFC 3339 with a zone, such as 2026-10-01T00:00:00Z)' -r
@@ -5117,8 +5349,8 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5141,20 +5373,20 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5177,18 +5409,18 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s t -l trace -d 'Add X-B3-Flags trace header'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5211,11 +5443,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -f -a "add" -d 'Add a subtitle track to an uploaded video'
@@ -5230,8 +5462,8 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5254,11 +5486,11 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -f -a "install" -d 'Install the skill bundle into a host\'s canonical skills directory'
@@ -5266,8 +5498,8 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5288,19 +5520,19 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l all -d 'Install into every known host in one invocation'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l dry-run -d 'Print the resolved git command without spawning'
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5321,13 +5553,13 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l all -d 'Update every known host in one invocation'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l dry-run -d 'Print the resolved plan without removing or cloning'
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from help" -f -a "install" -d 'Install the skill bundle into a host\'s canonical skills directory'
@@ -5336,8 +5568,8 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand schema" -l path -d 'Print the node at a dot path into the command\'s `data`, or into the wrapper with `--common`' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand schema" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand schema" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand schema" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand schema" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5360,22 +5592,22 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand schema" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand schema" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand schema" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand schema" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l full -d 'Print the command\'s complete standalone schema, as committed under `schema/responses/`'
 complete -c xr -n "__fish_xr_using_subcommand schema" -l common -d 'Print the API response wrapper every typed command shares, with its shared definitions'
 complete -c xr -n "__fish_xr_using_subcommand schema" -l list -d 'List all commands and their response types'
 complete -c xr -n "__fish_xr_using_subcommand schema" -l all -d 'Output all schemas as a single JSON document'
 complete -c xr -n "__fish_xr_using_subcommand schema" -l envelope -d 'Output the canonical agent-native output envelope schema'
-complete -c xr -n "__fish_xr_using_subcommand schema" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand schema" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand schema" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand schema" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand schema" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand schema" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand completions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand completions" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand completions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand completions" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand completions" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5398,17 +5630,17 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand completions" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand completions" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand completions" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand completions" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand completions" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand completions" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand completions" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand completions" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand completions" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand completions" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand completions" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand completions" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand version" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand version" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand version" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand version" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand version" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5431,17 +5663,17 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand version" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand version" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand version" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand version" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand version" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand version" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand version" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand version" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand version" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand version" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand version" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand version" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand examples" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand examples" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand examples" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand examples" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand examples" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5464,18 +5696,18 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand examples" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand examples" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand examples" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand examples" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand examples" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand examples" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand examples" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand examples" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand examples" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand examples" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand examples" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand examples" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-created`, `stream-source-deleted`, `stream-source-key`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `drafts`, `draft-created`, `broadcast`, `broadcasts`, `broadcast-updated`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `trend-locations`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-created`, `stream-source-deleted`, `stream-source-key`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default). A name the store does not hold is refused' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args` [env: XURL_OUTPUT]' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
@@ -5498,80 +5730,84 @@ never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand validate" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it [env: XURL_CURSOR]' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand validate" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand validate" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand validate" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand validate" -l after -d 'Documented alias for `--cursor` [env: XURL_AFTER]' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l json -d 'Shorthand for `--output json` [env: XURL_JSON]'
+complete -c xr -n "__fish_xr_using_subcommand validate" -l jsonl -d 'Shorthand for `--output jsonl` [env: XURL_JSONL]'
 complete -c xr -n "__fish_xr_using_subcommand validate" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand validate" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "post" -d 'Post to X'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "reply" -d 'Reply to a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "quote" -d 'Quote a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "delete" -d 'Delete a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "read" -d 'Read a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "analytics" -d 'Report impressions and engagement for your posts over a time window'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "search-counts" -d 'Count the recent posts that match a query, per time bucket'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "search-users" -d 'Find accounts by keyword'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "users" -d 'Look up 1 to 100 accounts by handle or by id in one request'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "user-posts" -d 'List the posts a user wrote'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "posts" -d 'Read 1 to 100 posts by id or URL in one request'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "search" -d 'Search recent posts'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "likers" -d 'List the users who liked a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "reposters" -d 'List the users who reposted a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "quotes" -d 'List the posts that quote a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "whoami" -d 'Show the authenticated user\'s profile'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "user" -d 'Look up a user by username'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "timeline" -d 'Show your home timeline'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "mentions" -d 'Show your recent mentions'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "like" -d 'Like a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unlike" -d 'Unlike a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "hide" -d 'Hide a reply to your post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unhide" -d 'Show a hidden reply to your post again'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "repost" -d 'Repost a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unrepost" -d 'Undo a repost'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "bookmark" -d 'Bookmark a post'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unbookmark" -d 'Remove a bookmark'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "bookmarks" -d 'List your bookmarks'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "bookmark-folders" -d 'Your bookmark folders, and the posts in each'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "likes" -d 'List your liked posts'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "follow" -d 'Follow a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unfollow" -d 'Unfollow a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "following" -d 'List users you follow'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "followers" -d 'List your followers'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "mute" -d 'Mute a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unmute" -d 'Unmute a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "muted" -d 'List users you have muted'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "block" -d 'Block a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unblock" -d 'Unblock a user'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "blocked" -d 'List users you have blocked'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "usage" -d 'Show API usage (post caps, daily breakdown)'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dm" -d 'Send a direct message'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "conversations" -d 'Start a group conversation, send into one, or read one'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dm-events" -d 'Read or delete one direct message, by event id'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dm-block" -d 'Stop a user sending you direct messages'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dm-unblock" -d 'Let a user send you direct messages again'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dms" -d 'List recent direct messages'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "lists" -d 'Your lists, a list\'s posts and members, and following and pinning'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "communities" -d 'Search communities, and read one'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "news" -d 'Search news stories, and read one'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "spaces" -d 'Find Spaces by keyword, id, or creator, and read their posts'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "stream" -d 'The filtered stream\'s rules'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "articles" -d 'Write and publish long-form X Articles'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "notes" -d 'Write Community Notes through X\'s AI Note Writer API'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "trends" -d 'Trends for a place, and your personalized trends'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "broadcasts" -d 'Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "calls" -d 'X calls, and the calls on your calendar (preview)'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "webhooks" -d 'Webhook registration, subscriptions, stream links, a local listener, and replay'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "auth" -d 'Authentication management'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "media" -d 'Media upload, lookup by key, video metrics, alt text, and subtitles'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "skill" -d 'Install or manage the xurl-rs skill bundle'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "schema" -d 'Show JSON Schema for a command\'s response type'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "completions" -d 'Generate shell completion script'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "version" -d 'Show xurl version information'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "examples" -d 'Print a curated gallery of invocation examples grouped by use case'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "validate" -d 'Validate a JSON document against a bundled response schema'
-complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "post" -d 'Post to X'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "reply" -d 'Reply to a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "quote" -d 'Quote a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "delete" -d 'Delete a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "drafts" -d 'Your post drafts: list them, save one, and remove one'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "read" -d 'Read a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "analytics" -d 'Report impressions and engagement for your posts over a time window'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "search-counts" -d 'Count the recent posts that match a query, per time bucket'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "search-users" -d 'Find accounts by keyword'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "users" -d 'Look up 1 to 100 accounts by handle or by id in one request'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "user-posts" -d 'List the posts a user wrote'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "posts" -d 'Read 1 to 100 posts by id or URL in one request'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "search" -d 'Search recent posts'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "likers" -d 'List the users who liked a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "reposters" -d 'List the users who reposted a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "quotes" -d 'List the posts that quote a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "whoami" -d 'Show the authenticated user\'s profile'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "user" -d 'Look up a user by username'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "timeline" -d 'Show your home timeline'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "mentions" -d 'Show your recent mentions'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "like" -d 'Like a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unlike" -d 'Unlike a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "hide" -d 'Hide a reply to your post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unhide" -d 'Show a hidden reply to your post again'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "repost" -d 'Repost a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unrepost" -d 'Undo a repost'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "bookmark" -d 'Bookmark a post'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unbookmark" -d 'Remove a bookmark'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "bookmarks" -d 'List your bookmarks'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "bookmark-folders" -d 'Your bookmark folders, and the posts in each'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "likes" -d 'List your liked posts'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "follow" -d 'Follow a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unfollow" -d 'Unfollow a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "following" -d 'List users you follow'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "followers" -d 'List your followers'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "mute" -d 'Mute a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unmute" -d 'Unmute a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "muted" -d 'List users you have muted'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "block" -d 'Block a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "unblock" -d 'Unblock a user'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "blocked" -d 'List users you have blocked'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "usage" -d 'Show API usage (post caps, daily breakdown)'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dm" -d 'Send a direct message'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "conversations" -d 'Start a group conversation, send into one, or read one'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dm-events" -d 'Read or delete one direct message, by event id'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dm-block" -d 'Stop a user sending you direct messages'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dm-unblock" -d 'Let a user send you direct messages again'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "dms" -d 'List recent direct messages'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "lists" -d 'Your lists, a list\'s posts and members, and following and pinning'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "communities" -d 'Search communities, and read one'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "news" -d 'Search news stories, and read one'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "spaces" -d 'Find Spaces by keyword, id, or creator, and read their posts'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "stream" -d 'The filtered stream\'s rules'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "articles" -d 'Write and publish long-form X Articles'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "notes" -d 'Write Community Notes through X\'s AI Note Writer API'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "trends" -d 'Trends for a place, and your personalized trends'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "broadcasts" -d 'Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "calls" -d 'X calls, and the calls on your calendar (preview)'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "webhooks" -d 'Webhook registration, subscriptions, stream links, a local listener, and replay'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "auth" -d 'Authentication management'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "media" -d 'Media upload, lookup by key, video metrics, alt text, and subtitles'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "skill" -d 'Install or manage the xurl-rs skill bundle'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "schema" -d 'Show JSON Schema for a command\'s response type'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "completions" -d 'Generate shell completion script'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "version" -d 'Show xurl version information'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "examples" -d 'Print a curated gallery of invocation examples grouped by use case'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "validate" -d 'Validate a JSON document against a bundled response schema'
+complete -c xr -n "__fish_xr_using_subcommand help; and not __fish_seen_subcommand_from post reply quote delete drafts read analytics search-counts search-users users user-posts posts search likers reposters quotes whoami user timeline mentions like unlike hide unhide repost unrepost bookmark unbookmark bookmarks bookmark-folders likes follow unfollow following followers mute unmute muted block unblock blocked usage dm conversations dm-events dm-block dm-unblock dms lists communities news spaces stream articles notes trends broadcasts calls webhooks auth media skill schema completions version examples validate help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from drafts" -f -a "list" -d 'List your post drafts, newest first'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from drafts" -f -a "add" -d 'Save a post draft without publishing it'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from drafts" -f -a "remove" -d 'Delete a post draft'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from bookmark-folders" -f -a "list" -d 'List the folders you sort bookmarks into'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from bookmark-folders" -f -a "posts" -d 'List the posts in one of your bookmark folders, by id'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from bookmark-folders" -f -a "add" -d 'Create a bookmark folder'
@@ -5615,8 +5851,10 @@ complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from notes" -f -a "remove" -d 'Delete a Community Note you wrote'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from trends" -f -a "place" -d 'List the trends for a place, by its Yahoo WOEID (1 is worldwide)'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from trends" -f -a "personal" -d 'List the trends X picks for you'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from trends" -f -a "locations" -d 'List every place X reports trends for, each with the WOEID `place` takes'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "list" -d 'List your broadcasts'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "get" -d 'Read one broadcast, by id'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "update" -d 'Change the title of one of your broadcasts, or who can chat'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "remove" -d 'Delete one of your broadcasts and its replay'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "scheduled" -d 'Schedule broadcasts and change or cancel them'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "chat" -d 'Read a broadcast\'s chat'

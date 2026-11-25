@@ -5,17 +5,17 @@
 //! envelope carries, which keeps a hint and its machine-readable form from
 //! drifting apart.
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 pub use xdk::error::NextAction;
 use xdk::error::{
-    APP_NAME_TAKEN, APP_NOT_FOUND, BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE,
-    CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED, CALLBACK_TIMED_OUT, Error,
-    PENDING_APP_MISMATCH, PENDING_EXPIRED, PENDING_INVALID, PENDING_NOT_FOUND, PENDING_PERMISSIONS,
-    PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE,
-    REDIRECT_STATE_MISMATCH, REFRESH_CLIENT_REFUSED, REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED,
-    TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
-    USER_NOT_FOUND,
+    APP_NAME_TAKEN, BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE,
+    CALLBACK_PROVIDER_REFUSED, CALLBACK_TIMED_OUT, Error, PENDING_APP_MISMATCH, PENDING_EXPIRED,
+    PENDING_INVALID, PENDING_NOT_FOUND, PENDING_PERMISSIONS, PENDING_SCOPE_MISMATCH,
+    REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
+    REFRESH_CLIENT_REFUSED, REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED, TOKEN_EXCHANGE_CLIENT_REFUSED,
+    TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN, USER_NOT_FOUND,
+    names_client_not_enrolled,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -41,7 +41,7 @@ use crate::cli::classify::{ROOT_COMMAND, requested_login};
 /// [`Self::listen_on_free_port`], [`Self::fix_input_with`],
 /// [`Self::fix_input_template`], [`Self::step_two_again`], and the one
 /// [`resume_after_upload_hint`] gives a 401.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
     /// The action to take.
@@ -67,6 +67,10 @@ pub(crate) const REGISTER_APP_TEMPLATE: &str =
 /// answers it.
 pub(crate) const NO_SIGNING_SECRET: &str = "No signing secret: X signs webhook requests with the \
      app's OAuth2 client secret or OAuth1 consumer secret, and the app has neither stored";
+
+/// The README section on how a typed flag and the variables of its setting
+/// resolve.
+pub(crate) const PRECEDENCE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#flag-and-variable-precedence";
 
 /// The README section on a token store that could not be loaded.
 pub(crate) const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
@@ -139,44 +143,20 @@ impl NextStep {
     /// and `--step 2` becomes `--step 1`.
     #[must_use]
     pub fn sign_in_again(invocation: &[String], no_browser: bool) -> Self {
-        let restep = |step: &str| {
-            if step == "2" {
-                "1".to_string()
-            } else {
-                shell_word(step)
-            }
-        };
-        let mut words = vec![ROOT_COMMAND.to_string()];
-        let mut args = invocation.iter().skip(1);
-        while let Some(arg) = args.next() {
-            if arg == "--auth-url" {
-                args.next();
-                continue;
-            }
-            if arg.starts_with("--auth-url=") {
-                continue;
-            }
-            if arg == "--step" {
-                words.push(arg.clone());
-                if let Some(step) = args.next() {
-                    words.push(restep(step));
-                }
-                continue;
-            }
-            match arg.strip_prefix("--step=") {
-                Some(step) => words.push(format!("--step={}", restep(step))),
-                None => words.push(shell_word(arg)),
-            }
-        }
-        if no_browser && !invocation.iter().any(|arg| arg == "--no-browser") {
-            words.push("--no-browser".to_string());
-        }
         Self {
             action: NextAction::SignIn,
-            command: Some(words.join(" ")),
+            command: Some(restart_sign_in(invocation, no_browser, None)),
             template: None,
             docs: None,
         }
+    }
+
+    /// [`Self::sign_in_again`] under `app`, which replaces the `--app` of the
+    /// invocation, for a sign-in whose own app has no client id to sign in
+    /// with.
+    #[must_use]
+    pub fn select_app_sign_in(invocation: &[String], no_browser: bool, app: &str) -> Self {
+        Self::select_app(restart_sign_in(invocation, no_browser, Some(app)))
     }
 
     /// The headless step 2 `invocation` ran, again, under `app` when one is
@@ -227,20 +207,6 @@ impl NextStep {
             template: Some(template),
             docs: None,
         }
-    }
-
-    /// This step's command with `--dry-run` after the program word, for a
-    /// dry run's refusal whose step reruns an invocation. A command that does
-    /// not start with the program word is left as it is.
-    #[must_use]
-    pub fn under_dry_run(mut self) -> Self {
-        if let Some(command) = &mut self.command
-            && let Some(rest) = command.strip_prefix(ROOT_COMMAND)
-            && rest.starts_with(' ')
-        {
-            *command = format!("{ROOT_COMMAND} --dry-run{rest}");
-        }
-        self
     }
 
     /// Look at a store file that could not be loaded, starting from the
@@ -501,7 +467,9 @@ pub struct Hint {
 /// The login is the one `-u` names in `invocation`, or any login when it
 /// names none. An app that holds only other logins is passed over, since
 /// the rerun would refuse there the same way. A sign-in on the target names
-/// it unless it is the default, so the login lands where the rerun looks.
+/// it, the default app included: the caller's shell resolves the app per
+/// invocation from `--app` and `XURL_APP`, and it must land the login where
+/// this run looked.
 ///
 /// The snapshot is taken before dispatch, so the choice sees the store the
 /// run actually loaded, including an app named by `--app` and a client id
@@ -548,7 +516,7 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
     let target_has_client_id =
         snapshot.env_client_id_present || target_facts.is_some_and(|f| f.has_client_id);
     if target_has_client_id {
-        let app = (target != snapshot.default_app).then_some(target);
+        let app = (!target.is_empty()).then_some(target);
         let next_step = NextStep::sign_in_as(login, app, headless);
         let command = next_step.command.clone().unwrap_or_default();
         text_lines.push(format!("Sign in first. Run: {command}"));
@@ -622,20 +590,27 @@ pub fn unloadable_store_hint(snapshot: &StoreSnapshot, error: &Error) -> Option<
 /// logins each one holds.
 #[must_use]
 pub fn store_name_hint(error: &Error) -> Option<Hint> {
-    let Error::TokenStore { message, .. } = error else {
-        return None;
-    };
-    let text = if message.starts_with(APP_NOT_FOUND) {
-        "List the apps the store holds. Run: xr auth status"
-    } else if message.ends_with(APP_NAME_TAKEN) {
-        "List the apps the store holds, and pick a name none of them has. Run: xr auth status"
-    } else if message.ends_with(USER_NOT_FOUND) {
-        "List the logins the app holds. Run: xr auth status"
-    } else {
-        return None;
+    let text = match error {
+        Error::AppNotFound { held, .. } if held.is_empty() => {
+            "The store holds no apps. Run: xr auth status".to_string()
+        }
+        Error::AppNotFound { held, .. } => {
+            format!(
+                "The store holds the apps {}. Run: xr auth status",
+                held.join(", ")
+            )
+        }
+        Error::TokenStore { message, .. } if message.ends_with(APP_NAME_TAKEN) => {
+            "List the apps the store holds, and pick a name none of them has. Run: xr auth status"
+                .to_string()
+        }
+        Error::TokenStore { message, .. } if message.ends_with(USER_NOT_FOUND) => {
+            "List the logins the app holds. Run: xr auth status".to_string()
+        }
+        _ => return None,
     };
     Some(Hint {
-        text_lines: vec![text.to_string()],
+        text_lines: vec![text],
         next_step: NextStep::fix_input_with("xr auth status".to_string()),
     })
 }
@@ -643,7 +618,9 @@ pub fn store_name_hint(error: &Error) -> Option<Hint> {
 /// Builds the enrollment hint when `error` is X refusing the app.
 ///
 /// The body's own `detail` line is quoted when present so the reader can
-/// judge whether the match is right rather than trusting the label.
+/// judge whether the match is right rather than trusting the label. For a
+/// `client-not-enrolled` body the hint names both causes X sends it for,
+/// because the body does not say which one it is.
 #[must_use]
 pub fn enrollment_hint(error: &Error) -> Option<Hint> {
     let (Error::Api { body, .. }, Some(NextAction::EnrollApp), Some(docs)) =
@@ -652,15 +629,30 @@ pub fn enrollment_hint(error: &Error) -> Option<Hint> {
         return None;
     };
 
-    let mut text_lines = Vec::with_capacity(2);
-    if let Some(detail) = detail_line(body) {
-        text_lines.push(format!("X refused the app: {detail}"));
+    let detail = detail_line(body);
+    let text_lines = if names_client_not_enrolled(body) {
+        let first = match detail {
+            Some(detail) => format!("X answered client-not-enrolled: {detail}"),
+            None => "X answered client-not-enrolled.".to_string(),
+        };
+        vec![
+            first,
+            format!(
+                "Either the app is not enrolled in a package that serves this endpoint, or the endpoint needs a higher X access level than the app's package, such as Enterprise. If `xr whoami` works under the same app and login, the access level is the likelier cause. See X Platform Enrollment: {docs}"
+            ),
+        ]
     } else {
-        text_lines.push("X refused the app.".to_string());
-    }
-    text_lines.push(format!(
-        "Move it to the Pay-per-use package and the Production environment. See Troubleshooting: {docs}"
-    ));
+        let first = match detail {
+            Some(detail) => format!("X refused the app: {detail}"),
+            None => "X refused the app.".to_string(),
+        };
+        vec![
+            first,
+            format!(
+                "Move it to the Pay-per-use package and the Production environment. See Troubleshooting: {docs}"
+            ),
+        ]
+    };
 
     Some(Hint {
         text_lines,
@@ -703,9 +695,10 @@ pub fn resume_wait_hint(error: &Error, credential: &MediaCredential) -> Option<H
 /// - A 401 fails the same way until the credential changes, which no `xr`
 ///   command does: `fix-input`, with the resumed wait as a template to run
 ///   once the credential works.
-/// - A refresh the wait ran meets the token endpoint's 403 the same way, until
-///   `TOKEN_URL` or the proxy in front of the endpoint is fixed: `fix-input`
-///   with the page on both, and the resumed wait as a template.
+/// - A refresh the wait ran meets a token endpoint answer that is no OAuth
+///   refusal, a 403 or any status but a 404, a 408, a 429, or a 5xx, the same
+///   way, until `TOKEN_URL` or the proxy in front of the endpoint is fixed:
+///   `fix-input` with the page on both, and the resumed wait as a template.
 #[must_use]
 pub fn resume_after_upload_hint(
     error: &Error,
@@ -719,12 +712,15 @@ pub fn resume_after_upload_hint(
         hint.next_step.docs = docs;
         return Some(hint);
     }
-    if matches!(error, Error::TokenEndpointForbidden { .. }) {
+    if let Some(status) = token_endpoint_in_the_way(error) {
         return Some(resume_once_fixed(
             media_id,
             waited,
             credential,
-            "The token endpoint answered 403 and sent no OAuth error. The upload is intact and X keeps the media id for 24 hours; once TOKEN_URL and any proxy in front of the endpoint are fixed, resume the wait:",
+            &format!(
+                "{} The upload is intact and X keeps the media id for 24 hours; once TOKEN_URL and any proxy in front of the endpoint are fixed, resume the wait:",
+                unread_answer(status)
+            ),
             docs,
         ));
     }
@@ -838,7 +834,7 @@ fn resume_invocation(
 
 /// The hint's line, then the docs on a line of their own, so the invocation
 /// the first line ends with copies without them.
-fn with_docs_line(line: String, docs: Option<&str>) -> Vec<String> {
+pub(crate) fn with_docs_line(line: String, docs: Option<&str>) -> Vec<String> {
     std::iter::once(line)
         .chain(docs.map(|docs| format!("See: {docs}")))
         .collect()
@@ -1026,7 +1022,7 @@ pub fn refresh_refused_hint(
     let target = snapshot.active_app.as_str();
     let login =
         requested_login(invocation).or_else(|| snapshot.oauth2_default_logins.get(target).cloned());
-    let app = (target != snapshot.default_app).then_some(target);
+    let app = (!target.is_empty()).then_some(target);
     let next_step = NextStep::sign_in_as(login.as_deref(), app, headless);
     let command = next_step.command.clone().unwrap_or_default();
     Some(Hint {
@@ -1140,12 +1136,38 @@ pub fn show_help_hint(help: &str) -> Hint {
     }
 }
 
+/// The status of a token endpoint answer that is no OAuth refusal and that the
+/// library reports as one the token URL or a proxy in front of it caused: a
+/// 403, or any status but a 404, a 408, a 429, or a 5xx.
+fn token_endpoint_in_the_way(error: &Error) -> Option<u16> {
+    match error {
+        Error::TokenEndpointForbidden { .. } => Some(403),
+        Error::TokenEndpointUnexpected { status, .. } => Some(*status),
+        _ => None,
+    }
+}
+
+/// The first sentence of a hint for a token endpoint answer that names none of
+/// the error codes of RFC 6749 section 5.2. A redirect is said not to be
+/// followed, since the address `TOKEN_URL` should name is where it pointed.
+fn unread_answer(status: u16) -> String {
+    let redirect = if (300..400).contains(&status) {
+        " xr does not follow a redirect."
+    } else {
+        ""
+    };
+    format!(
+        "The token endpoint answered {status} and sent none of the error codes of RFC 6749 section 5.2.{redirect}"
+    )
+}
+
 /// Builds the hint for an error whose step the library names and no stored
 /// credential decides.
 ///
 /// A method, a URL, or a path value `xr` refused is an argument, so it
 /// takes the help of the command it was given to, as `help` names it. The
-/// token endpoint's 403 names where to look: `TOKEN_URL` and the proxy in
+/// token endpoint's 403, and any answer of it that is no OAuth refusal and no
+/// 404, 408, 429, or 5xx, names where to look: `TOKEN_URL` and the proxy in
 /// front of the endpoint.
 #[must_use]
 pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
@@ -1155,11 +1177,14 @@ pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
     ) {
         return Some(show_help_hint(help));
     }
-    if matches!(error, Error::TokenEndpointForbidden { .. }) {
+    if let Some(status) = token_endpoint_in_the_way(error) {
         let docs = error.docs_url();
         return Some(Hint {
             text_lines: with_docs_line(
-                "The token endpoint answered 403 and sent no OAuth error. A proxy or firewall in front of it, or a TOKEN_URL that names another service, can cause that. Check both.".to_string(),
+                format!(
+                    "{} A proxy or firewall in front of it, or a TOKEN_URL that names another service, can cause that. Check both.",
+                    unread_answer(status)
+                ),
                 docs,
             ),
             next_step: NextStep::fix_input(docs.map(str::to_string)),
@@ -1309,6 +1334,54 @@ fn hidden_header(header: &str) -> String {
     }
 }
 
+/// The sign-in `invocation` started, written to run again from its first
+/// step. `--auth-url` and its value are dropped, since the redirect URL holds
+/// an authorization code and answers the flow that failed, and `--step 2`
+/// becomes `--step 1`. `--no-browser` is added when `no_browser` asks for the
+/// paste-the-URL form. `app`, when given, replaces the invocation's `--app` and
+/// comes last, where the other sign-in steps put it.
+fn restart_sign_in(invocation: &[String], no_browser: bool, app: Option<&str>) -> String {
+    let restep = |step: &str| {
+        if step == "2" {
+            "1".to_string()
+        } else {
+            shell_word(step)
+        }
+    };
+    let mut words = vec![ROOT_COMMAND.to_string()];
+    let mut args = invocation.iter().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "--auth-url" || (app.is_some() && arg == "--app") {
+            args.next();
+            continue;
+        }
+        if arg.starts_with("--auth-url=")
+            || (app.is_some() && arg.starts_with("--app="))
+            || (no_browser && arg.starts_with("--no-browser="))
+        {
+            continue;
+        }
+        if arg == "--step" {
+            words.push(arg.clone());
+            if let Some(step) = args.next() {
+                words.push(restep(step));
+            }
+            continue;
+        }
+        match arg.strip_prefix("--step=") {
+            Some(step) => words.push(format!("--step={}", restep(step))),
+            None => words.push(shell_word(arg)),
+        }
+    }
+    if no_browser && !invocation.iter().any(|arg| arg == "--no-browser") {
+        words.push("--no-browser".to_string());
+    }
+    if let Some(app) = app {
+        words.extend(["--app".to_string(), quote_app_name(app)]);
+    }
+    words.join(" ")
+}
+
 fn non_empty(value: Option<&str>) -> Option<&str> {
     value.filter(|value| !value.is_empty())
 }
@@ -1364,6 +1437,12 @@ pub fn quote_app_name(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_redirect_is_said_not_to_be_followed() {
+        assert!(unread_answer(302).contains("does not follow a redirect"));
+        assert!(!unread_answer(401).contains("redirect"));
+    }
 
     #[test]
     fn a_resumed_wait_quotes_each_word_a_shell_would_split() {
@@ -1451,6 +1530,26 @@ mod tests {
             refresh.text_lines[0].contains("TOKEN_URL")
                 && refresh.text_lines[0].contains("proxy")
                 && refresh.text_lines[0].contains("xr media status 777 --wait=90"),
+            "{:?}",
+            refresh.text_lines
+        );
+        let unexpected = Error::TokenEndpointUnexpected {
+            status: 401,
+            body: "<html>Unauthorized</html>".into(),
+        };
+        let refresh = resume_after_upload_hint(&unexpected, "777", waited, &none)
+            .expect("a step for a token endpoint 401 that is no OAuth refusal");
+        assert_eq!(refresh.next_step.action, NextAction::FixInput);
+        assert_eq!(refresh.next_step.command, None, "never a command");
+        assert_eq!(
+            refresh.next_step.template.as_deref(),
+            Some("xr media status 777 --wait=90"),
+            "the upload is not sent again"
+        );
+        assert_eq!(refresh.next_step.docs.as_deref(), unexpected.docs_url());
+        assert!(
+            refresh.text_lines[0].contains("answered 401")
+                && refresh.text_lines[0].contains("TOKEN_URL"),
             "{:?}",
             refresh.text_lines
         );
@@ -1608,15 +1707,107 @@ mod tests {
         }
     }
 
+    /// The refresh step names the app the run used, the default one included,
+    /// and the format it carries on the way out is the failed run's.
     #[test]
-    fn under_dry_run_puts_the_flag_after_the_program_word_of_a_command_only() {
-        let step = NextStep::select_app("xr auth oauth2 --no-browser --step 1 --app work".into());
-        assert_eq!(
-            step.under_dry_run().command.as_deref(),
-            Some("xr --dry-run auth oauth2 --no-browser --step 1 --app work")
+    fn a_refresh_step_names_the_app_and_takes_the_format_the_run_ran_in() {
+        use crate::cli::output::OutputFormat;
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let store = two_signed_in_apps(&tmp);
+        let refused = Error::auth(format!("{REFRESH_TOKEN_REFUSED}: HTTP 400"));
+        for (format, headless, expected) in [
+            (
+                OutputFormat::Json,
+                true,
+                "xr --output json auth oauth2 bob --no-browser --step 1 --app work",
+            ),
+            (
+                OutputFormat::Yaml,
+                true,
+                "xr --output yaml auth oauth2 bob --no-browser --step 1 --app work",
+            ),
+            (OutputFormat::Text, false, "xr auth oauth2 bob --app work"),
+        ] {
+            let hint =
+                refresh_refused_hint(&snapshot_of(&store), &refused, &argv("xr whoami"), headless)
+                    .expect("a hint");
+            let carried = crate::cli::rerun::carry(
+                hint.next_step.clone(),
+                &format,
+                crate::cli::rerun::FormatSpelling::default(),
+            );
+            assert_eq!(carried.command.as_deref(), Some(expected), "{format:?}");
+            assert!(
+                hint.text_lines[0].ends_with(hint.next_step.command.as_deref().unwrap_or_default()),
+                "the text names the step it carries: {:?}",
+                hint.text_lines
+            );
+        }
+    }
+
+    #[test]
+    fn a_select_app_sign_in_keeps_the_invocation_under_the_other_app() {
+        for (invocation, no_browser, app, expected) in [
+            (
+                "xr --app blank --output json auth oauth2 alice --no-browser --step 1 --scopes tweet.read",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 alice --no-browser --step 1 --scopes tweet.read --app myapp",
+            ),
+            (
+                "xr --output json auth oauth2 --app=blank --no-browser --step=1",
+                true,
+                "my app",
+                "xr --output json auth oauth2 --no-browser --step=1 --app 'my app'",
+            ),
+            (
+                "xr --output json auth oauth2",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 --no-browser --app myapp",
+            ),
+            (
+                "xr auth oauth2",
+                false,
+                "myapp",
+                "xr auth oauth2 --app myapp",
+            ),
+            (
+                "xr --output json auth oauth2 --no-browser=true --step 1",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 --step 1 --no-browser --app myapp",
+            ),
+            (
+                "xr --output json auth oauth2 --no-browser=false --step 1",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 --step 1 --no-browser --app myapp",
+            ),
+            (
+                "xr auth oauth2 --no-browser=true --step 1",
+                false,
+                "myapp",
+                "xr auth oauth2 --no-browser=true --step 1 --app myapp",
+            ),
+        ] {
+            let step = NextStep::select_app_sign_in(&argv(invocation), no_browser, app);
+            assert_eq!(step.action, NextAction::SelectApp, "{invocation}");
+            assert_eq!(step.command.as_deref(), Some(expected), "{invocation}");
+        }
+    }
+
+    /// The redirect URL holds an authorization code, which no step carries.
+    #[test]
+    fn a_select_app_sign_in_from_step_two_starts_at_step_one_without_the_code() {
+        let invocation = argv(
+            "xr --output json auth oauth2 --no-browser --step 2 --auth-url http://localhost:8080/callback?code=SECRET&state=s --app blank",
         );
-        let registration = NextStep::register_app();
-        assert_eq!(registration.clone().under_dry_run(), registration);
+        let step = NextStep::select_app_sign_in(&invocation, true, "myapp");
+        assert_eq!(
+            step.command.as_deref(),
+            Some("xr --output json auth oauth2 --no-browser --step 1 --app myapp")
+        );
     }
 
     /// The URL holds an authorization code, so no spelling of it survives,
@@ -2009,7 +2200,7 @@ mod tests {
         );
         assert_eq!(
             hint.next_step.command.as_deref(),
-            Some("xr auth oauth2 nobody")
+            Some("xr auth oauth2 nobody --app personal")
         );
     }
 
@@ -2033,7 +2224,10 @@ mod tests {
 
         let hint = choose_hint(&snapshot_of(&store), &words(&["xr", "whoami"]), true);
 
-        assert_eq!(hint.next_step, NextStep::sign_in_as(None, None, true));
+        assert_eq!(
+            hint.next_step,
+            NextStep::sign_in_as(None, Some("work"), true)
+        );
     }
 
     /// A rerun never echoes a header value, whichever way the header is

@@ -34,8 +34,10 @@ pub struct PendingOAuth2State {
     /// `OAuth2` client ID active when step 1 ran. Step 2 rejects the
     /// exchange if the runtime client ID has changed.
     pub client_id: String,
-    /// Active app name when step 1 ran; surfaced in error messages when
-    /// step 2 mismatches the runtime context.
+    /// The app step 1 signed in under; surfaced in error messages when
+    /// step 2 mismatches the runtime context. Empty when the store names no
+    /// default app and the sign-in named none; a step 2 under another client
+    /// id then starts a new flow.
     pub app_name: String,
     /// Unix epoch seconds when the authorization was initiated. Used by
     /// [`load`] to enforce the 15-minute freshness window.
@@ -92,21 +94,38 @@ pub fn default_pending_path() -> Result<PathBuf> {
         })
 }
 
-/// Persists `state` to `path` atomically with restricted permissions.
-///
-/// # Errors
-///
-/// Returns an error if serialisation or filesystem operations fail.
-pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
+/// Refuses a path [`save`] cannot write a flow to: a symlink, which the
+/// writer must not follow, and a directory, which no file replaces.
+pub(crate) fn check_save_target(path: &Path) -> Result<()> {
+    let Ok(meta) = fs::symlink_metadata(path) else {
+        return Ok(());
+    };
     // The loader rejects a symlinked pending file; the writer must not follow
     // one either, or a planted link turns the save into a write of the PKCE
     // verifier to a path the user did not choose.
-    if fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink()) {
+    if meta.file_type().is_symlink() {
         return Err(Error::auth(format!(
             "{PENDING_PERMISSIONS}: pending state path {} is a symlink (refusing to write through it)",
             path.display()
         )));
     }
+    if meta.is_dir() {
+        return Err(Error::io(format!(
+            "cannot write the pending state: {} is a directory",
+            path.display()
+        )));
+    }
+    Ok(())
+}
+
+/// Persists `state` to `path` atomically with restricted permissions.
+///
+/// # Errors
+///
+/// Returns an error if serialisation or filesystem operations fail, or if
+/// `path` is a symlink or a directory.
+pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
+    check_save_target(path)?;
     let data =
         crate::yaml::to_string(state).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
     crate::store::ensure_store_dir(path)?;

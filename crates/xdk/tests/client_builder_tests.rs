@@ -332,6 +332,86 @@ async fn a_refresh_answered_403_is_the_token_endpoints_forbidden() {
     );
 }
 
+/// A 400 or a 401 with no RFC 6749 section 5.2 error code is no refusal of the
+/// credential: X's handler names its error, so the answer came from something
+/// in front of it. A JSON `error` outside the six codes counts the same way,
+/// on any status.
+#[tokio::test]
+async fn a_refresh_answered_with_no_oauth_error_code_is_the_token_endpoints_unexpected_status() {
+    for (status, body) in [
+        (400, ""),
+        (400, "<html>Bad Request</html>"),
+        (400, r#"{"error":"Something went wrong at the proxy"}"#),
+        (401, ""),
+        (401, "<html>Unauthorized</html>"),
+        (401, r#"{"error":"invalid_token"}"#),
+        (418, r#"{"error":"teapot"}"#),
+    ] {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(status).set_body_string(body))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let client = Client::builder()
+            .oauth2(expired_oauth2())
+            .base_url(server.uri())
+            .token_url(format!("{}/2/oauth2/token", server.uri()))
+            .build()
+            .unwrap();
+
+        let err = client.get_me().send().await.expect_err("the refresh fails");
+        assert!(
+            matches!(&err, Error::TokenEndpointUnexpected { status: got, .. } if *got == status),
+            "{status} {body}: {err:?}"
+        );
+    }
+}
+
+/// A body whose `error` is one of the six codes refuses on a 400, a 401, and
+/// any status but a 5xx or a 429.
+#[tokio::test]
+async fn a_refresh_answered_with_an_oauth_error_code_is_a_refusal() {
+    for (status, code) in [
+        (400, "invalid_request"),
+        (400, "invalid_client"),
+        (400, "invalid_grant"),
+        (400, "unauthorized_client"),
+        (400, "unsupported_grant_type"),
+        (400, "invalid_scope"),
+        (401, "invalid_client"),
+        (418, "invalid_grant"),
+    ] {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(
+                ResponseTemplate::new(status).set_body_json(serde_json::json!({
+                    "error": code,
+                    "error_description": "as the token endpoint put it",
+                })),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let client = Client::builder()
+            .oauth2(expired_oauth2())
+            .base_url(server.uri())
+            .token_url(format!("{}/2/oauth2/token", server.uri()))
+            .build()
+            .unwrap();
+
+        let err = client.get_me().send().await.expect_err("the refresh fails");
+        assert!(
+            matches!(&err, Error::Auth { message, .. } if message.contains(code)),
+            "{status} {code}: {err:?}"
+        );
+    }
+}
+
 /// The builder supplies the token URL here, so the error states the fact and
 /// names no environment variable an embedder never set.
 #[tokio::test]
