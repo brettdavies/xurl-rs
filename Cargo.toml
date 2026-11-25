@@ -51,3 +51,35 @@ lto = "thin"
 codegen-units = 4
 opt-level = "z"
 panic = "abort"
+
+# PROBE ONLY: the dependency crates a debug in-process run of xr spends most of its CPU in.
+
+[profile.dev.package.rustls-pki-types]
+opt-level = 3
+
+[profile.dev.package.rustls-webpki]
+opt-level = 3
+
+[profile.dev.package.rustls-native-certs]
+opt-level = 3
+
+[profile.dev.package.rustls-platform-verifier]
+opt-level = 3
+
+[profile.dev.package.anstyle-parse]
+opt-level = 3
+
+[profile.dev.package.anstream]
+opt-level = 3
+
+[profile.dev.package.clap_builder]
+opt-level = 3
+
+[profile.dev.package.clap_lex]
+opt-level = 3
+
+[profile.dev.package.serde-saphyr]
+opt-level = 3
+
+[profile.dev.package.granit-parser]
+opt-level = 3
