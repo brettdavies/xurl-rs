@@ -126,10 +126,11 @@ jobs:
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
       test_runner: nextest
       nextest_version: ${{ needs.scope.outputs.nextest_version }}
-      # Running the tests outweighs a second build: on warm caches the slower of
-      # two jobs took 200 to 231 s against 244 to 306 s for one job, for about half
-      # again the runner time.
-      test_partitions: 2
+      # Running the tests outweighs another build: on warm caches the slowest of
+      # four jobs took 362 s, against 508 to 518 s for the slower of two. The
+      # rulesets require each job by name, which ruleset_partitions_guard.rs
+      # holds to this count.
+      test_partitions: 4
 
   # A job of its own so its checks report as `warm / <job>`, never under a
   # required `ci / <job>` name. rust-cache keys on the reusable's job ids, not

@@ -25,6 +25,6 @@ completions/xr.bash	input
 LICENSE-MIT	inert
 .context/handoffs/handoff.txt	inert
 .github/ISSUE_TEMPLATE/bug-report.yml	inert
-.github/rulesets/protect-dev.json	inert
+.github/rulesets/protect-dev.json	input
 .github/dependabot.yml	inert
 a-file-the-script-has-never-seen	input

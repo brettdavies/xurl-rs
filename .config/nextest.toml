@@ -25,3 +25,19 @@ retries = 1
 # on warm caches, the slower job took 187 and 189 s at 8 threads against 200 and
 # 231 s at 4.
 test-threads = 8
+
+# These tests each run for minutes. Starting them first keeps one from
+# starting near the end of its partition. Priority only reorders; it never
+# skips or retries a test.
+[[profile.default.overrides]]
+filter = """
+test(xr_output_matches_the_golden_fixtures)
+| test(every_credential_refusal_names_a_step_its_command_accepts)
+| test(every_step_keeps_what_the_run_it_answers_asked_for)
+| test(a_heading_outside_the_six_fails_whatever_the_surface_did)
+| test(every_one_of_the_six_headings_passes_on_an_unchanged_surface)
+| test(no_example_passes_a_secret_on_the_command_line)
+| test(readers_never_observe_a_partial_store)
+| test(test_every_subcommand_help_has_examples_block)
+"""
+priority = 100
