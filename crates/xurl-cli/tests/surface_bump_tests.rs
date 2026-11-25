@@ -556,18 +556,46 @@ fn an_unchanged_surface_passes_with_no_changelog() {
     assert_eq!(out.code, 0, "{}", out.stderr);
 }
 
+/// Runs each check on a thread of its own and returns the outcomes in the
+/// order given.
+fn check_each(runs: &[(&TempDir, std::path::PathBuf)]) -> Vec<Outcome> {
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = runs
+            .iter()
+            .map(|(base, body)| scope.spawn(move || check(base, body)))
+            .collect();
+        handles
+            .into_iter()
+            .map(|handle| {
+                handle
+                    .join()
+                    .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
+            })
+            .collect()
+    })
+}
+
 #[test]
 fn every_one_of_the_six_headings_passes_on_an_unchanged_surface() {
     let base = base_tree();
-    for section in [
+    let sections = [
         "Breaking changes",
         "Added",
         "Changed",
         "Deprecated",
         "Fixed",
         "Documentation",
-    ] {
-        let out = check(&base, &body(&base, &changelog(section)));
+    ];
+    // The checks share one base tree, so each writes a body file of its own.
+    let runs: Vec<(&TempDir, std::path::PathBuf)> = sections
+        .iter()
+        .map(|section| {
+            let path = base.path().join(format!("body-{section}.md"));
+            fs::write(&path, changelog(section)).expect("write body");
+            (&base, path)
+        })
+        .collect();
+    for (section, out) in sections.iter().zip(check_each(&runs)) {
         assert_eq!(out.code, 0, "{section}: {}", out.stderr);
     }
 }
@@ -577,7 +605,7 @@ fn every_one_of_the_six_headings_passes_on_an_unchanged_surface() {
 /// ship without its major.
 #[test]
 fn a_heading_outside_the_six_fails_whatever_the_surface_did() {
-    for (content, named) in [
+    let cases = [
         ("### Misc\n\n- An entry.", "### Misc"),
         (
             "### Added\n\n- An entry.\n\n#### Notes\n\nMore.",
@@ -587,12 +615,19 @@ fn a_heading_outside_the_six_fails_whatever_the_surface_did() {
             "### Added\n\n- An entry.\n\n  ### Notes\n\nMore.",
             "### Notes",
         ),
-    ] {
-        let unchanged = base_tree();
-        let out = check(
-            &unchanged,
-            &body(&unchanged, &body_with_blocks(content, "")),
-        );
+    ];
+    let trees: Vec<(TempDir, TempDir)> = cases
+        .iter()
+        .map(|_| (base_tree(), base_without_examples()))
+        .collect();
+    let mut runs = Vec::new();
+    for ((content, _), (unchanged, grown)) in cases.iter().zip(&trees) {
+        runs.push((unchanged, body(unchanged, &body_with_blocks(content, ""))));
+        runs.push((grown, body(grown, &body_with_blocks(content, ""))));
+    }
+    let outs = check_each(&runs);
+    for (i, (_, named)) in cases.iter().enumerate() {
+        let (out, grown) = (&outs[2 * i], &outs[2 * i + 1]);
         assert_eq!(
             out.code, 1,
             "{named}\nstdout: {}\nstderr: {}",
@@ -603,15 +638,12 @@ fn a_heading_outside_the_six_fails_whatever_the_surface_did() {
             "{named}: {}",
             out.stderr
         );
-
-        let grown = base_without_examples();
-        let out = check(&grown, &body(&grown, &body_with_blocks(content, "")));
         assert_eq!(
-            out.code, 1,
+            grown.code, 1,
             "{named}, grown\nstdout: {}\nstderr: {}",
-            out.stdout, out.stderr
+            grown.stdout, grown.stderr
         );
-        assert!(out.stderr.contains(named), "{named}: {}", out.stderr);
+        assert!(grown.stderr.contains(named), "{named}: {}", grown.stderr);
     }
 }
 
