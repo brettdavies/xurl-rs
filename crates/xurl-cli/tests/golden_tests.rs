@@ -1684,37 +1684,43 @@ fn commands_in(help: &str) -> Vec<String> {
         .collect()
 }
 
-/// Root help plus every subcommand's help, found by walking the tree.
-fn help_cases(bin: &str) -> Vec<Case> {
-    let mut cases = Vec::new();
-    let mut pending = vec![Vec::<String>::new()];
-    while let Some(command_path) = pending.pop() {
-        let mut args = command_path.clone();
-        args.push("--help".to_string());
-        let output = common::xr_std_at(bin)
-            .args(&args)
-            .stdin(Stdio::null())
-            .output()
-            .expect("spawn xr --help");
-        let help = String::from_utf8(output.stdout).expect("help is utf-8");
-        for sub in commands_in(&help) {
-            let mut next = command_path.clone();
-            next.push(sub);
-            pending.push(next);
+/// Root help plus every subcommand's help, found by walking the tree one
+/// level at a time and captured as it is found, so each page spawns once.
+fn help_pages(bin: &str, api: &MockApi, scratch: &Scratch) -> Vec<(Case, Captured)> {
+    let mut found = Vec::new();
+    let mut level: Vec<Vec<String>> = vec![Vec::new()];
+    while !level.is_empty() {
+        let cases: Vec<Case> = level
+            .iter()
+            .map(|command_path| {
+                let mut args = command_path.clone();
+                args.push("--help".to_string());
+                let name = if command_path.is_empty() {
+                    "help".to_string()
+                } else {
+                    format!("help-{}", command_path.join("-"))
+                };
+                Case {
+                    name,
+                    args,
+                    ..Case::default()
+                }
+            })
+            .collect();
+        let captured = capture_all(&cases.iter().collect::<Vec<_>>(), bin, api, scratch);
+        let mut next = Vec::new();
+        for ((command_path, case), actual) in level.iter().zip(cases).zip(captured) {
+            for sub in commands_in(&actual.stdout) {
+                let mut path = command_path.clone();
+                path.push(sub);
+                next.push(path);
+            }
+            found.push((case, actual));
         }
-        let name = if command_path.is_empty() {
-            "help".to_string()
-        } else {
-            format!("help-{}", command_path.join("-"))
-        };
-        cases.push(Case {
-            name,
-            args,
-            ..Case::default()
-        });
+        level = next;
     }
-    cases.sort_by(|a, b| a.name.cmp(&b.name));
-    cases
+    found.sort_by(|a, b| a.0.name.cmp(&b.0.name));
+    found
 }
 
 /// What a shortcut prints when X answers it: the typed response, as a
@@ -1733,24 +1739,53 @@ fn success_cases() -> Vec<Case> {
     ]
 }
 
-fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
-    let mut cases = help_cases(bin);
-    cases.extend(static_cases());
-    cases.extend(verbose_cases());
-    cases.extend(reason_cases(scratch));
-    cases.extend(dry_run_cases());
-    cases.extend(skill_update_refusal_cases());
-    cases.extend(text_cases());
-    cases.extend(success_cases());
+/// Every case with its capture. A case that holds only on Unix has none
+/// elsewhere.
+fn captured_cases(bin: &str, api: &MockApi, scratch: &Scratch) -> Vec<(Case, Option<Captured>)> {
+    let mut runs: Vec<(Case, Option<Captured>)> = help_pages(bin, api, scratch)
+        .into_iter()
+        .map(|(case, actual)| (case, Some(actual)))
+        .collect();
+    let rest: Vec<Case> = other_cases(scratch);
+    let runnable: Vec<&Case> = rest
+        .iter()
+        .filter(|case| cfg!(unix) || case.unix_only.is_none())
+        .collect();
+    let mut captured = capture_all(&runnable, bin, api, scratch).into_iter();
+    for case in rest {
+        let actual = (cfg!(unix) || case.unix_only.is_none())
+            .then(|| captured.next().expect("one capture per runnable case"));
+        runs.push((case, actual));
+    }
     let mut seen = BTreeSet::new();
-    for c in &cases {
+    for (c, _) in &runs {
         assert!(
             seen.insert(c.name.clone()),
             "duplicate case name {}",
             c.name
         );
     }
+    runs
+}
+
+fn other_cases(scratch: &Scratch) -> Vec<Case> {
+    let mut cases = static_cases();
+    cases.extend(verbose_cases());
+    cases.extend(reason_cases(scratch));
+    cases.extend(dry_run_cases());
+    cases.extend(skill_update_refusal_cases());
+    cases.extend(text_cases());
+    cases.extend(success_cases());
     cases
+}
+
+/// Captures each case on the walk's threads, in the order given.
+fn capture_all(cases: &[&Case], bin: &str, api: &MockApi, scratch: &Scratch) -> Vec<Captured> {
+    common::invoke::walk(
+        cases,
+        async || (),
+        async |(): &(), case: &&Case| capture(case, bin, api, scratch),
+    )
 }
 
 /// The file name of a token store under `XURL_TOKEN_STORE`. It is not the
@@ -2057,18 +2092,15 @@ fn xr_output_matches_the_golden_fixtures() {
     let dir = golden_dir();
     std::fs::create_dir_all(&dir).expect("golden dir");
 
-    let cases = all_cases(&bin, &scratch);
+    let runs = captured_cases(&bin, &api, &scratch);
     let validators = validator_reasons();
     let mut failures = Vec::new();
     let mut expected_files = BTreeSet::new();
 
-    for case in &cases {
+    for (case, actual) in &runs {
         let file = dir.join(format!("{}.{FIXTURE_EXT}", case.name));
         expected_files.insert(file.clone());
-        if !cfg!(unix) && case.unix_only.is_some() {
-            continue;
-        }
-        let actual = capture(case, &bin, &api, &scratch);
+        let Some(actual) = actual else { continue };
 
         // A `dry-run-<code>` case exists to pin that validator's refusal, so
         // its envelope must still name the code as its `rule`: a bless would
@@ -2080,7 +2112,7 @@ fn xr_output_matches_the_golden_fixtures() {
             .filter(|code| validators.contains(*code));
         for (key, expected) in [("reason", case.reason), ("rule", pinned)] {
             let Some(expected) = expected else { continue };
-            let found = envelope_field(&actual, key);
+            let found = envelope_field(actual, key);
             if found.as_deref() != Some(expected) {
                 failures.push(format!(
                     "== {} ==\ntrigger no longer yields {key} {expected:?}: found {found:?}\nstdout:\n{}\nstderr:\n{}",
@@ -2090,7 +2122,7 @@ fn xr_output_matches_the_golden_fixtures() {
         }
 
         if bless {
-            std::fs::write(&file, render_fixture(case, &actual)).expect("write fixture");
+            std::fs::write(&file, render_fixture(case, actual)).expect("write fixture");
             continue;
         }
         let Ok(bytes) = std::fs::read(&file) else {
@@ -2108,7 +2140,7 @@ fn xr_output_matches_the_golden_fixtures() {
                 continue;
             }
         };
-        if let Some(report) = diff_report(&case.name, &expected, &actual) {
+        if let Some(report) = diff_report(&case.name, &expected, actual) {
             failures.push(report);
         }
     }
