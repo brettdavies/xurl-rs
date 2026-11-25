@@ -747,6 +747,51 @@ jobs:
             anc-scorecard.json
             anc-rows.tsv
 
+  # PROBE ONLY, never merged: the same tests as `ci / Tests (k/4)` under
+  # nextest's slice partitioner. The job id matches the reusable workflow's
+  # `tests` job and the env matches its CARGO*/RUST* set, so rust-cache restores
+  # the same entry.
+  tests:
+    name: Probe slice (${{ matrix.partition }})
+    needs: scope
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: ["1/4", "2/4", "3/4", "4/4"]
+    env:
+      RUSTFLAGS: "-Dwarnings"
+      CARGO_HTTP_MULTIPLEXING: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        run: rustup toolchain install --no-self-update && rustc --version --verbose
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: false
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@5885714d0a40a14b2535c6ffc051fd8e49aa9665 # v1.27.0
+      - name: Install cargo-nextest
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(bash scripts/tool-version.sh cargo-nextest)"
+          timeout -k 5 45 cargo binstall "cargo-nextest@${version}" --force --no-confirm --disable-strategies compile
+      - name: jq and surface-bump timings
+        if: matrix.partition == '1/4'
+        run: |
+          set -euo pipefail
+          jq --version
+          time (for _ in $(seq 100); do jq -n 1 > /dev/null; done)
+          time (bash scripts/check-surface-bump.sh surface . > /dev/null)
+          nproc
+      - name: Tests
+        run: cargo nextest run --profile ci --partition "slice:${{ matrix.partition }}"
+
   # CI saves under dev and main only in a warm run, so this is where a manifest
   # or lockfile change's superseded rust-cache entries leave those branches.
   # `needs` names the three jobs that save a cache in a warm run, so the prune
