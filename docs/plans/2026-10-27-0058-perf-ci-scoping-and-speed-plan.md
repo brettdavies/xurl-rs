@@ -599,6 +599,8 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U5. Lighter debug info for test builds
 
+- **Status:** open. No debug info for dependencies alone, the unit's remaining item, is not measured. Dependencies at
+  `opt-level = 3` in dev and test builds were measured as a candidate and dropped (xurl-rs#632, closed unmerged).
 - **Goal:** the test compile phase gets shorter without losing file-and-line backtraces.
 - **Requirements:** R3; KTD7.
 - **Dependencies:** U6.
@@ -615,6 +617,28 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 - **Test expectation:** none -- a build setting; the suite's pass state is the check.
 - **Verification:** each kept setting's measurement is recorded, and a panicking test still prints its file and line;
   each dropped setting has its measurement recorded.
+- **Measured: dependencies at `opt-level = 3`**, medians against `dev` at `9785270`:
+  - CI `Tests` partitions: nextest execution, summed over the four per-partition medians, is 639 s on `dev` and 265 s
+    with the setting (run 45314144000 attempts 2 to 5; run 45548097020 attempts 1 to 3).
+  - With the long tests on parallel threads (xurl-rs#631 and #633), the four partitions together take 561 s without the
+    setting (run 45556293029) and 279 s with it (run 45563424281, on `dev` at `b7d1a4f`), one run each over the same
+    2,979 tests. At that saving of 282 s per run, CI runner time since 11-10 in the net below is about −20 min.
+  - CI costs: `Public API semver` takes 141 s against 68 s, and a run that compiles every job from scratch pays 943 s
+    more runner time in the shared-workflow jobs and 1,511 s more in the `ci.yml` Linux jobs (from-scratch compiles
+    without the setting: runs 42394366700, 42451805113, 43092165291, 43893169961, 44364034760, 44676514028, 44679136638,
+    44690869207, 44693110424, and 44854170265). The cache entries are 1.7 to 1.8 times larger, in a repository cache of
+    11.1 GB against the 10 GB Actions limit.
+  - Local full suite on a warm build: 52.6 s against 124.5 s of wall time, 576 against 1,577 CPU seconds.
+  - Local costs: a cold `cargo test --workspace --no-run` takes 48 s of wall time and 524 CPU seconds more, a rebuild
+    after a source edit takes 9 to 14 s more at equal CPU, a cold pre-push takes 54 s longer in total, and the test
+    executables are 30% larger.
+  - Net over 2026-10-26 to 11-25, positive meaning saved, at 160 to 394 local full-suite runs: local wait −85 to +152
+    min before filtered test runs (−193 to +81 min if their rebuilds pay the same cost, an estimate); local CPU +5 to
+    +70 hours; CI wait +317 min (a model); CI runner time −5,410 min, and +240 min since 11-10 under the current cache
+    setup.
+  - A panicking test prints its file and line.
+- **Why `opt-level = 3` is dropped:** the wait-time case does not hold, every rebuild after a source edit is slower, and
+  the larger caches over the 10 GB limit push CI toward a loss. The one solid gain is CPU time on the shared server.
 
 ### U6. Cargo's multi-file test layout, held by guards
 
