@@ -753,7 +753,7 @@ jobs:
   # `tests` job and the env matches its CARGO*/RUST* set, so rust-cache restores
   # the same entry.
   tests:
-    name: Probe one-jq (${{ matrix.partition }})
+    name: Probe one-jq + clap (${{ matrix.partition }})
     needs: scope
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-22.04
@@ -761,7 +761,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        partition: ["1/4", "2/4", "3/4", "4/4", "u6-build"]
+        partition: ["1/4", "2/4", "3/4", "4/4"]
     env:
       RUSTFLAGS: "-Dwarnings"
       CARGO_HTTP_MULTIPLEXING: "false"
@@ -782,16 +782,7 @@ jobs:
           set -euo pipefail
           version="$(bash scripts/tool-version.sh cargo-nextest)"
           timeout -k 5 45 cargo binstall "cargo-nextest@${version}" --force --no-confirm --disable-strategies compile
-      - name: jq and surface-bump timings
-        if: matrix.partition == '1/4'
-        run: |
-          set -euo pipefail
-          jq --version
-          time (for _ in $(seq 100); do jq -n 1 > /dev/null; done)
-          time (bash scripts/check-surface-bump.sh surface . > /dev/null)
-          nproc
       - name: One jq per tree in the surface-bump script
-        if: matrix.partition != 'u6-build'
         run: |
           git apply <<'PATCH'
           --- a/scripts/check-surface-bump.sh
@@ -831,54 +822,258 @@ jobs:
           PATCH
           git diff --stat
           time (bash scripts/check-surface-bump.sh surface . > /dev/null)
-      - name: Tests
-        if: matrix.partition != 'u6-build'
-        run: cargo nextest run --profile ci --partition "hash:${{ matrix.partition }}"
-      # The merged test layout (perf plan U6), built on the same runner as the
-      # current one: a warm-up build, then workspace-only rebuilds U6, base, U6, base.
-      - name: Build-time cell, current and merged test layouts
-        if: matrix.partition == 'u6-build'
+      - name: Cached clap command
         run: |
-          set -euo pipefail
-          cat > "$RUNNER_TEMP/merge.py" <<'MERGE'
-          import re
-          from pathlib import Path
-          def merge(crate, extra):
-              tests = crate / "tests"; dest = tests / "all"; dest.mkdir(exist_ok=True); names = []
-              for f in sorted(tests.glob("*.rs")):
-                  target = dest / f.name; f.rename(target); names.append(f.stem)
-                  text = target.read_text()
-                  text = re.sub(r"^mod common;$", "use crate::common;", text, flags=re.M)
-                  text = re.sub(r'#\[path = "', '#[path = "../', text)
-                  text = re.sub(r'include_str!\("', 'include_str!("../', text)
-                  text = re.sub(r'include_bytes!\("', 'include_bytes!("../', text)
-                  if f.stem == "panic_hook_tests":
-                      text = text.replace("use crate::common;\n", "")
-                  target.write_text(text)
-              lines = ['#[path = "../common/mod.rs"]', "mod common;"]
-              for n in names:
-                  if n in extra: lines.append(extra[n])
-                  lines.append(f"mod {n};")
-              (dest / "main.rs").write_text("\n".join(lines) + "\n")
-          merge(Path("crates/xurl-cli"), {})
-          merge(Path("crates/xdk"), {"mock_endpoint_coverage": '#[cfg(feature = "testing")]'})
-          toml = Path("crates/xdk/Cargo.toml")
-          toml.write_text(toml.read_text().replace('[[test]]\nname = "mock_endpoint_coverage"\nrequired-features = ["testing"]\n\n', ""))
-          MERGE
-          ws() {
-            cargo clean -q -p xurl-rs -p xdk-rs -p xdk-consumer-check
-            s=$(date +%s%N)
-            cargo test --workspace --no-run --locked -q
-            echo "BUILD $1 $(( ($(date +%s%N) - s) / 1000000 )) ms"
-          }
-          to_u6() { python3 "$RUNNER_TEMP/merge.py"; }
-          to_base() { git checkout -q -- . && git clean -fdq crates; }
-          cargo test --workspace --no-run --locked -q
-          to_u6; ws u6-1
-          to_base; ws base-1
-          to_u6; ws u6-2
-          to_base; ws base-2
-          du -sh target
+          git apply <<'PATCH'
+          --- a/crates/xurl-cli/src/cli/misplaced_flags.rs
+          +++ b/crates/xurl-cli/src/cli/misplaced_flags.rs
+          @@ -10,7 +10,7 @@
+           use std::ffi::OsString;
+           
+           use clap::parser::ValueSource;
+          -use clap::{Arg, ArgMatches, Command, CommandFactory};
+          +use clap::{Arg, ArgMatches, Command};
+           
+           use crate::cli::classify::{ROOT_COMMAND, raw_only_flag_given};
+           use crate::cli::hints::shell_word;
+          @@ -48,7 +48,7 @@
+               if cli.command.is_none() || !raw_only_flag_given(cli) {
+                   return None;
+               }
+          -    let root = Cli::command();
+          +    let root = crate::cli::parse::root();
+               let matches = parse::try_matches(args, std::convert::identity).ok()?;
+               let given: Vec<&Arg> = root
+                   .get_arguments()
+          --- a/crates/xurl-cli/src/cli/settings.rs
+          +++ b/crates/xurl-cli/src/cli/settings.rs
+          @@ -18,9 +18,8 @@
+           use clap::builder::ValueParser;
+           use clap::error::{ContextKind, ContextValue};
+           use clap::parser::ValueSource;
+          -use clap::{Arg, ArgMatches, Command, CommandFactory};
+          +use clap::{Arg, ArgMatches, Command};
+           
+          -use crate::cli::Cli;
+           use crate::cli::conflict_source::{self, Refusal, Side, Source};
+           use crate::cli::env::FlagEnv;
+           use crate::cli::output::OutputFormat;
+          @@ -128,7 +127,7 @@
+                   if held.is_empty() {
+                       return held;
+                   }
+          -        let command = Cli::command();
+          +        let command = crate::cli::parse::root();
+                   held.into_iter()
+                       .filter(|(spelling, value)| {
+                           command
+          @@ -470,7 +469,7 @@
+           
+           /// What `--output` reads `value` as, or the refusal that names the variable.
+           fn read_output_variable(spelling: &Spelling, value: &str) -> Result<OutputFormat, Refused> {
+          -    let command = Cli::command();
+          +    let command = crate::cli::parse::root();
+               let Some(parser) = command
+                   .get_arguments()
+                   .find(|arg| arg.get_id() == spelling.id)
+          --- a/crates/xurl-cli/src/cli/classify.rs
+          +++ b/crates/xurl-cli/src/cli/classify.rs
+          @@ -8,8 +8,8 @@
+           
+           use std::ffi::OsString;
+           
+          +use clap::ValueEnum;
+           use clap::error::{ContextKind, ContextValue, ErrorKind};
+          -use clap::{CommandFactory, ValueEnum};
+           
+           use crate::cli::output::OutputFormat;
+           use crate::cli::{Cli, ColorChoice, parse};
+          @@ -215,7 +215,7 @@
+           
+           /// Every name a root subcommand answers to.
+           fn root_candidates() -> Vec<String> {
+          -    let cmd = Cli::command();
+          +    let cmd = crate::cli::parse::root();
+               let mut names: Vec<String> = cmd
+                   .get_subcommands()
+                   .flat_map(|sub| {
+          --- a/crates/xurl-cli/src/cli/retired_verbs.rs
+          +++ b/crates/xurl-cli/src/cli/retired_verbs.rs
+          @@ -48,10 +48,8 @@
+           
+           #[cfg(test)]
+           mod tests {
+          -    use clap::CommandFactory;
+           
+               use super::RETIRED;
+          -    use crate::cli::Cli;
+               use crate::cli::classify::ROOT_COMMAND;
+           
+               /// Every row names a family clap parses, a replacement that family
+          @@ -62,7 +60,7 @@
+                   for row in RETIRED {
+                       let mut words = row.family.split(' ');
+                       assert_eq!(words.next(), Some(ROOT_COMMAND), "{}", row.family);
+          -            let mut command = Cli::command();
+          +            let mut command = crate::cli::parse::root();
+                       for word in words {
+                           command = command
+                               .find_subcommand(word)
+          --- a/crates/xurl-cli/src/cli/parse.rs
+          +++ b/crates/xurl-cli/src/cli/parse.rs
+          @@ -28,6 +28,13 @@
+               pub id: String,
+           }
+           
+          +/// `xr`'s clap command as the derive declares it, built once per process.
+          +#[must_use]
+          +pub fn root() -> Command {
+          +    static ROOT: OnceLock<Command> = OnceLock::new();
+          +    ROOT.get_or_init(Cli::command).clone()
+          +}
+          +
+           /// `xr`'s command with the bindings of false booleans removed, for the
+           /// variables the process holds.
+           ///
+          @@ -36,8 +43,8 @@
+           #[must_use]
+           pub fn command() -> Command {
+               static FOUND: OnceLock<Vec<Binding>> = OnceLock::new();
+          -    let found = FOUND.get_or_init(|| false_bindings(&Cli::command(), &crate::cli::env::variable));
+          -    unbind(Cli::command(), found)
+          +    let found = FOUND.get_or_init(|| false_bindings(&root(), &crate::cli::env::variable));
+          +    unbind(root(), found)
+           }
+           
+           /// Parses `args` with [`command`] after `customize` has edited it, which is
+          @@ -70,7 +77,7 @@
+           {
+               try_matches(args, std::convert::identity)
+                   .and_then(|matches| Cli::from_arg_matches(&matches))
+          -        .map_err(|error| error.format(&mut Cli::command()))
+          +        .map_err(|error| error.format(&mut root()))
+           }
+           
+           /// `command` with the bindings of every boolean flag whose variable, as
+          --- a/crates/xurl-cli/src/cli/reparse.rs
+          +++ b/crates/xurl-cli/src/cli/reparse.rs
+          @@ -10,14 +10,14 @@
+           use std::ffi::OsString;
+           
+           use clap::error::{ContextKind, ErrorKind};
+          -use clap::{Arg, ArgAction, ArgMatches, CommandFactory, FromArgMatches};
+          +use clap::{Arg, ArgAction, ArgMatches, FromArgMatches};
+           
+           use crate::cli::classify::{ROOT_COMMAND, color_intent, context_string, raw_intent, usage_command};
+           use crate::cli::output::OutputFormat;
+           use crate::cli::settings::{self, Variables};
+           use crate::cli::{Cli, ColorChoice, parse};
+           
+          -/// `Cli::command()` with the root help and version flags inert.
+          +/// `crate::cli::parse::root()` with the root help and version flags inert.
+           ///
+           /// clap adds both flags while building the command, so neither can be edited
+           /// in place: each is disabled, which clap applies to every subcommand, and an
+          @@ -156,7 +156,7 @@
+           /// Whether `flag`, as typed (`--wait`, `-w`), is declared `require_equals` on
+           /// `command` or on a command above it.
+           fn takes_value_after_equals(command: &str, flag: &str) -> bool {
+          -    let root = Cli::command();
+          +    let root = crate::cli::parse::root();
+               let mut scopes = vec![&root];
+               for name in command.split_whitespace().skip(1) {
+                   match scopes.last().and_then(|scope| scope.find_subcommand(name)) {
+          --- a/crates/xurl-cli/src/cli/runner.rs
+          +++ b/crates/xurl-cli/src/cli/runner.rs
+          @@ -24,8 +24,8 @@
+           use std::io::Write;
+           use std::path::{Path, PathBuf};
+           
+          +use clap::FromArgMatches;
+           use clap::error::{ContextKind, ContextValue, ErrorKind};
+          -use clap::{CommandFactory, FromArgMatches};
+           use tracing::instrument::WithSubscriber;
+           
+           use crate::cli::classify::{
+          @@ -280,7 +280,7 @@
+               // does, so the matches stay to name the command that ran.
+               let parsed = crate::cli::parse::try_matches(args_vec.iter(), std::convert::identity)
+                   .and_then(|matches| Cli::from_arg_matches(&matches).map(|cli| (cli, matches)))
+          -        .map_err(|e| e.format(&mut Cli::command()));
+          +        .map_err(|e| e.format(&mut crate::cli::parse::root()));
+               let (cli, matches) = match parsed {
+                   Ok(parsed) => parsed,
+                   Err(e) => {
+          @@ -327,7 +327,7 @@
+               if let Some(ref cmd) = cli.command {
+                   match cmd {
+                       Commands::Completions { shell } => {
+          -                let mut cmd = Cli::command();
+          +                let mut cmd = crate::cli::parse::root();
+                           clap_complete::generate(*shell, &mut cmd, "xr", stdout);
+                           return EXIT_SUCCESS;
+                       }
+          @@ -417,7 +417,7 @@
+                           out.print_invalid_args(stderr, NO_COMMAND_MESSAGE, " ", ROOT_COMMAND);
+                           EXIT_USAGE_ERROR
+                       } else {
+          -                let _ = write!(stdout, "{}", Cli::command().render_help());
+          +                let _ = write!(stdout, "{}", crate::cli::parse::root().render_help());
+                           EXIT_SUCCESS
+                       };
+                   }
+          @@ -762,7 +762,7 @@
+                       let _ = write!(stdout, "{}", help_command_page(args));
+                       return EXIT_SUCCESS;
+                   }
+          -        let unexpected = Cli::command().error(
+          +        let unexpected = crate::cli::parse::root().error(
+                       ErrorKind::UnknownArgument,
+                       format!("unexpected argument '{word}' found"),
+                   );
+          @@ -865,7 +865,7 @@
+           /// clap's rejection of `word` as a stray argument at the root, built as clap
+           /// builds it for a word it scores against no command, usage line included.
+           fn unexpected_argument(word: &str, args: &[OsString]) -> clap::Error {
+          -    let mut cmd = Cli::command();
+          +    let mut cmd = crate::cli::parse::root();
+               if let Some(bin) = args.first().and_then(|arg| Path::new(arg).file_name()) {
+                   cmd = cmd.bin_name(bin.to_string_lossy().into_owned());
+               }
+          --- a/crates/xurl-cli/src/cli/commands/schema/words.rs
+          +++ b/crates/xurl-cli/src/cli/commands/schema/words.rs
+          @@ -1,9 +1,7 @@
+           //! The words a caller names a command with, and what `xr schema` refuses.
+           
+          -use clap::CommandFactory;
+           use xdk::error::Error;
+           
+          -use crate::cli::Cli;
+           use crate::cli::classify::{ROOT_COMMAND, nearest};
+           use crate::cli::retired_verbs;
+           
+          @@ -20,7 +18,7 @@
+           /// spelled like one is refused rather than read as a command.
+           #[must_use]
+           pub fn scope_words() -> Vec<String> {
+          -    Cli::command()
+          +    crate::cli::parse::root()
+                   .find_subcommand("schema")
+                   .map(|schema| {
+                       schema
+          @@ -78,7 +76,7 @@
+               if let Some(command) = registered_commands().find(|command| *command == joined) {
+                   return Ok(command);
+               }
+          -    let root = Cli::command();
+          +    let root = crate::cli::parse::root();
+               let mut current = &root;
+               let mut path: Vec<&str> = Vec::new();
+               for word in words {
+          PATCH
+          git diff --stat
+      - name: Tests
+        run: cargo nextest run --profile ci --partition "hash:${{ matrix.partition }}"
 
   # CI saves under dev and main only in a warm run, so this is where a manifest
   # or lockfile change's superseded rust-cache entries leave those branches.
