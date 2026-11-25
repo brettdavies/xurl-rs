@@ -78,6 +78,7 @@
               "created_at_ms",
               "id",
               "relay_source",
+              "relay_user",
               "reply_to",
               "text"
             ],
@@ -3247,6 +3248,9 @@
             "type": "string"
           },
           "relay_source": {
+            "type": "string"
+          },
+          "relay_user": {
             "type": "string"
           },
           "reply_to": {
@@ -19929,6 +19933,11 @@
             "maxLength": 32,
             "type": "string"
           },
+          "relay_user": {
+            "description": "The name of the person who wrote this message on the platform it was relayed from, shown next to that platform's icon. Display text only, not an X account. Requires `relay_source`. Links are not allowed.",
+            "maxLength": 64,
+            "type": "string"
+          },
           "reply_to": {
             "description": "Message id to reply to, returned as timestamp when sent.",
             "pattern": "^[0-9]{1,19}$",
@@ -25988,6 +25997,9 @@
           }
         },
         "security": [
+          {
+            "BearerToken": []
+          },
           {
             "OAuth2UserToken": [
               "broadcast.read"

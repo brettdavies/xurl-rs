@@ -126,10 +126,11 @@ jobs:
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
       test_runner: nextest
       nextest_version: ${{ needs.scope.outputs.nextest_version }}
-      # Running the tests outweighs a second build: on warm caches the slower of
-      # two jobs took 200 to 231 s against 244 to 306 s for one job, for about half
-      # again the runner time.
-      test_partitions: 2
+      # Running the tests outweighs another build: on warm caches the slowest of
+      # four jobs took 362 s, against 508 to 518 s for the slower of two. The
+      # rulesets require each job by name, which ruleset_partitions_guard.rs
+      # holds to this count.
+      test_partitions: 4
 
   # A job of its own so its checks report as `warm / <job>`, never under a
   # required `ci / <job>` name. rust-cache keys on the reusable's job ids, not
@@ -551,7 +552,7 @@ jobs:
           save-if: false
       - name: Install cargo-binstall
         timeout-minutes: 1 # slowest healthy run: 1 s
-        uses: cargo-bins/cargo-binstall@851112458b5f28a29e5bc14a690c3f283d9dcc6f # v1.26.2
+        uses: cargo-bins/cargo-binstall@5885714d0a40a14b2535c6ffc051fd8e49aa9665 # v1.27.0
       # This step and Install anc install a prebuilt binary only, and pass the
       # job token. binstall looks the release up on api.github.com. Without a
       # token that lookup shares the runner's per-IP rate limit, and its 403
@@ -657,7 +658,7 @@ jobs:
           save-if: false
       - name: Install cargo-binstall
         timeout-minutes: 1 # slowest healthy run: 2 s
-        uses: cargo-bins/cargo-binstall@851112458b5f28a29e5bc14a690c3f283d9dcc6f # v1.26.2
+        uses: cargo-bins/cargo-binstall@5885714d0a40a14b2535c6ffc051fd8e49aa9665 # v1.27.0
       # Same deadline, single attempt, and token as Install cargo-hack.
       - name: Install anc
         timeout-minutes: 1 # slowest healthy run: 2 s

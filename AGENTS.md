@@ -519,15 +519,15 @@ scripts/hooks/pre-push                      # local CI mirror (fmt, clippy, next
                                             # cargo-hack powerset when installed)
 ```
 
-cargo-nextest runs the tests, locally and in CI's two `Tests` jobs, each test in its own process across every binary at
+cargo-nextest runs the tests, locally and in CI's four `Tests` jobs, each test in its own process across every binary at
 once. Plain `cargo test` passes too, but it is not the path CI runs. It runs a binary's tests in one process, so the
 rules below hold under both runners. `.config/nextest.toml` holds two profiles: `default`, which the hook runs and which
 stops at the first failure, and `ci`, which runs everything, eight tests at a time, and reruns a failed test once. Under
 either, a test that fails and then passes on a retry fails the run, labeled `FLKY-FL`, which says to hunt a race rather
 than a regression; a retry from `--retries` counts the same. Both end a hung test after five minutes and name it, as
-`TIMEOUT` under `default` and `TRY n TMT` under `ci`'s retry. Each CI job adds `--partition hash:k/2`, which picks the
-half of the tests it runs. Tests that cannot share a machine go in a nextest test group with limited concurrency, not a
-serial run of everything.
+`TIMEOUT` under `default` and `TRY n TMT` under `ci`'s retry. Each CI job adds `--partition hash:k/4`, which picks the
+quarter of the tests it runs. Tests that cannot share a machine go in a nextest test group with limited concurrency, not
+a serial run of everything.
 
 A development build run by hand moves a single-file `~/.xurl` into the directory layout like any other `xr`, and a
 released `xr` 4.3.0 or earlier cannot read the store afterwards. Set `XURL_TOKEN_STORE` to a scratch path for a manual

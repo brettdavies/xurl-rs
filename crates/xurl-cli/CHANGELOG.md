@@ -2,11 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.9.0] - 2026-11-23
+## [4.9.0] - 2026-11-25
 
 ### Breaking changes
 
-- Change an answer from the OAuth2 token endpoint to count as a refusal only when its JSON `error` is one of the six codes of RFC 6749 section 5.2. A 400 or a 401 with no such code, and any other status with no reading of its own, now ends at exit 1 with a `fix-input` step that names `TOKEN_URL` and the proxy, where a 400 or a 401 ended at exit 77 and an unlisted status gave `report-issue`. It ships in a minor under the small-break exception, and [`docs/migrating/v4.9.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.9.0.md) maps each answer from its 4.8 form to its 4.9 form. by @brettdavies in [#613](https://github.com/brettdavies/xurl-rs/pull/613)
+- Change an answer from the OAuth2 token endpoint to count as a refusal only when its JSON `error` is one of the six codes of RFC 6749 section 5.2. A 400 or a 401 with no such code, and any other status with no reading of its own, now ends at exit 1 with a `fix-input` step that names `TOKEN_URL` and the proxy, where a 400 or a 401 ended at exit 77 and an unlisted status gave `report-issue`. [`docs/migrating/v4.9.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.9.0.md) maps each answer from its 4.8 form to its 4.9 form. by @brettdavies in [#613](https://github.com/brettdavies/xurl-rs/pull/613)
 
 ### Added
 
@@ -60,7 +60,7 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking changes
 
-- Change the `reason` of a stream's `cancelled` document to `sigint` when Ctrl+C (SIGINT) ends the stream, where it reported `sigterm`; SIGTERM still reports `sigterm`. A script that matched `sigterm` for Ctrl+C needs to match both. It ships in a minor under the small-break exception, and [`docs/migrating/v4.8.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.8.0.md) maps each 4.7 filter to its 4.8 form. by @brettdavies in [#594](https://github.com/brettdavies/xurl-rs/pull/594)
+- Change the `reason` of a stream's `cancelled` document to `sigint` when Ctrl+C (SIGINT) ends the stream, where it reported `sigterm`; SIGTERM still reports `sigterm`. A script that matched `sigterm` for Ctrl+C needs to match both. [`docs/migrating/v4.8.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.8.0.md) maps each 4.7 filter to its 4.8 form. by @brettdavies in [#594](https://github.com/brettdavies/xurl-rs/pull/594)
 
 ### Added
 
