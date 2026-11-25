@@ -615,6 +615,16 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 - **Test expectation:** none -- a build setting; the suite's pass state is the check.
 - **Verification:** each kept setting's measurement is recorded, and a panicking test still prints its file and line;
   each dropped setting has its measurement recorded.
+- **Measured: dependencies at `opt-level = 3` in dev and test builds** (xurl-rs#632), medians against `dev` at
+  `9785270`:
+  - CI `Tests` partitions: nextest execution, summed over the four per-partition medians, is 639 s on `dev` and 265 s
+    with the setting (run 45314144000 attempts 2 to 5; run 45548097020 attempts 1 to 3).
+  - CI costs: `Public API semver` takes 141 s against 68 s, and a run that compiles every job from scratch pays 943 s
+    more runner time in the shared-workflow jobs and 1,511 s more in the `ci.yml` Linux jobs.
+  - Local full suite on a warm build: 52.6 s against 124.5 s of wall time, 576 against 1,577 CPU seconds.
+  - Local costs: a cold `cargo test --workspace --no-run` takes 48 s of wall time and 524 CPU seconds more, a rebuild
+    after a source edit takes 9 to 14 s more, and a cold pre-push takes 54 s longer in total.
+  - A panicking test prints its file and line.
 
 ### U6. Cargo's multi-file test layout, held by guards
 
