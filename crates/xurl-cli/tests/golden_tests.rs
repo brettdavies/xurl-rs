@@ -1747,14 +1747,12 @@ fn captured_cases(bin: &str, api: &MockApi, scratch: &Scratch) -> Vec<(Case, Opt
         .map(|(case, actual)| (case, Some(actual)))
         .collect();
     let rest: Vec<Case> = other_cases(scratch);
-    let runnable: Vec<&Case> = rest
-        .iter()
-        .filter(|case| cfg!(unix) || case.unix_only.is_none())
-        .collect();
+    let runs_here = |case: &Case| cfg!(unix) || case.unix_only.is_none();
+    let runnable: Vec<&Case> = rest.iter().filter(|case| runs_here(case)).collect();
     let mut captured = capture_all(&runnable, bin, api, scratch).into_iter();
     for case in rest {
-        let actual = (cfg!(unix) || case.unix_only.is_none())
-            .then(|| captured.next().expect("one capture per runnable case"));
+        let actual =
+            runs_here(&case).then(|| captured.next().expect("one capture per runnable case"));
         runs.push((case, actual));
     }
     let mut seen = BTreeSet::new();
