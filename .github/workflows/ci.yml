@@ -747,12 +747,13 @@ jobs:
             anc-scorecard.json
             anc-rows.tsv
 
-  # PROBE ONLY, never merged: the same tests as `ci / Tests (k/4)` under
-  # nextest's slice partitioner. The job id matches the reusable workflow's
+  # PROBE ONLY, never merged: the same tests and partitions as
+  # `ci / Tests (k/4)`, with scripts/check-surface-bump.sh running one jq per
+  # tree instead of one per schema file. The job id matches the reusable workflow's
   # `tests` job and the env matches its CARGO*/RUST* set, so rust-cache restores
   # the same entry.
   tests:
-    name: Probe slice (${{ matrix.partition }})
+    name: Probe one-jq (${{ matrix.partition }})
     needs: scope
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-22.04
@@ -760,7 +761,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        partition: ["1/4", "2/4", "3/4", "4/4"]
+        partition: ["1/4", "2/4", "3/4", "4/4", "u6-build"]
     env:
       RUSTFLAGS: "-Dwarnings"
       CARGO_HTTP_MULTIPLEXING: "false"
@@ -789,8 +790,95 @@ jobs:
           time (for _ in $(seq 100); do jq -n 1 > /dev/null; done)
           time (bash scripts/check-surface-bump.sh surface . > /dev/null)
           nproc
+      - name: One jq per tree in the surface-bump script
+        if: matrix.partition != 'u6-build'
+        run: |
+          git apply <<'PATCH'
+          --- a/scripts/check-surface-bump.sh
+          +++ b/scripts/check-surface-bump.sh
+          @@ -113,8 +113,8 @@
+             # a schema is JSON-escaped so each entry stays on one line, since a key holding a
+             # newline would otherwise start a CI log line of its own. A declared key gets its
+             # own line, since one whose only leaves are annotations has no other.
+          -  while IFS= read -r file; do
+          -    jq -r --arg file "$file" '
+          +  if [ -d "$tree/$SCHEMA_DIR" ]; then
+          +    (cd "$tree" && find "$SCHEMA_DIR" -type f -name '*.json' | LC_ALL=C sort | xargs jq -r '
+                       def container: . == "properties" or . == "patternProperties" or . == "$defs" or . == "definitions";
+                       def in_examples:
+                           . as $q
+          @@ -124,7 +124,8 @@
+                           | $q[-1] == "description" or $q[-1] == "title" or $q[-1] == "$id" or ($q | in_examples);
+                       def escaped: tojson | .[1:-1];
+                       def rendered: map(if type == "number" then "[]" else . end) | join(".") | escaped;
+          -            (paths(scalars) as $p
+          +            input_filename as $file
+          +            | (paths(scalars) as $p
+                           | select($p | annotation | not)
+                           | "schema\t\($file | escaped)\t\($p | rendered)=\(getpath($p) | tojson)"),
+                       (paths as $p
+          @@ -132,8 +133,8 @@
+                           | select($p[-2] | container)
+                           | select($p | in_examples | not)
+                           | "schema\t\($file | escaped)\t\($p | rendered)=declared")
+          -        ' "$tree/$file" || die "cannot read $tree/$file as JSON"
+          -  done < <([ -d "$tree/$SCHEMA_DIR" ] && cd "$tree" && find "$SCHEMA_DIR" -type f -name '*.json' | LC_ALL=C sort)
+          +        ') || die "cannot read a schema under $tree as JSON"
+          +  fi
+           }
+           
+           # changelog_block <head-tree> <body-file>: tab-separated lines describing the
+          PATCH
+          git diff --stat
+          time (bash scripts/check-surface-bump.sh surface . > /dev/null)
       - name: Tests
-        run: cargo nextest run --profile ci --partition "slice:${{ matrix.partition }}"
+        if: matrix.partition != 'u6-build'
+        run: cargo nextest run --profile ci --partition "hash:${{ matrix.partition }}"
+      # The merged test layout (perf plan U6), built on the same runner as the
+      # current one: a warm-up build, then workspace-only rebuilds U6, base, U6, base.
+      - name: Build-time cell, current and merged test layouts
+        if: matrix.partition == 'u6-build'
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/merge.py" <<'MERGE'
+          import re
+          from pathlib import Path
+          def merge(crate, extra):
+              tests = crate / "tests"; dest = tests / "all"; dest.mkdir(exist_ok=True); names = []
+              for f in sorted(tests.glob("*.rs")):
+                  target = dest / f.name; f.rename(target); names.append(f.stem)
+                  text = target.read_text()
+                  text = re.sub(r"^mod common;$", "use crate::common;", text, flags=re.M)
+                  text = re.sub(r'#\[path = "', '#[path = "../', text)
+                  text = re.sub(r'include_str!\("', 'include_str!("../', text)
+                  text = re.sub(r'include_bytes!\("', 'include_bytes!("../', text)
+                  if f.stem == "panic_hook_tests":
+                      text = text.replace("use crate::common;\n", "")
+                  target.write_text(text)
+              lines = ['#[path = "../common/mod.rs"]', "mod common;"]
+              for n in names:
+                  if n in extra: lines.append(extra[n])
+                  lines.append(f"mod {n};")
+              (dest / "main.rs").write_text("\n".join(lines) + "\n")
+          merge(Path("crates/xurl-cli"), {})
+          merge(Path("crates/xdk"), {"mock_endpoint_coverage": '#[cfg(feature = "testing")]'})
+          toml = Path("crates/xdk/Cargo.toml")
+          toml.write_text(toml.read_text().replace('[[test]]\nname = "mock_endpoint_coverage"\nrequired-features = ["testing"]\n\n', ""))
+          MERGE
+          ws() {
+            cargo clean -q -p xurl-rs -p xdk-rs -p xdk-consumer-check
+            s=$(date +%s%N)
+            cargo test --workspace --no-run --locked -q
+            echo "BUILD $1 $(( ($(date +%s%N) - s) / 1000000 )) ms"
+          }
+          to_u6() { python3 "$RUNNER_TEMP/merge.py"; }
+          to_base() { git checkout -q -- . && git clean -fdq crates; }
+          cargo test --workspace --no-run --locked -q
+          to_u6; ws u6-1
+          to_base; ws base-1
+          to_u6; ws u6-2
+          to_base; ws base-2
+          du -sh target
 
   # CI saves under dev and main only in a warm run, so this is where a manifest
   # or lockfile change's superseded rust-cache entries leave those branches.
