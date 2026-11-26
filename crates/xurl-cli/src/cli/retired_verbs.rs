@@ -48,11 +48,9 @@ pub(crate) fn retired_commands() -> impl Iterator<Item = (String, String)> {
 
 #[cfg(test)]
 mod tests {
-    use clap::CommandFactory;
-
     use super::RETIRED;
-    use crate::cli::Cli;
     use crate::cli::classify::ROOT_COMMAND;
+    use crate::cli::parse;
 
     /// Every row names a family clap parses, a replacement that family
     /// takes, and a retired word it no longer takes, so a later rename that
@@ -62,7 +60,7 @@ mod tests {
         for row in RETIRED {
             let mut words = row.family.split(' ');
             assert_eq!(words.next(), Some(ROOT_COMMAND), "{}", row.family);
-            let mut command = Cli::command();
+            let mut command = parse::root();
             for word in words {
                 command = command
                     .find_subcommand(word)

@@ -8,8 +8,8 @@
 
 use std::ffi::OsString;
 
+use clap::ValueEnum;
 use clap::error::{ContextKind, ContextValue, ErrorKind};
-use clap::{CommandFactory, ValueEnum};
 
 use crate::cli::output::OutputFormat;
 use crate::cli::{Cli, ColorChoice, parse};
@@ -215,7 +215,7 @@ pub(crate) fn nearest(word: &str, candidates: &[String]) -> Option<String> {
 
 /// Every name a root subcommand answers to.
 fn root_candidates() -> Vec<String> {
-    let cmd = Cli::command();
+    let cmd = parse::root();
     let mut names: Vec<String> = cmd
         .get_subcommands()
         .flat_map(|sub| {

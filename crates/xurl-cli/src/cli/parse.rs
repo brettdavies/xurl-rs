@@ -28,6 +28,21 @@ pub struct Binding {
     pub id: String,
 }
 
+/// `xr`'s clap command as the derive declares it, built once per process
+/// and cloned for each caller.
+///
+/// One run needs the tree in several places, and cloning the built tree
+/// costs less than running the derive's builders again. Clap reads each
+/// `env` binding's value when the tree is built, so the cached tree holds
+/// the variables as they were at the first call. A process's variables do
+/// not change, and `tests/env_mutation_guard.rs` keeps the tests that run
+/// `xr` in-process from changing theirs.
+#[must_use]
+pub fn root() -> Command {
+    static ROOT: OnceLock<Command> = OnceLock::new();
+    ROOT.get_or_init(Cli::command).clone()
+}
+
 /// `xr`'s command with the bindings of false booleans removed, for the
 /// variables the process holds.
 ///
@@ -36,8 +51,8 @@ pub struct Binding {
 #[must_use]
 pub fn command() -> Command {
     static FOUND: OnceLock<Vec<Binding>> = OnceLock::new();
-    let found = FOUND.get_or_init(|| false_bindings(&Cli::command(), &crate::cli::env::variable));
-    unbind(Cli::command(), found)
+    let found = FOUND.get_or_init(|| false_bindings(&root(), &crate::cli::env::variable));
+    unbind(root(), found)
 }
 
 /// Parses `args` with [`command`] after `customize` has edited it, which is
@@ -70,7 +85,7 @@ where
 {
     try_matches(args, std::convert::identity)
         .and_then(|matches| Cli::from_arg_matches(&matches))
-        .map_err(|error| error.format(&mut Cli::command()))
+        .map_err(|error| error.format(&mut root()))
 }
 
 /// `command` with the bindings of every boolean flag whose variable, as
