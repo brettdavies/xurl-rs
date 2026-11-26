@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.9.1] - 2026-11-26
+
+### Changed
+
+- Change the vendored X API spec to the 2026-11-25 upstream content of 2.175, which adds `POST` operations under `/2/chat/conversations/{id}` to delete (`/delete`) and unarchive (`/unarchive`) a conversation, and moves unmuting it, disabling its group invite link, and turning off its disappearing messages from `DELETE` to `POST` (`/unmute`, `/invite/disable`, `/message_ttl/remove`). All five are reachable in raw mode, X's spec no longer lists those three `DELETE` forms, and shortcut behavior is unchanged. by @brettdavies in [#638](https://github.com/brettdavies/xurl-rs/pull/638)
+
+**Full Changelog**: [v4.9.0...v4.9.1](https://github.com/brettdavies/xurl-rs/compare/v4.9.0...v4.9.1)
+
 ## [4.9.0] - 2026-11-25
 
 ### Breaking changes

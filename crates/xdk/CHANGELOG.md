@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1] - 2026-11-26
+
+### Changed
+
+- Change the vendored X API spec to the 2026-11-25 upstream content of 2.175, which adds and moves XChat operations; `API_SPEC_SHA256` and `API_SPEC_DATE` follow, and no shortcut or type changes. by @brettdavies in [#638](https://github.com/brettdavies/xurl-rs/pull/638)
+
+**Full Changelog**: [xdk-rs-v0.9.0...xdk-rs-v0.9.1](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.9.0...xdk-rs-v0.9.1)
+
 ## [0.9.0] - 2026-11-25
 
 ### Breaking changes
