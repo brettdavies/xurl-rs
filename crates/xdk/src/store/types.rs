@@ -125,7 +125,6 @@ pub enum TokenType {
 /// helper on [`crate::store::TokenStore`] (`get_oauth1_tokens`,
 /// `get_oauth2_token`, `get_bearer_token`) rather than reading these fields
 /// directly.
-#[allow(clippy::struct_field_names)]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Token {
     /// Discriminator for which payload field is populated.

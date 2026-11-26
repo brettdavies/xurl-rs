@@ -581,7 +581,10 @@ pub(crate) fn make_client(cfg: &Config, auth: Auth) -> Result<Client> {
 /// # Errors
 ///
 /// Returns an error if the command fails.
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the dispatcher takes each value the runner resolved before it chose a command"
+)]
 pub(crate) async fn run(
     cli: Cli,
     out: &OutputConfig,

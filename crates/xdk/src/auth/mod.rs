@@ -32,7 +32,6 @@ use crate::store::{OAuth2Token, TokenStore};
 /// persists tokens to disk. Constructed via [`Auth::new`] (legacy
 /// `~/.xurl` path) or [`Auth::new_with_store_path`] (test-friendly explicit
 /// path).
-#[allow(clippy::struct_field_names)]
 pub struct Auth {
     /// Token store backing this `Auth` instance.
     pub token_store: TokenStore,
@@ -609,7 +608,6 @@ impl Auth {
     /// active app. Replaces the older equality-based heuristic
     /// (`self.client_id == old_app.client_id`) which produced false
     /// negatives when the old and new stores happened to share a value.
-    #[allow(dead_code)] // Public library API — used by consumers and integration tests
     #[must_use]
     pub fn with_token_store(mut self, token_store: TokenStore) -> Self {
         let new_app = token_store.resolve_app(&self.app_name);
@@ -624,7 +622,6 @@ impl Auth {
     }
 
     /// Returns a reference to the token store.
-    #[allow(dead_code)] // Public library API — used by consumers and integration tests
     #[must_use]
     pub fn token_store(&self) -> &TokenStore {
         &self.token_store

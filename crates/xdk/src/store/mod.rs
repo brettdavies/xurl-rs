@@ -32,7 +32,6 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-#[allow(unused_imports)] // Re-exported for library consumers and integration tests
 pub use types::{App, LoadState, OAuth1Token, OAuth2Token, Token, TokenType};
 
 use crate::error::{Error, Result};
@@ -128,7 +127,6 @@ impl Default for TokenStore {
     }
 }
 
-#[allow(dead_code)] // Public library API — used by consumers and integration tests
 impl TokenStore {
     /// Creates a new `TokenStore`, loading from `~/.xurl/auth.yml` (auto-migrating
     /// legacy JSON).

@@ -6,7 +6,6 @@
 pub mod types;
 pub(crate) mod vocabulary;
 
-#[allow(unused_imports)] // Re-exported for library consumers
 pub use types::{
     AccountActivitySubscription, AccountActivitySubscriptionCount, AccountActivitySubscriptions,
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, DeletedResult, DmEvent, DmSentResult,
