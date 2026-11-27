@@ -294,7 +294,11 @@ impl Receiver {
     /// X's delivery of an event is answered 200 when this returns it. An
     /// event still waiting when the receiver stops is answered 503, or its
     /// connection closes unanswered, so X is never told an event arrived
-    /// that the caller did not take.
+    /// that the caller did not take. X waits ten seconds for its answer,
+    /// and every event behind one the caller is still working on waits
+    /// unanswered, so a caller that does slow work on an event, such as a
+    /// forward, hands the event to a task or a channel before it calls this
+    /// again.
     pub async fn next_event(&mut self) -> Option<Event> {
         let delivery = tokio::select! {
             biased;

@@ -19,7 +19,7 @@ use std::time::SystemTime;
 
 use tokio_util::sync::CancellationToken;
 use xdk::webhooks::{
-    CheckpointWriter, Receiver, ReceiverConfig, RetryBudget, SigningSecrets, UrlTarget,
+    CheckpointWriter, Event, Receiver, ReceiverConfig, RetryBudget, SigningSecrets, UrlTarget,
     read_checkpoint, replay_window,
 };
 
@@ -54,17 +54,28 @@ async fn run() -> xdk::Result<()> {
     let mut receiver =
         Receiver::bind(ReceiverConfig::new(bind, secrets), CancellationToken::new()).await?;
     println!("listening on {}", receiver.local_addr());
+    // X is answered once `next_event` returns an event, so the forwards run in
+    // a task of their own and a slow target never holds that answer.
+    let (queue, mut queued) = tokio::sync::mpsc::unbounded_channel::<Event>();
+    let forwarding = tokio::spawn(async move {
+        while let Some(event) = queued.recv().await {
+            let outcome = target.forward(&event, &budget).await;
+            println!(
+                "{} after {} attempt(s): {:?}",
+                event.sha256(),
+                outcome.attempts,
+                outcome.result
+            );
+            // One target, forwarded in arrival order: once this forward has
+            // finished, no earlier event is waiting, so the checkpoint moves on.
+            checkpoint.record(event.received_at)?;
+        }
+        Ok(())
+    });
     while let Some(event) = receiver.next_event().await {
-        let outcome = target.forward(&event, &budget).await;
-        println!(
-            "{} after {} attempt(s): {:?}",
-            event.sha256(),
-            outcome.attempts,
-            outcome.result
-        );
-        // One target, forwarded in arrival order: once this forward has
-        // finished, no earlier event is waiting, so the checkpoint moves on.
-        checkpoint.record(event.received_at)?;
+        let _ = queue.send(event);
     }
-    Ok(())
+    receiver.close().await;
+    drop(queue);
+    forwarding.await.expect("the forwarding task")
 }
