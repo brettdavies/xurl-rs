@@ -935,6 +935,8 @@ crate-by-crate cover, with E3's `no-credit` rule, makes an `xdk` test's cut depe
   against cargo-mutants' `src/visit.rs` and by `--list -E 'delete field'`, E4's doctest count by the fence info strings,
   and E5's unit IDs against plans R and F on `dev`. Pending Brett: KTD21, and whether to report the struct-field filter
   gap to cargo-mutants upstream. Next: `/plan-devex-review`.
+- 2026-11-27: `/plan-devex-review` round 1 started, on Opus, as its own process from a clone of the commit that adds
+  this line, with the persona of a developer or unattended agent who runs the config, the run procedure, and the script.
 
 ## GSTACK REVIEW REPORT
 
