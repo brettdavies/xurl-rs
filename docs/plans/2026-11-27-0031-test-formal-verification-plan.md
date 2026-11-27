@@ -884,3 +884,4 @@ gives them their place.
 - 2026-11-27: plan written. Target 1's refs into `crates/xdk/src/auth/oauth2.rs` wait on #645 (open). Pending:
   `/plan-eng-review`, `/plan-devex-review` (the plan adds a verify skill an agent runs, and under option (a) a CI job),
   and `/compound-engineering:ce-doc-review`.
+- 2026-11-27: `/plan-eng-review` started, one round, as its own Opus process, on the plan as pushed at `2035cbe`.
