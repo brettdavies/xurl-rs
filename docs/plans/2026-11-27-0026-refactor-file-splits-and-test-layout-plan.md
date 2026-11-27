@@ -21,7 +21,7 @@ and the wall-clock spike's levers are "lever 1" to "lever 9".
 - **Means:** pure moves, one PR per file, held byte-identical by the 349 golden fixtures (KTD1). The merged test layout
   is the CI speed plan's CI-U6, taken over with its guards and its measured gain (KTD8 to KTD10). A `SkillEnv` field
   gives the in-process test harness its own clone URL (KTD7). One measurement of dependency debug info runs on the
-  merged layout (KTD11). Two readings of a CI run close the measurement (KTD12).
+  merged layout (KTD12). Two readings of a CI run close the measurement (KTD13).
 - **Authority:** R-IDs win on behavior and KTDs on mechanism. A unit overrides neither. KD1 to KD6 are Brett's and are
   not reopened here. KTDs are this plan's calls, owned by xurl-plan-prime, the coordinating session.
 - **Execution profile:** one session runs every unit inline as stacked PRs to `dev`, on `feat/refactor-NN-<slug>`
@@ -40,7 +40,7 @@ and the wall-clock spike's levers are "lever 1" to "lever 9".
   - A fix widens a unit past the scope list in Scope Boundaries.
 
   On any of these, stop and report to xurl-plan-prime.
-- **Who ships:** the executing session opens each PR as a draft, runs its reviews (KTD13), and marks it ready. A slot
+- **Who ships:** the executing session opens each PR as a draft, runs its reviews (KTD15), and marks it ready. A slot
   never merges. xurl-rs-prime merges the reviewed green stack to `dev`.
 
 ---
@@ -122,14 +122,14 @@ spike projects about 140 s for the slowest `Tests` job once the merged layout la
   names, under the same hardening.
 - R7. Each crate's integration tests build as one binary, plus one for the tests that change process state. The same
   tests run under the same names with a module prefix, and the before and after lists match one for one.
-- R8. A test file that no `mod` line declares, a `.rs` file directly under a member's `tests/`, an environment-mutating
-  test outside `tests/isolated/`, and a command naming a test target or module that does not exist each fail a guard
-  with a stable code.
+- R8. A test file that no `mod` line declares, a `.rs` file directly under `xdk-rs`'s or `xurl-rs`'s `tests/`, an
+  environment-mutating test outside `tests/isolated/`, and a command naming a test target or module that does not exist
+  each fail a guard with a stable code.
 
 **Measurement**
 
 - R9. Dependency debug info off is measured once on the merged layout, cold and warm, and kept only on a gain under both
-  of KTD11's rules. The PR verdict time is read after U2 and again after U10, against the 2-minute goal. Each number is
+  of KTD12's rules. The PR verdict time is read after U2 and again after U10, against the 2-minute goal. Each number is
   recorded with its run IDs whether the change is kept or not.
 
 **Surface**
@@ -161,8 +161,8 @@ spike projects about 140 s for the slowest `Tests` job once the merged layout la
 - `cargo semver-checks` is clean on U8's head.
 - `crates/xurl-cli/src/cli/mod.rs`, `commands/mod.rs`, and `runner.rs` each hold one job, and no file a split creates
   holds more than one.
-- `cargo nextest list --workspace` names two integration-test binaries per member, plus the consumer check's, where it
-  named 141.
+- `cargo nextest list --workspace` names two integration-test binaries for each of `xdk-rs` and `xurl-rs`, plus the
+  consumer check's one, where it named 141.
 - A walk over every command reaches no host but loopback: no `git` process the suite starts names `github.com`.
 - U3's numbers and both verdict readings are in § Measurements with their run IDs.
 
@@ -512,8 +512,10 @@ Notes on KTD3:
 - `cargo_inputs_tests` ×3 and `build_info` fail only outside a git checkout, so they do not fail in place.
 - The inventory dates from the spike's base (#634). U2 first runs the merged layout with `--no-fail-fast` on a scratch
   branch, then works from the failures it shows, and records any test that has joined the list.
-- KTD10. **Two guards close the two silent failures, with KTD14's codes** (CI plan KTD8 and KTD14).
-  - `test_layout_guard` walks each member's `tests/` and fails:
+- KTD10. **Two guards close the two silent failures, with the CI plan's KTD14 codes** (CI plan KTD8 and KTD14).
+  - `test_layout_guard` walks `crates/xdk/tests/` and `crates/xurl-cli/tests/` by name. The consumer check's
+    `crates/xdk-consumer-check/tests/read.rs` is a target of its own that stays as it is (KTD8), and
+    `common::member_dirs()` lists every directory under `crates/`, the consumer check among them. The guard fails:
     - with `test-layout/undeclared-module` for a `.rs` file under `tests/all/` or `tests/isolated/` that no `mod` line
       reaches from `main.rs`. It follows nested modules too, a `foo.rs` with `mod bar;` reaching `foo/bar.rs`, so U10's
       `cli_tests/` directory needs no guard change. The message names the `mod <name>;` line and the file it goes in.
@@ -632,6 +634,10 @@ Notes on KTD3:
     key saves nothing (`ci.yml:20-26`), so U2's own runs may build every dependency cold. Whether a comment-only edit
     moves the key depends on whether rust-cache hashes the parsed TOML or the raw file, which this plan has not checked.
     A cold run is recorded and marked cold, and is not compared with the 297 s baseline (DX review X7).
+  - A moved key also saves a fresh dependency set for `dev` on the next push. The repository's cache sits at its 10 GB
+    limit (10.03 GiB read by xurl-plan-prime on 2026-11-27, the KTD3 reading in the CI plan), so that save evicts the
+    least recently used entries. Beside the warm-or-cold flag, each reading records which `dev` and `main` warm entries
+    it finds missing (`gh cache list`).
   - Baseline: run 45944823191 on #645, 297 s, slowest `ci / Tests (1/4)` at 251 s.
   - U4 reads U2's last green run and the next two green PR runs whose diff runs the Rust jobs. U11 reads U10's last
     green run and the next two the same way. Each reports the median beside the three runs.
@@ -753,7 +759,7 @@ name test files at `492e187`'s paths, which hold only when the unit lands before
     `skill_install/mod.rs` (`install_envelope`), `skill_install/update.rs` (`update_envelope`), and
     `crates/xurl-cli/src/cli/env.rs` (`skill_from_process`);
   - modify `crates/xurl-cli/tests/common/invoke.rs` (`run_xr` sets the field);
-  - modify `crates/xurl-cli/tests/walk_tests.rs` (the two tests below, and its `//!` line naming `run_xr` beside
+  - modify `crates/xurl-cli/tests/walk_tests.rs` (the three tests below, and its `//!` line naming `run_xr` beside
     `walk`).
 - **Approach:**
   1. Add the field and resolve the URL once in each envelope builder, for the clone and for `command_preview`.
@@ -765,7 +771,8 @@ name test files at `492e187`'s paths, which hold only when the unit lands before
 - **Test scenarios:**
   - A dry run of `skill install claude_code` through `run_xr` names the seam's URL in `command_preview`. With the
     envelope change stashed it names `https://github.com/brettdavies/xurl-rs-skill.git`, the failure recorded in step 3.
-  - A real run through `run_xr` answers `git-clone-failed` at exit 1 and leaves the skill home empty.
+  - A real run through `run_xr` answers `git-clone-failed` at git's own exit code, 128 for the refused transport, and
+    leaves the skill home empty. `spawn_git_clone` (`skill_install/git.rs:79-80`) passes git's code through.
   - `skill update claude_code` over an installed bundle answers the same through `run_xr`.
   - The golden fixtures for `skill install`, which spawn the binary, still show the manifest's URL.
 - **Verification:**
@@ -807,7 +814,9 @@ name test files at `492e187`'s paths, which hold only when the unit lands before
      in `git log --follow`.
   5. Commit 3, the edits: the two `main.rs` files, `mod common;` to `use crate::common;`, the nine relative paths, the
      `Cargo.toml` entry, the split of `auth_tests`, `api_tests`, and `config_tests` between the binaries, and the
-     allowlist paths.
+     allowlist paths. A helper that both halves of a split file call moves, unchanged, into a submodule of `xdk`'s
+     `tests/common/` that both binaries declare (KTD8), such as `empty_config`, `create_temp_token_store`, and
+     `write_store_with_redirect_uri` from `auth_tests.rs` (lines 51, 64, and 488). None is copied.
   6. Commit 4, the two guards and their AGENTS.md headings.
   7. Commit 5, every command and doc path in KTD11.
   8. Record the list and the timings again, and run a plain `cargo test --workspace` once.
@@ -1903,7 +1912,97 @@ Unresolved decisions: none from this review.
 
 ## Document Review
 
-Pending.
+`/compound-engineering:ce-doc-review` round 1, non-interactive, on Opus, over this plan at `575d74f`. Its code equals
+`492e187`'s (`git diff --stat 492e187 575d74f` outside `docs/plans/` is empty). The run is unattended under its caller's
+brief:
+
+- Each question is answered from the code, the repo's docs, `docs/solutions/`, and precedent, and the answer and its
+  evidence are recorded below.
+- The decisions only Brett can make are listed undecided in § "Deferred / Open Questions".
+- One session applied the coherence, feasibility, and scope lenses inline, with no subagent, outside voice, or
+  cross-model pass, so the review is not independent of its lead.
+- No other lens activated. U1's seam is set only in-process, and the `cli` paths U5 moves are doc-hidden.
+- The review edits only this file and commits nothing.
+
+### Corrections applied
+
+Each correction carries out a decision the plan already makes.
+
+- **E1, the guard's members (KTD10, R8, Success Criteria).** `crates/xdk-consumer-check` is a workspace member
+  (`Cargo.toml:3`), and its `tests/read.rs` sits directly under its `tests/`. KTD8 keeps that file as it is, and
+  `common::member_dirs()` (`crates/xurl-cli/tests/common/mod.rs:153`) returns every directory under `crates/`. A
+  `test-layout/stray-file` rule over "each member's `tests/`" would therefore fail on the moved tree. KTD10 now names
+  the two walked directories, R8 names the two crates, and the success criterion counts two binaries for each of them
+  plus the consumer check's one.
+- **E2, U1's exit code.** `spawn_git_clone` returns `GitCloneFailed { code: status.code().unwrap_or(1) }`
+  (`skill_install/git.rs:79-80`), and `InstallError::exit_code` returns that code (`skill_install/mod.rs:126-130`).
+  Under `GIT_HARDEN_FLAGS` and `GIT_HARDEN_ENV_SET`, `git clone file://<tmp>/none` prints
+  `fatal: transport 'file' not allowed` and exits 128 (observed on the Linux server, git's destination directory
+  removed). U1's second scenario named exit 1 and now names git's code.
+- **E3, KTD cross-references.** The Goal Capsule named KTD11 for the debug-info measurement (KTD12) and KTD12 for the
+  verdict readings (KTD13). "Who ships" named KTD13 for the reviews (KTD15), R9 named KTD11's keep rules (KTD12), and
+  KTD10's "KTD14's codes" read as this plan's `cli_tests.rs` split. Each now names the KTD that holds it.
+- **E4, U1's test count.** U1's file list said "the two tests below", and its scenarios name three new tests over
+  `run_xr`.
+
+### Claims checked that hold
+
+- KTD5's private domain modules lose nothing to `types/tests.rs`. The only non-`pub` items before line 2026 are
+  `decode`, `is_page_with_no_results`, and two `Debug` impls, and KTD5 keeps the first two in `types/mod.rs`.
+- `spec_validation`'s two `TYPES_PATH` reads (lines 141 and 186) read the whole of `types.rs`, its inline tests
+  included. A read of every `.rs` file under `types/` keeps that input, `tests.rs` among the files.
+- No item name in `family_help.rs`'s 25 modules matches an item in `cli/mod.rs`, so no family file in KTD2's table holds
+  two items of one name (`comm -12` over both item lists).
+- Every `mod` line in a top-level test file other than `mod common;` carries a `#[path]`. These lines, the two
+  `include_str!` fixtures, and `spec_bounds.rs:419` are KTD8's nine relative paths.
+- A successful `skill install` envelope carries no `next_step` (`skill_install/mod.rs:188-200`). `rerun_walk` therefore
+  checks nothing on that path that the seam's `git-clone-failed` hides. `the_walk_reaches_each_action_it_can` reaches no
+  skill command.
+- `run_xr` already owns a temporary directory (`common/invoke.rs:292`) for the seam's `file://` URL. `SkillEnv`'s other
+  literals use `..SkillEnv::default()`, except the test helper at `destination.rs:240`, which is in U1's files.
+- Plan M names this plan's units (its lines 161-163) as § "Risks & Dependencies" does here. Plan F's "plan R's U6"
+  is the one mismatch, which the Eng review already sent to xurl-plan-prime.
+
+### FYI
+
+- U2 splits `crates/xdk/tests/auth_tests.rs`, and the two tests that go to `tests/isolated/` call `empty_config`,
+  `create_temp_token_store`, and `write_store_with_redirect_uri`, which the tests left in `all` call too. The plan does
+  not say where shared helpers go. U2 will either copy them or put them in a module both halves declare.
+- Answered by the author: they go in a submodule of `xdk`'s `tests/common/`, which both binaries declare (KTD8), and
+  none is copied. U2's commit 3 says so.
+
+### Not decisions
+
+B3 and B4 are reviewer additions that the scope list does not name. Under the smallest-change rule they stay under "Not
+in R", and they need no answer.
+
+## Deferred / Open Questions
+
+Each entry is an item this review left for the author. None blocks implementation, and none is one of the plan's stop
+conditions.
+
+### From 2026-11-27 review
+
+- **Whether the published `xurl-rs` library's doc-hidden `cli` paths count as public surface** — Planning Contract, KTD2
+  (P2, scope-guardian, confidence 75)
+
+  This is a public-surface, breaking-change, and version call, and the caller's brief reserves it for Brett. U5 removes
+  the `xurl::cli::family_help::<family>` modules from the published `xurl-rs` 4.9.1 library target and adds
+  `xurl::cli::families::*`. If those paths count, R10's no-public-item stop condition fires at U5, and the move needs a
+  Changelog line and a version call. If they don't, U5 proceeds as written. Evidence for the plan's reading that they
+  don't count: `cli` is `#[doc(hidden)]` (`crates/xurl-cli/src/lib.rs:9-10`), the crate's docs call the library "not an
+  embedder API" (`lib.rs:3-5`, AGENTS.md line 14), and the only semver gate is the one on `xdk-rs` (`ci.yml:298-319`).
+  The author's disposition of Eng review B2 stands until Brett answers.
+
+- **The module and file names the splits create** — Planning Contract, KTD2 to KTD5 (P3, scope-guardian, confidence 75)
+
+  The caller's brief reserves names for Brett. The names are `cli/families/`, `commands/checks.rs`, `sending.rs`,
+  `paging.rs`, and `accounts.rs`, `cli/argv_refusal.rs`, and the `response/types/<domain>.rs` files (Eng review B5).
+  They also include keeping `family_help::broadcasts` (the `broadcasts moderators` family) as the top level of
+  `families/broadcasts.rs`, with the `xr broadcasts` family nested as `broadcasts_own` (Eng review B1). Each name is
+  fixed by its split's PR. Renaming one later is another move PR, and after plan M's baseline it voids that file's
+  line-keyed baseline (KD3). xurl-plan-prime chose on 2026-11-27 to keep every name, and the plan's names stand until
+  Brett answers.
 
 ## Review log
 
@@ -1920,6 +2019,11 @@ Pending.
   No decision goes to Brett, and X2 and X7 go to xurl-plan-prime to confirm. xurl-plan-prime decided B1 and B5 the same
   day: keep the names.
 - 2026-11-27: `/compound-engineering:ce-doc-review` round 1 started, as its own Opus process on a clone of this commit.
+- 2026-11-27: `/compound-engineering:ce-doc-review` round 1 ended, on `575d74f`, as its own Opus process
+  (`claude-opus-5-5` only, 57 turns, about 11 minutes), a lite review run inline with no subagent. Four corrections
+  applied (E1 to E4). Its FYI on shared test helpers is answered in U2. It defers two items, the doc-hidden `cli` paths
+  (Eng review B2) and the split names (B1, B5), as Brett's, and both go to xurl-plan-prime to route. Under X7, each
+  verdict reading also records the cache entries it finds missing, as xurl-plan-prime asked.
 
 ## GSTACK REVIEW REPORT
 
