@@ -96,9 +96,9 @@ suite's tail. A suite that clones github.com fails offline and moves with GitHub
 suite runs about 4,350 times, so these two cases alone would make about 8,700 live clones.
 
 **The 2-minute goal is unread.** The latest green PR run, 45944823191 on #645, took 297 s from start to finish, and its
-slowest job, `ci / Tests (1/4)`, took 251 s. The next slowest were `ci / Windows check` (102 s) and
-`Windows program target` (90 s). The spike projects about 140 s for the slowest `Tests` job once the merged layout
-lands.
+slowest job, `ci / Tests (1/4)`, took 251 s. The other three `Tests` partitions took 226, 156, and 156 s, and the
+slowest jobs outside them were `ci / Windows check` (102 s) and `Windows program target` (90 s) (Eng review D16). The
+spike projects about 140 s for the slowest `Tests` job once the merged layout lands.
 
 ### Requirements
 
@@ -193,6 +193,11 @@ Not in R:
 - Splitting `oauth2_flow_tests.rs`, `api_tests.rs`, `golden_tests.rs`, or `store_tests.rs`.
 - A CI `--in-diff` mutation job, a doc-comment accuracy audit, and the media-upload chart.
 - The CI speed plan's dropped and tracked items, which its Status section records.
+- Renaming `family_help::broadcasts` (the `broadcasts moderators` family) and `broadcasts_own` (the `xr broadcasts`
+  family) to names that match their commands. A rename is not a move (KTD1; Eng review B1).
+- A guard that holds the process-aborting `parse_stack_tests` in `tests/isolated/` (Eng review B3). R8 names the
+  environment-mutating tests only.
+- A `test_invocation_guard` rule that refuses `--test all` without `-p` (Eng review B4).
 - Grouping the leaf commands' `*_HELP` consts (`POST_HELP` to `EXAMPLES_HELP`) into files by dispatch group. They belong
   to `Commands` variants, not to a family (KTD2).
 
@@ -265,6 +270,15 @@ Not in R:
     `pub(in crate::cli)`, the narrowest qualifier that reaches `cli/mod.rs` from `families/<family>.rs`.
   - `secret_source` (line 3844) is called by `AuthCommands` and `AppCommands` (lines 3903-3988) and by nothing else, so
     it moves to `families/auth.rs`. `CommonFlags` stays, since most families flatten it.
+  - `SCHEDULED_CALLS_PAGE_SIZE` (`cli/mod.rs:954`, `pub(crate)`) moves to `families/calls.rs` and keeps its
+    `pub(crate)`. Two readers use it: `ScheduledCallsCommands`'s `-n` help at line 3280 and `commands/calls.rs:13` and
+    `:42`. `cli/mod.rs` re-exports it with `pub(crate) use`, so `commands/calls.rs`'s import stays as it is (Eng review
+    D5).
+  - The top level of `families/broadcasts.rs` is `family_help::broadcasts`, by the matching-name rule below. That module
+    is the `xr broadcasts moderators` family (its `FAMILY.path` is `"broadcasts moderators"`), and it holds `root_page`
+    and `moderators_page`. The `xr broadcasts` family itself, `broadcasts_own`, nests as `pub mod broadcasts_own`, and
+    each module keeps its name (KTD1). The module's `use super::{..., broadcast_chat, ..., page_of}` line drops the five
+    sibling modules, which become siblings in the same file (Eng review D6).
   - `cli/mod.rs`'s imports that only moved items read move with them: `KNOWN_HOSTS`, `VideoCategory`,
     `WEBHOOK_URL_MAX_CHARS`, and `CHECKPOINT_SHAPE` (lines 39 and 41-43).
 
@@ -317,6 +331,21 @@ Notes on KTD3:
   under it. `destructive_dry_run_context` and `gate_destructive` are `pub(super)` today and stay so: their only callers
   are `commands/auth/mod.rs:296`, `auth/session.rs:239`, and `auth/apps.rs:202`. `make_client` and `run` stay in
   `commands/mod.rs` with their `pub(crate)`.
+- A struct's private fields and an impl's private associated functions stop being visible to the group modules once they
+  leave `commands/mod.rs`, so the ones a group module reads become `pub(super)` too (Eng review D1):
+  - `Confirm`'s `force` and `prompt`: `webhooks.rs:200` builds a `Confirm { .. }` literal.
+  - `Invalid::naming`, `Invalid::unnamed`, and `Invalid::of_input`: `calls.rs:255-256`, `lists.rs:267-268`, and
+    `broadcasts.rs:88`.
+  - `DryRun::new` and `DryRun::answer`: `broadcasts.rs:32`, `media.rs:119` and `:199`, `usage.rs:25`, and
+    `webhooks.rs:98`. `DryRun::sending` and `DryRun::confirming` follow their callers the same way.
+
+  U6 builds after each file moves and widens only what the compiler names. The review reads the list of widened items.
+- `commands/mod.rs` imports back only the names that a group module, a sibling new file, or the routing code reads. A
+  helper read only inside its own new file stays private there, with no `pub(super)` and no `use` line in
+  `commands/mod.rs`. A `use` that nothing reads fails `unused_imports` under clippy's `-D warnings`. At `492e187` that
+  is `DEFAULT_PAGE_SIZE` (paging), `is_interactive`, `confirm_destructive`, and `credential_value` (sending), and
+  `handles_lookup_call`, `resolve_account_ids`, and `account_credentials` (accounts). They were found with `rg -l` over
+  `commands/` and the line ranges of `commands/mod.rs` (Eng review D2).
 - Placement follows each helper's callers (counted with `rg -n "\b<name>\b"` over `commands/`). `with_flags` and
   `print_typed` are called by `sending.rs`, `paging.rs`, `accounts.rs`, and six group modules, and they shape one call,
   so they sit with sending. `validate_account` is a `Checked` validator called by `accounts.rs`, `dms.rs`, and
@@ -347,7 +376,10 @@ Notes on KTD3:
     in `response/mod.rs:9-15` and `api/mod.rs:36-53` stay as they are.
   - `types/mod.rs` also keeps what every domain shares: `ApiResponse`, `Includes`, `ResponseMeta`, `ApiError`,
     `DeletedResult` (returned by 11 shortcuts across eight domains, from `delete_post` to `remove_media_subtitles`),
-    `deserialize_response`, and `is_page_with_no_results`.
+    `deserialize_response`, `decode`, and `is_page_with_no_results`. `decode` (`types.rs:1980`, `pub(crate)`) keeps its
+    path, because `crates/xdk/src/api/request/call.rs:10` imports it as `crate::api::response::types::decode` (Eng
+    review D7). The `use crate::auth::credentials::REDACTED;` line goes with the two `Debug` impls that read it
+    (`StreamSourceCreated` and `StreamSourceKey`, lines 1452 and 1497), in `broadcasts.rs`.
   - The domain files, from the file's own section markers and the shortcuts that return each type: `posts.rs` (`Post`,
     `PostPublicMetrics`, `ReferencedPost`, `PostCount`, `PostAnalytics`, `AnalyticsBucket`, `AnalyticsMetrics`,
     `LikedResult`, `HiddenResult`, `RepostedResult`, `BookmarkedResult`), `drafts.rs` (the five `PostDraft*` types),
@@ -364,7 +396,9 @@ Notes on KTD3:
     so they stay one module.
   - `crates/xdk/tests/spec_validation.rs:40` reads `src/api/response/types.rs` by path (`TYPES_PATH`) in two tests
     (lines 141 and 186), and its `Fix:` line names it. Both read every `.rs` file under `src/api/response/types/`
-    instead, through `common::rust_files`, and the message names the directory. The same PR updates
+    instead, and the message names the directory. The read is `std::fs::read_dir` over the flat `types/` directory,
+    keeping the `.rs` files and sorting them by name. `common::rust_files` is in xurl-cli's `tests/common/mod.rs:165`,
+    and xdk's `tests/common/mod.rs` holds only the OpenAPI helpers (Eng review D8). The same PR updates
     `spec_types_validation.rs:472`'s message, AGENTS.md's "Typed response" bullet and the shortcut paragraph (lines 301
     and 321), `scripts/open-spec-refresh-pr.sh:145` and `:150` (the spec-refresh runbook), the header of
     `scripts/update-types.sh:14`, and the `//!` lines of `spec_types_validation.rs:6` and
@@ -382,19 +416,28 @@ Notes on KTD3:
   - The declaration stays the last item. `store_isolation_guard.rs:139-158` maps it to `hints/tests.rs` and scans that
     file in full, and it scans `hints.rs` from its first `#[cfg(test)]` marker.
   - The source guards that cut a file at its inline test module (`up_to_inline_tests` in
-    `crates/xdk/tests/support/production_source.rs`) read the moved file as production code once it is out of line:
-    `test_help_advertises_every_env_var_the_source_reads` (`agentic_tests.rs:408`), `parse_path_guard`,
-    `port_race_guard`, and `status_document_guard`. So do `scripts/lint-stdio.sh` (the `Output discipline` job) and
-    `http_client_guard`. The test lines hold no `env = "..."`, `env::var(`, print macro, argv parse, port bind,
-    `block_on`, `runtime::Builder`, `status: "..."` field, or `"status"` key (read with `rg` at `492e187`), so none of
-    them changes its verdict.
+    `crates/xdk/tests/support/production_source.rs`) and do not skip a declared test file read the moved file as
+    production code once it is out of line: `test_help_advertises_every_env_var_the_source_reads`
+    (`agentic_tests.rs:408`) and `status_document_guard`. So do `http_client_guard` and `scripts/lint-stdio.sh` (the
+    `Output discipline` job), which already read the whole file. `parse_path_guard` (`parse_path_guard.rs:57-87`) and
+    `port_race_guard` drop every file a `#[cfg(test)] mod x;` declares. The test lines hold one argv parse,
+    `crate::cli::Cli::try_parse_from(...)` at `hints.rs:2298`, and `parse_path_guard` skips it once the file is declared
+    that way. They hold no `env = "..."`, `env::var(`, print macro, port bind, `Client::new`, `block_on`,
+    `runtime::Builder`, `status: "..."` field, or `"status"` key (read with `rg` at `492e187`). So none of the guards
+    changes its verdict (Eng review D9).
   - Precedents: `cli/mod.rs:32` (`parse_tests`), `commands/mod.rs:1398` (`url_authority_tests`), and
     `crates/xdk/src/store/mod.rs:972` (`rehearsal_tests`).
 - KTD7. **The clone URL comes from `SkillEnv`, and only the in-process harness sets it.**
   - `SkillEnv` (`crates/xurl-cli/src/cli/skill_install/destination.rs:19`) gains `clone_url: Option<String>`.
     `install_envelope` (`skill_install/mod.rs:333`) and `update_envelope` (`skill_install/update.rs:42`) resolve the URL
-    once, `skill_env.clone_url.as_deref().unwrap_or(url)`. They use it both for the clone (`mod.rs:415`,
-    `update.rs:120`) and for `command_preview` (`format_clone_command`), so the dry run names what the real run clones.
+    once, `skill_env.clone_url.as_deref().unwrap_or(url)`, into a binding of its own (`clone_url`), leaving `url` as it
+    is. They use it both for the clone (`mod.rs:415`; `update.rs:118` `replace_with_clone` and `update.rs:120`) and for
+    `command_preview` (`format_clone_command`), so the dry run names what the real run clones.
+  - The bundle identity check keeps the manifest's URL. `update_envelope` passes `url` to `Occupant::of` (`update.rs:71`
+    and `:94`), and `Occupant::of` reads a destination as xr's bundle only when its `origin` names the same repository
+    (`skill_install/bundle.rs:55`). An installed bundle's identity is the manifest's repository, and the seam changes
+    only where a clone fetches from. If `url` itself is rebound, an installed bundle reads as `NotABundle` under the
+    seam, and U1's update scenario answers a refusal instead of `git-clone-failed` (Eng review D3).
   - `skill_from_process` (`crates/xurl-cli/src/cli/env.rs:98`) sets `clone_url: None` and reads no variable, and the
     runner's `SkillEnv { home, ..SkillEnv::default() }` (`runner.rs:205`) gets `None` from `Default`. So no user can set
     the field, and it adds no surface (R10). xurl-plan-prime confirmed on 2026-11-27 that a field set only in-process
@@ -425,7 +468,11 @@ Notes on KTD3:
   - Each crate's test files move with `git mv` into `tests/all/`, declared as modules of `tests/all/main.rs`, with
     `autotests` left on, so the layout stays Cargo's default discovery (`tests/<name>/main.rs`, as Cargo's own
     `tests/testsuite/main.rs`). Each file's `mod common;` becomes `use crate::common;`. `main.rs` declares
-    `#[path = "../common/mod.rs"] mod common;`, so `common` serves both binaries.
+    `#[path = "../common/mod.rs"] mod common;`, so `common` serves both binaries. An `isolated/main.rs` declares it only
+    when a file in that binary reads it. `common/mod.rs`'s `#![allow(dead_code)]` keeps an unread `common` silent, so
+    the build would not flag the wasted compile. At `492e187`, `parse_stack_tests` reads no `common`, so `xurl-rs`'s
+    `isolated/main.rs` declares no `common`. Of `xdk`'s three files, only `api_tests` declares `mod common;`
+    (`api_tests.rs:27`), and its one mutating test decides whether xdk's `isolated` needs it (Eng review D14).
   - `tests/isolated/` is the second binary. In `xdk-rs` it holds the tests on `env_mutation_guard`'s mutation allowlist
     (`auth_tests` ×2, `api_tests` ×1, `config_tests` ×3; the three in `src/config/mod.rs` are unit tests and stay). In
     `xurl-rs` it holds `parse_stack_tests`, whose failure aborts the process. A file that mixes the two kinds splits,
@@ -472,7 +519,9 @@ Notes on KTD3:
       `cli_tests/` directory needs no guard change. The message names the `mod <name>;` line and the file it goes in.
     - with `test-layout/stray-file` for a `.rs` file directly under a member's `tests/`, which Cargo would build as a
       binary of its own.
-    - with `test-layout/isolation` for a test on the mutation allowlist that sits outside `tests/isolated/`.
+    - with `test-layout/isolation` for a test on the mutation allowlist whose entry names a file under a member's
+      `tests/` but outside `tests/isolated/`. The allowlist's three `crates/xdk/src/config/mod.rs` entries
+      (`env_mutation_guard.rs:68`, `:73`, and `:78`) are unit tests in `src` and are outside the rule (Eng review D10).
   - `test_invocation_guard` fails with `test-invocation/unknown-target` for a `cargo test --test <name>` or
     `cargo nextest run --test <name>` naming no real target. It also fails for a `<module>::` filter after `--test all`
     or `--test isolated` that names no module of that binary. It scans the live surfaces: `.github/workflows/`,
@@ -505,6 +554,17 @@ Notes on KTD3:
   base. Eleven more sit in other live files: CONTRIBUTING.md (2), CONCEPTS.md (1), RELEASES-PREFLIGHT.md (1),
   `.config/nextest.toml` (1), `.github/tool-versions` (1), `ci.yml` (1), `scripts/generate-response-schemas.sh` (1),
   `scripts/open-spec-refresh-pr.sh` (2), and `scripts/render-vendor-readme.sh` (1).
+- The crates name test files too, and U2's docs commit edits each in place on its own lines (R5; Eng review D12):
+  - The five `Fix:` lines in `crates/xdk/tests/spec_validation.rs` (961, 1346, 1356, 1364, and 1380) name
+    `crates/xdk/tests/spec_validation.rs`.
+  - Thirteen comments name a test file as `tests/<file>.rs`, counted with `rg -n '[^/a-z]tests/[a-z_]+\.rs'` over
+    `crates/*/src` and `crates/*/tests` with the `spec_validation.rs:946` read left out. Six sit in `src`:
+    `commands/auth/mod.rs:55`, `output/mod.rs:1105`, `parse_tests.rs:13`, `envelope.rs:11`, and `parse.rs:38` in
+    xurl-cli, and `crates/xdk/src/config/mod.rs:451`. Seven sit in the moved tests: `auth_tests.rs:510`,
+    `config_tests.rs:5`, `next_step_tests.rs:6`, `unknown_command_tests.rs:7`, and `cli_tests.rs:8`, `:10`, and `:1502`.
+
+  U2 recounts both patterns over `crates/` at its base, as it recounts AGENTS.md. Editing a comment on its own lines
+  moves no line, so it keeps plan M's line-keyed baselines whole (KD3).
 - `scripts/release/preflight.sh` carries a canonical-version header. Its live-smoke gate is one of the gates the header
   calls this project's own (lines 63-65), so `preflight.sh canon-drift` keeps passing. U2 runs that gate once to
   confirm.
@@ -595,27 +655,33 @@ on top of U9, and U3 and U4 follow it. Either order leaves each later unit's bas
 
 ### Risks & Dependencies
 
-| Risk                                                                                                  | Decision                                                                                                                                                                         |
-| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A moved clap doc comment or attribute lands on the wrong variant, and the crate still compiles        | Items move whole, at item boundaries; the golden suite fails on any help page that moves; the diff is read before the push (KTD1)                                                |
-| A split widens a visibility past what the move needs                                                  | Only `pub(super)` or `pub(crate)` as the new boundary needs; the review reads every visibility change (KTD1)                                                                     |
-| A private item that moves becomes reachable from outside the crate                                    | No item gains `pub` without a restriction, except the `families` module and its re-exports, which the doc-hidden `cli` module already exposes through `crate::cli::<Enum>` today |
-| The types split changes a public path or rustdoc's view                                               | Private domain modules, glob re-exports, and a local `cargo semver-checks` run before the push (KTD5)                                                                            |
-| A test is lost in the merged layout because no `mod` line declares it                                 | The before and after `cargo nextest list` outputs match one for one; `test_layout_guard` fails for the file (KTD10)                                                              |
-| An environment-mutating or aborting test reaches the rest of a merged binary under plain `cargo test` | Those tests live in `tests/isolated/`; `test_layout_guard` keeps them there; U2 runs a plain `cargo test --workspace` once                                                       |
-| `#[serial]` tests from different files share one process under plain `cargo test`                     | `serial_test` serializes them against one another, which is correct and only slower; nextest runs each test in its own process anyway                                            |
-| `Windows program target` compiles the whole merged `xurl-rs` test binary where it compiled two        | U2's run records that job's time against run 45944823191 (90 s); a PR verdict slower than the base run's 297 s stops U2 for a report                                             |
-| The Windows job's `--test all` filters run fewer tests than the two old binaries                      | The filters name the same modules (KTD11); the job's log shows the same test count as on the base                                                                                |
-| A doc or script names an old `--test` target                                                          | `test_invocation_guard` fails naming it (KTD10)                                                                                                                                  |
-| A guard's `Fix:` line or AGENTS.md names a moved helper at its old file, and nothing fails            | Each split greps its moved items' names across the live docs and the guards' messages (U5 to U8 verification); `recipe_guard` only checks that a named file exists               |
-| The seam lets a production run clone another URL                                                      | `skill_from_process` sets `None` and reads no variable; the goldens, which spawn the binary, pin the manifest URL in `command_preview` (KTD7)                                    |
-| The merged layout collides with the open state-machines stack                                         | U2's move waits for #645 to #648 (KD5); U1 and U5 to U9 touch none of their files                                                                                                |
-| Plan M's baseline runs on files a split later moves                                                   | U5 to U9 land before plan M's CLI and `xdk` baselines (KD3); M's webhooks pilot needs only U1 and U2                                                                             |
+| Risk                                                                                                  | Decision                                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A moved clap doc comment or attribute lands on the wrong variant, and the crate still compiles        | Items move whole, at item boundaries; the golden suite fails on any help page that moves; the diff is read before the push (KTD1)                                                                                                    |
+| A split widens a visibility past what the move needs                                                  | Only `pub(super)` or `pub(crate)` as the new boundary needs; the review reads every visibility change (KTD1)                                                                                                                         |
+| A private item that moves becomes reachable from outside the crate                                    | No item gains `pub` without a restriction, except the `families` module and its re-exports, which the doc-hidden `cli` module already exposes through `crate::cli::<Enum>` today                                                     |
+| The types split changes a public path or rustdoc's view                                               | Private domain modules, glob re-exports, and a local `cargo semver-checks` run before the push (KTD5)                                                                                                                                |
+| A test is lost in the merged layout because no `mod` line declares it                                 | The before and after `cargo nextest list` outputs match one for one; `test_layout_guard` fails for the file (KTD10)                                                                                                                  |
+| An environment-mutating or aborting test reaches the rest of a merged binary under plain `cargo test` | Those tests live in `tests/isolated/`; `test_layout_guard` keeps the environment-mutating ones there (R8), and no guard holds the aborting `parse_stack_tests` there (Eng review D11); U2 runs a plain `cargo test --workspace` once |
+| `#[serial]` tests from different files share one process under plain `cargo test`                     | `serial_test` serializes them against one another, which is correct and only slower; nextest runs each test in its own process anyway                                                                                                |
+| `Windows program target` compiles the whole merged `xurl-rs` test binary where it compiled two        | U2's run records that job's time against run 45944823191 (90 s); a PR verdict slower than the base run's 297 s stops U2 for a report                                                                                                 |
+| The Windows job's `--test all` filters run fewer tests than the two old binaries                      | The filters name the same modules (KTD11); the job's log shows the same test count as on the base                                                                                                                                    |
+| A doc or script names an old `--test` target                                                          | `test_invocation_guard` fails naming it (KTD10)                                                                                                                                                                                      |
+| A guard's `Fix:` line or AGENTS.md names a moved helper at its old file, and nothing fails            | Each split greps its moved items' names across the live docs and the guards' messages (U5 to U8 verification); `recipe_guard` only checks that a named file exists                                                                   |
+| The seam lets a production run clone another URL                                                      | `skill_from_process` sets `None` and reads no variable; the goldens, which spawn the binary, pin the manifest URL in `command_preview` (KTD7)                                                                                        |
+| The merged layout collides with the open state-machines stack                                         | U2's move waits for #645 to #648 (KD5); U1 and U5 to U9 touch none of their files                                                                                                                                                    |
+| Plan M's baseline runs on files a split later moves                                                   | U5 to U9 land before plan M's CLI and `xdk` baselines (KD3); M's webhooks pilot needs only U1 and U2                                                                                                                                 |
 
 Plan M (`docs/plans/2026-11-27-0033-test-mutation-testing-and-test-cuts-plan.md`) depends on R. Its pilot on
 `crates/xdk/src/webhooks/` (M2) waits for U1 and U2, its run over the rest of `xdk` (M7) for U8, and its CLI run (M8)
 for U5 to U7 and U9. Its cut PR for the CLI (M9) lands before U10. Plan F works in `crates/xdk/src/auth/` and
 `crates/xdk/src/store/`, and no unit here touches either: `docs/plans/2026-11-27-0031-test-formal-verification-plan.md`.
+Plan F's replay tests do meet U2. Its KTD8 puts them in `crates/xdk/tests/saved_identity_tests.rs` and
+`auth_pending_tests.rs`, which U2 moves, and in a new `crates/xdk/tests/store_layout_tests.rs`. Plan F calls the merged
+layout "plan R's U6", and here it is U2. Before U2's move commit, U2 reads the open PRs whose files fall under
+`crates/*/tests/` over REST (`gh api 'repos/brettdavies/xurl-rs/pulls?state=open'`, then each PR's `/files`) and reports
+any beyond #645 to #648 to xurl-plan-prime without waiting on them. A plan F file added at the old top level after U2
+fails `test-layout/stray-file` loudly, so the guard catches a late rebase (Eng review D4).
 
 ### Sequencing
 
@@ -632,6 +698,9 @@ for U5 to U7 and U9. Its cut PR for the CLI (M9) lands before U10. Plan F works 
 ---
 
 ## Implementation Units
+
+A unit that lands after U2 finds each integration-test file under `tests/all/` or `tests/isolated/`. U1 and U5 to U9
+name test files at `492e187`'s paths, which hold only when the unit lands before U2 (Eng review D13).
 
 ### U1. Skill clones stay on the machine (lever 8)
 
@@ -855,7 +924,7 @@ for U5 to U7 and U9. Its cut PR for the CLI (M9) lands before U10. Plan F works 
 - **Requirements:** R1, R7. KTD14. KD4.
 - **Dependencies:** U2, and plan M's cut PR for the CLI (its M9) merged to `dev`.
 - **Files:** `crates/xurl-cli/tests/all/cli_tests.rs`, and new files under `crates/xurl-cli/tests/all/cli_tests/`;
-  `crates/xurl-cli/tests/store_isolation_guard.rs` (the one path-keyed allowlist entry).
+  `crates/xurl-cli/tests/all/store_isolation_guard.rs` (the one path-keyed allowlist entry; Eng review D13).
 - **Approach:** draw the family list from the file at the base, then move whole tests by KTD14's rule. Comments move
   with their tests and are not edited.
 - **Test expectation:** none new.
@@ -909,7 +978,505 @@ None yet. U1, U2, U3, U4, and U11 record here.
 
 ## Engineering Review
 
-Pending.
+`/plan-eng-review` round 1, on Opus, over this plan at `d7a04d3`. `origin/dev` is the same commit, and its code equals
+`492e187`'s (`git diff --stat 492e187 d7a04d3` lists only `docs/plans/`). The run is unattended under its caller's
+brief, so no human answers questions:
+
+- Each question is answered from the code, the repo's docs, `docs/solutions/`, and precedent, and the answer and its
+  evidence are recorded below.
+- Each recommended remedy is applied to the plan text above and cites its D-number.
+- The decisions only Brett can make are listed undecided in § "Decisions only Brett can make".
+- No subagent, outside voice, or cross-model pass ran.
+- The review edits only this file and commits nothing. So the gstack review log, the QA test-plan file, and the task
+  JSONL are not persisted, and their content sits here.
+
+### Scope Challenge
+
+- **What already exists.** Every mechanism the plan needs is in the tree, and the plan reuses each one:
+  - out-of-line `#[cfg(test)] mod x;` (`cli/mod.rs:32-33`, `commands/mod.rs:1398-1399`);
+  - `pub use` re-export lists (`response/mod.rs:9-15`, `api/mod.rs:36-53`);
+  - the `RunHooks` and `EnvOverrides` in-process seams (`runner.rs:183`);
+  - the AGENTS.md code-heading guard (`nextest_config_guard.rs:159`);
+  - `common::rust_files` and `workspace_name` for guards (`crates/xurl-cli/tests/common/mod.rs:134`, `:165`);
+  - the measured transform in the solutions doc
+    `performance-issues/one-integration-test-binary-per-crate-cuts-the-test-build-by-half-and-the-edit-loop-rebuild-by-nine-tenths.md`.
+
+  The two guards are the only new behavior. The CI speed plan's approved CI-U6 (KD1) and its KTD14 codes name them.
+- **Minimum change.** Brett fixed the scope in KD1. No unit can be cut without leaving an approved item undone. U3 can
+  end as a dropped measurement, which KTD12 already allows.
+- **Complexity.** The plan changes far more than 8 files and creates about 50 modules: 19 under `cli/families/`, 4
+  beside `commands/mod.rs`, `argv_refusal.rs`, about 20 under `response/types/`, `hints/tests.rs`, 4 test-binary roots,
+  2 guards, and the `cli_tests/` family files [estimated from KTD2, KTD3, KTD5, KTD8, KTD10, and KTD14]. So the
+  complexity gate trips, and D15 settles the arrangement.
+- **Search.** No new architecture or concurrency pattern is introduced. Cargo's `tests/<name>/main.rs` discovery is the
+  documented default, and Cargo's own `tests/testsuite/` uses it [Layer 1]. No web search ran.
+- **TODOS.** The repo has no `TODOS.md`. Nothing here blocks on it, and the review proposes no TODO.
+- **Distribution.** No new artifact ships. `xr`'s output, completions, schemas, and `xdk-rs`'s API stay as they are (R1,
+  R2).
+
+Scope Challenge findings:
+
+- `[INFORMATIONAL] (confidence: 9/10) docs/plans/...-refactor-file-splits-and-test-layout-plan.md § Risks` — the
+  paragraph says plan F's area and this plan's units don't meet. But plan F's KTD8
+  (`docs/plans/2026-11-27-0031-test-formal-verification-plan.md:203-205`) writes replay tests into
+  `crates/xdk/tests/saved_identity_tests.rs` and `auth_pending_tests.rs`, which U2 moves, and adds
+  `crates/xdk/tests/store_layout_tests.rs`. Plan F's line 742 calls the merged layout "plan R's U6", and here it is U2.
+  Disposition: accepted, D4.
+
+Scope Challenge result: **scope accepted as-is**. D15 confirms the original arrangement.
+
+Reality rows:
+
+- **premise-table.** The table below checks 34 factual claims against the tree at `d7a04d3` and the GitHub REST API. 33
+  hold, and one is corrected: the slowest jobs after `Tests (1/4)` (D16). Two claims that the table doesn't list are
+  corrected too: KTD6's "no argv parse" (D9) and KTD5's `common::rust_files` (D8).
+
+  The spike's figures are cited from run 45581846309 and the solutions doc, and this review did not re-measure them.
+  unverified=5: the five rows of the Problem Frame's second table.
+
+| Premise                                                                      | Receipt                                                                     | Verdict |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------- |
+| File sizes 4,284 / 1,399 / 1,214 / 2,430 / 2,739 / 1,554                     | `wc -l` at `d7a04d3`                                                        | holds   |
+| 90 + 51 top-level test files                                                 | `ls crates/{xurl-cli,xdk}/tests/*.rs`                                       | holds   |
+| `mock_endpoint_coverage` `[[test]]` at `crates/xdk/Cargo.toml:107-109`       | `Cargo.toml:107`                                                            | holds   |
+| No `clippy.toml`, no lint table                                              | `ls`, `rg '\[lints'`                                                        | holds   |
+| 30 `commands/` files import from `crate::cli`; `runner.rs:632`               | `rg -l`, `runner.rs:632`                                                    | holds   |
+| `secret_source` called only by `AuthCommands`/`AppCommands`                  | `cli/mod.rs:3903-3988`                                                      | holds   |
+| `AUTH_HELP`, `MEDIA_HELP`, `USAGE_HELP` read by `Commands`                   | `cli/mod.rs:1822`, `:1993`, `:2002`                                         | holds   |
+| KTD3 places every item of `commands/mod.rs`                                  | item list `commands/mod.rs:59-1399`                                         | holds   |
+| `destructive_dry_run_context`'s callers                                      | `commands/auth/mod.rs:6`                                                    | holds   |
+| KTD4's renderers call nothing in `run_inner`'s layer                         | call sites `runner.rs:287-438`, `:661-1185`                                 | holds   |
+| `CLAP_HELP_FOOTER` at 59 read at 834; `NO_COMMAND_MESSAGE` at 56 read at 417 | `runner.rs`                                                                 | holds   |
+| `error.rs:32` names `runner.rs`                                              | `crates/xdk/src/error.rs:31-32`                                             | holds   |
+| `types.rs` tests at 2026; three intra-doc links                              | `types.rs:2026`                                                             | holds   |
+| `spec_validation.rs:40` `TYPES_PATH`, read at 141 and 186                    | `spec_validation.rs`                                                        | holds   |
+| AGENTS.md 301 and 321 name `types.rs`                                        | `AGENTS.md:301`, `:321`                                                     | holds   |
+| `hints.rs` tests at 1437; 41 tests                                           | `hints.rs:1437`, `rg -c`                                                    | holds   |
+| `store_isolation_guard.rs:139-158` maps a declared test file                 | that range                                                                  | holds   |
+| `SkillEnv` at `destination.rs:19`; `skill_from_process` at `env.rs:98`       | both files                                                                  | holds   |
+| `install_envelope` 333, clone 415; `update_envelope` 42, clone 118-120       | `skill_install/mod.rs`, `update.rs`                                         | holds   |
+| `git-clone-failed` → `NextStep::retry(None)`                                 | `skill_install/mod.rs:197`                                                  | holds   |
+| Hardening flags and env                                                      | `skill_install/git.rs:12-23`, `:42-44`                                      | holds   |
+| `run_xr` builds `SkillEnv` at `invoke.rs:302`                                | `common/invoke.rs:302-325`                                                  | holds   |
+| No spawned test clones github.com                                            | goldens `golden_tests.rs:738-775` refuse before the clone or run a git shim | holds   |
+| Mutation allowlist: auth ×2, api ×1, config ×3, `src/config` ×3; all serial  | `env_mutation_guard.rs:36-80`; `#[serial]` on each                          | holds   |
+| Nine relative paths                                                          | `rg '#\[path\|include_str!'`                                                | holds   |
+| `CARGO_WORKSPACE_DIR` is set                                                 | `.cargo/config.toml:6`                                                      | holds   |
+| nextest's one override filters by `test(...)` only                           | `.config/nextest.toml`                                                      | holds   |
+| AGENTS.md 31 citations of 28 files; 11 more in live files                    | `rg -o` counts                                                              | holds   |
+| KTD11's eight command sites                                                  | each cited line                                                             | holds   |
+| 27 required checks                                                           | `jq` over `.github/rulesets/protect-dev.json`                               | holds   |
+| Run 45944823191: 297 s, `Tests (1/4)` 251 s                                  | `gh run view 45944823191`                                                   | holds   |
+| "The next slowest were `Windows check` and `Windows program target`"         | same run: `Tests (2/4)` 226 s, `(3/4)` and `(4/4)` 156 s                    | D16     |
+| #645 to #648 edit the files KD5 names                                        | `gh api .../pulls/<n>/files`                                                | holds   |
+| Latest `xdk-rs-v*` tag is `xdk-rs-v0.9.1`                                    | `git tag -l 'xdk-rs-v*'`                                                    | holds   |
+
+- **already-done.** `git ls-remote origin refs/heads/dev` is `d7a04d3`, the reviewed commit. `git log 492e187..d7a04d3`
+  touches only `docs/plans/`, so no unit has landed.
+- **surface-check.** Each command the plan runs exists:
+  - `cargo semver-checks --baseline-rev` (`--help`, line 56);
+  - `agent-slot close-probe`;
+  - `scripts/release/preflight.sh canon-drift` (`preflight.sh:11`);
+  - `scripts/generate-completions.sh --check` (`:28`);
+  - `cargo nextest list --workspace`, on nextest 0.9.150, which matches `.config/nextest.toml:1`.
+- **binding-decisions.** KD1 to KD6 are Brett's. No finding reopens one, and `gstack-decision-search` returns no branch
+  decision. D4 adds a report step, not a gate, so KD5 stays as Brett and xurl-plan-prime set it.
+- **numbers.** Line counts, test counts, and citation counts are re-derived [measured: `wc`, `rg`, `jq` at `d7a04d3`].
+  The 297 s and 251 s baselines are re-read from the run [measured: `gh run view`]. The spike's build figures are cited
+  [re-measure before gate: U2 steps 1 and 8].
+- **deferred-asks.** No linked issue. The plan's "Not in R" list matches the sources it names.
+- **pr-count.** The repo has no `.gstack/ship-policy.json`. The plan states nine PRs (U1, U2, U3 if kept, U5 to U10) and
+  two readings with no PR. KD6 and the stack make each PR a gate of its own, and a review row per PR sets its cost
+  (KTD15).
+
+```text
+REALITY: premise-table finding 34 claims, 3 corrected (D8, D9, D16), unverified=5 docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md:82-86
+REALITY: already-done pass origin/dev = d7a04d3; 492e187..d7a04d3 touches docs/plans only d7a04d3
+REALITY: surface-check pass every named command resolves scripts/release/preflight.sh:11 scripts/generate-completions.sh:28
+REALITY: binding-decisions pass KD1-KD6 unchanged; D4 adds a report, not a gate docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md:140
+REALITY: numbers finding D16 corrects the job ranking; spike figures carried as re-measure docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md:98
+REALITY: deferred-asks pass no linked issue; the plan's sources are its asks docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md:199
+REALITY: pr-count pass nine PRs and two readings, each with its review row docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md:611
+```
+
+### 1. Architecture
+
+- `[INFORMATIONAL] (confidence: 9/10) crates/xurl-cli/src/cli/commands/webhooks.rs:200` — `let confirm = Confirm {`
+  builds a literal from private fields. `calls.rs:255` calls `Invalid::unnamed(rule)`, and `media.rs:119` calls
+  `DryRun::new(ctx).answer(...)`. Once `Confirm`, `Invalid`, and `DryRun` leave `commands/mod.rs`, those fields and
+  associated functions are private to the new file. KTD3 widens only "each moved helper". The build fails loudly, so
+  nothing is silent, but the review's count of widened items would come in short. D1.
+- `[INFORMATIONAL] (confidence: 8/10) crates/xurl-cli/src/cli/commands/mod.rs:59` — `const DEFAULT_PAGE_SIZE` and six
+  more helpers are read only inside the file KTD3 sends them to. KTD3's "imports each moved helper back" leaves those
+  seven `use` bindings unread, which fails `unused_imports` under `cargo clippy --workspace -- -D warnings`
+  (`scripts/hooks/pre-push:186`). Making them `pub(super)` widens past KTD1's boundary rule. D2.
+- `[INFORMATIONAL] (confidence: 9/10) crates/xurl-cli/src/cli/skill_install/bundle.rs:55` —
+  `if origin_url(path).is_some_and(|origin| same_repository(&origin, url))` decides that a destination is xr's bundle,
+  and `update_envelope` passes it the same `url` it clones (`update.rs:71`, `:94`). KTD7's "resolve the URL once"
+  doesn't say which `url` the identity check keeps. Rebinding `url` makes an installed bundle read as `NotABundle`, and
+  U1's third scenario fails. D3.
+- `[INFORMATIONAL] (confidence: 9/10) crates/xurl-cli/src/cli/mod.rs:954` —
+  `pub(crate) const SCHEDULED_CALLS_PAGE_SIZE: i32 = 20;` is read by `ScheduledCallsCommands`'s help (line 3280) and by
+  `commands/calls.rs:13`, but KTD2's table gives it no row. U5's first step would find it, and the plan names its place
+  now. D5.
+- `[INFORMATIONAL] (confidence: 8/10) crates/xurl-cli/src/cli/family_help.rs:972` — `pub mod broadcasts {` is the
+  `broadcasts moderators` family (line 980), and `broadcasts_own` (line 845, `path: "broadcasts"`) is `xr broadcasts`.
+  By KTD2's rule, the moderators family becomes the top level of `families/broadcasts.rs`. A reader of that file sees
+  `FAMILY` as `broadcasts moderators`, and an implementer may promote `broadcasts_own` instead, which is a rename. D6,
+  and a name call for Brett (B1).
+- `[INFORMATIONAL] (confidence: 10/10) crates/xdk/src/api/response/types.rs:1980` —
+  `pub(crate) fn decode<T: serde::de::DeserializeOwned>(` is imported by `crates/xdk/src/api/request/call.rs:10`
+  (`use crate::api::response::types::{ApiResponse, User, decode};`). KTD5's shared list leaves it out. D7.
+
+**Design twice.** The plan adds modules but no surface other code calls, so this pass is brief:
+
+- The plan's shape for KTD2 keeps each family's clap declarations in `cli/families/<family>.rs` and its dispatch in
+  `commands/<group>.rs`.
+- The second shape puts each family's clap enum and help in the `commands/` module that runs it, so one family is one
+  file. It loses:
+  - R3, Brett's, names `cli/families/`;
+  - the `commands/` modules are private and don't map one to one onto families (`broadcast_chat.rs`,
+    `broadcast_scheduled.rs`, `webhooks_listen.rs`, and the rest);
+  - help text that plan M never mutates would then share files with behavior that its baselines key by line (KD3).
+
+  The plan's shape is kept. Its interface is narrower: `crate::cli::<Enum>` through `pub use`, as today.
+
+Red flags:
+
+- (8) The hand-synced `pub use` list in `cli/mod.rs` has a compiler check, since a missing entry breaks the 30 importing
+  files.
+- (7) `families` is importable, inside a `#[doc(hidden)]` lib that `crates/xurl-cli/src/lib.rs:3-5` calls "not an
+  embedder API", and B2 records the surface call.
+- No shallow module, pass-through, or split ownership.
+
+Dispositions: D1, D2, D3, D5, D6, D7 accepted (auto-decided, recommended option).
+
+### 2. Code quality
+
+- `[INFORMATIONAL] (confidence: 10/10) crates/xurl-cli/tests/common/mod.rs:165` — `pub fn rust_files(dir: &Path)` is in
+  xurl-cli's test `common`. xdk's `tests/common/mod.rs` holds only OpenAPI helpers (`load_spec`, `resolve`, …), and
+  `crates/xdk/tests/spec_validation.rs:12` declares that module, so KTD5's "through `common::rust_files`" doesn't
+  compile. D8.
+- `[INFORMATIONAL] (confidence: 9/10) crates/xurl-cli/src/cli/hints.rs:2298` —
+  `crate::cli::Cli::try_parse_from(["xr", "--app", "a", "--app", "b", "whoami"]).is_err(),` is an argv parse in the test
+  lines. KTD6 says there is none. The verdict holds, because `parse_path_guard` drops declared test files
+  (`parse_path_guard.rs:57-87`), but the claim was wrong. D9.
+- `[INFORMATIONAL] (confidence: 9/10) crates/xurl-cli/tests/env_mutation_guard.rs:68` —
+  `file: "crates/xdk/src/config/mod.rs",` (and `:73`, `:78`) are mutation-allowlist entries in `src`. As worded,
+  `test-layout/isolation` fails each one. D10.
+- `[INFORMATIONAL] (confidence: 8/10) docs/plans/...-plan.md § Risks` — "`test_layout_guard` keeps them there" covers
+  the aborting `parse_stack_tests` too, but KTD10's isolation rule reads only the mutation allowlist (R8). D11. Adding a
+  guard for it is scope (B3).
+- `[INFORMATIONAL] (confidence: 9/10) crates/xdk/tests/spec_validation.rs:961` —
+  `Fix: add the test to crates/xdk/tests/spec_validation.rs, or remove the fixture.` and four more `Fix:` lines, plus 13
+  comments that name `tests/<file>.rs`, are missing from KTD11's path inventory. R5 asks for each of them. D12.
+- `[INFORMATIONAL] (confidence: 10/10) docs/plans/...-plan.md § U10` — "`crates/xurl-cli/tests/store_isolation_guard.rs`
+  (the one path-keyed allowlist entry)". U10 always follows U2, which moves that file to `tests/all/`. U5, U6, and U8
+  name test files at their pre-U2 paths too, while the default order lands U2 first. D13.
+
+Dispositions: D8 to D13 accepted (auto-decided, recommended option).
+
+### 3. Tests
+
+Framework: Rust, cargo-nextest 0.9.150 under `.config/nextest.toml`, libtest for plain `cargo test`, `serial_test`,
+`rstest`, and wiremock. AGENTS.md § "Testing" is the authority.
+
+```text
+CODE PATHS                                                  USER FLOWS
+[+] U1 SkillEnv.clone_url (skill_install/)                  [+] Contributor runs the suite offline
+  ├── install_envelope: dry run → command_preview             ├── [★★★ TESTED] walks reach no github.com — U1 strace check
+  │   ├── [★★★ PLANNED] seam URL named — U1 scenario 1         └── [★★ PLANNED] rerun_walk case time — § Measurements
+  │   └── [★★★ TESTED] manifest URL when unset — goldens
+  ├── install_envelope: real run → git refuses file://      [+] xr user installs the skill
+  │   └── [★★★ PLANNED] git-clone-failed, home empty — U1 #2   └── [★★★ TESTED] manifest URL, hardened clone — goldens,
+  └── update_envelope: Occupant::of keeps manifest URL (D3)                  cli_tests.rs:2017, skill_update_tests
+      └── [★★★ PLANNED] installed bundle → git-clone-failed — U1 #3
+[+] U2 merged layout                                        [+] Contributor runs one file's tests
+  ├── every test still runs → [★★★ PLANNED] nextest list 1:1  ├── [★★ PLANNED] KTD11 commands; test_invocation_guard
+  ├── undeclared file / nested file → [★★★ PLANNED] seeded     └── [★★★ PLANNED] stale --test name → unknown-target
+  ├── stray tests/<x>.rs → [★★★ PLANNED] seeded
+  ├── mutator outside isolated → [★★★ PLANNED] seeded; src/ entries exempt (D10)
+  ├── re-run own binary → [★★ PLANNED] panic_hook, webhooks_program pass merged
+  ├── feature-gated module → [★★ PLANNED] mock_endpoint_coverage with/without `testing`
+  └── plain cargo test → [★★ PLANNED] one run, mutators in isolated
+[+] U5–U9 pure moves
+  ├── help/dry-run bytes → [★★★ TESTED] 349 goldens without bless
+  ├── schemas, completions → [★★★ TESTED] schema_tests, --check
+  ├── xdk-rs public paths → [★★★ TESTED] cargo semver-checks (U8)
+  ├── run_subcommand stays → [★★★ TESTED] dispatch_guard
+  └── spec_validation over types/ → [★★★ PLANNED] seeded alias miss in types/posts.rs (U8)
+
+COVERAGE: 22/22 paths with a ★★ or ★★★ test, existing or planned | GAPS: 0
+```
+
+No gap needs a new test beyond the plan's. Each planned test has a value card, written into the test plan below. D3's
+identity rule is held by U1's existing third scenario, which fails on the wrong reading. D10's exemption is held by
+"passes on the moved tree", since the three `src/config` entries exist there. The regression contract for the pure moves
+is the plan's own (goldens, schemas, completions, semver, test lists), so carrying it forward needs no question. Tests
+made obsolete: none. The plan retires no test, and plan M owns the cuts.
+
+**Test Plan Artifact** (kept here, since the review run edits only this file).
+
+```markdown
+# Test Plan
+Generated by /plan-eng-review on 2026-11-27
+Branch: HEAD (dev at d7a04d3)
+Repo: brettdavies/xurl-rs
+
+## Affected Pages/Routes
+- `xr skill install` / `xr skill update` — the clone URL a test run uses (U1)
+- every `xr` help page and dry run — byte-identical after U5 to U9
+
+## Key Interactions to Verify
+- `xr --dry-run --output json skill install claude_code` through `run_xr` names the seam's URL
+- `cargo nextest run -p xurl-rs --test all cli_tests::` runs only `cli_tests`
+
+## Edge Cases
+- `skill update` over an installed bundle under the seam answers `git-clone-failed`, not a refusal
+  Value: protects=bundle identity keeps the manifest URL; fails_when=Occupant::of gets the seam URL; why_new=no test runs update under a seam; seam=SkillEnv.clone_url; no_claim=a real clone (git refuses file://)
+- a mutation-allowlist entry in `crates/xdk/src/config/mod.rs` does not trip `test-layout/isolation`
+  Value: protects=the isolation rule reads only tests/ entries; fails_when=the rule reads every allowlist entry; why_new=the guard is new; seam=none; no_claim=none beyond protects
+
+## Critical Paths
+- the before and after `cargo nextest list --workspace` match one for one, module prefix mapped
+  Value: protects=no test dropped by the merge; fails_when=a moved file lacks its mod line; why_new=layout is new; seam=none; no_claim=that each test still asserts what it did
+- golden suite without `XURL_GOLDEN_BLESS` after each split
+  Value: protects=help and dry-run bytes; fails_when=a clap attribute lands on the wrong variant; why_new=existing, carried; seam=none; no_claim=behavior the goldens do not render
+
+## Tests to Retire
+- none
+
+## Pending Decisions
+- none
+```
+
+Dispositions: no test findings.
+
+### 4. Performance
+
+- `[INFORMATIONAL] (confidence: 7/10) crates/xurl-cli/tests/common/mod.rs:3` — `#![allow(dead_code)]` means an
+  `isolated/main.rs` that declares `common` without reading it compiles all of xurl-cli's test helpers into a second
+  binary with no warning. `parse_stack_tests` declares no `common`. D14.
+- `[INFORMATIONAL] (confidence: 8/10) docs/plans/...-plan.md § Problem Frame` — the spike's transform (solutions doc, §
+  "The transform") builds one binary per crate, but U2 builds two per crate. The table's right column is a projection,
+  and U2 steps 1 and 8 already record the figure of record, so the plan needs no change for this. Recorded as a factual
+  note (D16 covers the job ranking in the same section).
+
+No queries, caches, or loops are in scope. U3's disk floor and `cargo clean` (KTD12) bound the measurement's footprint.
+
+Dispositions: D14 accepted; the projection note needs no change.
+
+### Outside voice
+
+Not run. The caller's brief says to run no outside voice and no cross-model pass. outside_status: skipped (caller
+instruction).
+
+### NOT in scope
+
+- Renaming `family_help::broadcasts` and `broadcasts_own` (B1): a rename, not a move (KTD1).
+- A guard that holds process-aborting tests in `tests/isolated/` (B3): R8 names environment-mutating tests only.
+- A `test_invocation_guard` rule that refuses `--test all` without `-p` (B4): R8's code set is closed. Without `-p`, the
+  run builds both crates and is slower, and it loses no test.
+- Extending KD5's gate to plan F's PRs: D4 reports them instead. xurl-plan-prime set KD5's extension once and can again.
+- Fixing plan F's "plan R's U6" wording: plan F's file, outside this run's one editable file. Reported to
+  xurl-plan-prime under Decisions.
+
+### What already exists
+
+The table in § Scope Challenge. Each unit reuses an existing seam or pattern. U1's seam reuses `SkillEnv` and the
+`RunHooks`/`EnvOverrides` precedent. U2's guards follow `nextest_config_guard` and `store_isolation_guard`. U6's
+re-imports use Rust's private-`use` visibility. Each split reuses the out-of-line test-module precedent. No shared-code
+extraction is proposed, so the extraction rubric has no candidate.
+
+### Failure modes
+
+| New path     | Realistic failure                                                    | Covered by                                                 | User sees                      |
+| ------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------ |
+| U1 seam      | identity check reads the seam URL, so an installed bundle is refused | U1 scenario 3 (D3)                                         | a red test, before merge       |
+| U1 seam      | a production path sets `clone_url`                                   | `skill_from_process` sets `None`; goldens pin the manifest | nothing ships; review and /cso |
+| U2 layout    | a moved file has no `mod` line, and its tests vanish                 | `test-layout/undeclared-module`; list match                | a red guard naming the line    |
+| U2 layout    | a plan F file lands at the old top level after U2                    | `test-layout/stray-file` (D4)                              | a red guard naming the file    |
+| U2 layout    | a doc keeps `--test golden_tests`                                    | `test-invocation/unknown-target`                           | a red guard naming the command |
+| U2 layout    | `parse_stack_tests` moves back to `all`, then a regression aborts it | no guard (D11, B3); nextest isolates per process on CI     | a plain `cargo test` aborts    |
+| U5–U9 splits | an attribute path resolves to the wrong family's verb                | 197 golden help pages                                      | a red golden                   |
+| U8           | a public `xdk-rs` path changes                                       | local and PR `cargo semver-checks`                         | a red check                    |
+| U3           | dependency debug info off slows the cold build                       | KTD12's keep rule                                          | the setting is dropped         |
+
+Critical gaps (no test, no handling, and silent): 0. The `parse_stack_tests` row fails loudly, and only under plain
+`cargo test`.
+
+### Parallelization
+
+Sequential implementation, no parallelization opportunity. KD6 (Brett) runs the plan in one session as one stack, with
+no workers or worktrees.
+
+### Implementation Tasks
+
+Synthesized from this review's findings. Each fix is already written into the plan text it cites. The tasks are for the
+unit that applies it.
+
+- [ ] **T1 (P2, human: ~20min / CC: ~3min)** — U1 — bind the seam's URL apart from `url`, so `Occupant::of` keeps the
+  manifest URL
+  - Surfaced by: Architecture — D3, `bundle.rs:55`
+  - Files: `crates/xurl-cli/src/cli/skill_install/mod.rs`, `update.rs`
+  - Verify: U1 scenario 3 answers `git-clone-failed`
+- [ ] **T2 (P2, human: ~30min / CC: ~5min)** — U6 — widen the fields and associated functions group modules read, and
+  import back only what is read outside its file
+  - Surfaced by: Architecture — D1, D2
+  - Files: `crates/xurl-cli/src/cli/commands/{mod,checks,sending,paging,accounts}.rs`
+  - Verify: `cargo clippy --workspace -- -D warnings`, `git diff --stat` shows no group module
+- [ ] **T3 (P3, human: ~10min / CC: ~2min)** — U5 — place `SCHEDULED_CALLS_PAGE_SIZE` in `families/calls.rs` with a
+  `pub(crate) use` in `cli/mod.rs`
+  - Surfaced by: Architecture — D5
+  - Files: `crates/xurl-cli/src/cli/mod.rs`, `families/calls.rs`
+  - Verify: `commands/calls.rs` unchanged; goldens
+- [ ] **T4 (P3, human: ~10min / CC: ~2min)** — U8 — keep `decode` in `types/mod.rs`; read `types/` with `read_dir` in
+  `spec_validation`
+  - Surfaced by: Architecture — D7; Code quality — D8
+  - Files: `crates/xdk/src/api/response/types/mod.rs`, `crates/xdk/tests/spec_validation.rs`
+  - Verify: `call.rs:10` unchanged; the seeded alias miss fails
+- [ ] **T5 (P2, human: ~20min / CC: ~3min)** — U2 — scope `test-layout/isolation` to `tests/` entries; declare `common`
+  in `isolated/main.rs` only where read
+  - Surfaced by: Code quality — D10; Performance — D14
+  - Files: `crates/xurl-cli/tests/all/test_layout_guard.rs`, `tests/isolated/main.rs` (both members)
+  - Verify: the guard passes on the moved tree
+- [ ] **T6 (P2, human: ~30min / CC: ~5min)** — U2 — edit the five `Fix:` lines and 13 comment citations in place, and
+  report open PRs under `crates/*/tests/`
+  - Surfaced by: Code quality — D12; Scope Challenge — D4
+  - Files: the lines D12 lists
+  - Verify: `rg -n '[^/a-z]tests/[a-z_]+\.rs'` and `rg -o 'crates/[a-z-]+/tests/[A-Za-z0-9_]+\.rs'` over `crates/` name
+    only moved paths
+
+_No new tasks from Tests._ D6, D9, D11, D13, D15, and D16 are plan-text corrections with no build work.
+
+### Decision ledger
+
+Each entry is one independently selectable choice. The caller's brief answers for Brett. Its instruction is to answer
+each question from the code and precedent and record the answer, and each answer below is the recommended option. None
+is destructive or irreversible. Each plan baseline is the plan text at `d7a04d3`.
+
+- **D1 — KTD3: fields and associated functions the group modules read.** Evidence: `webhooks.rs:200`, `calls.rs:255`,
+  `lists.rs:267`, `broadcasts.rs:88`/`:32`, `media.rs:119`, `usage.rs:25`, `webhooks.rs:98`. A) Name them in KTD3 and
+  widen them to `pub(super)` (recommended, Completeness 10/10). B) Leave KTD3 as worded and let the compiler find them
+  (7/10). State: approved. Answer: A, auto-decided under the brief. Accepted scope: the KTD3 bullet "A struct's private
+  fields...".
+- **D2 — KTD3: which helpers `commands/mod.rs` imports back.** Evidence: `rg -l` per helper over `commands/`, and
+  `pre-push:186`. A) Import back only names read outside their new file, and keep the rest private (recommended, 10/10).
+  B) Import every helper back with `#[allow(unused_imports)]` (5/10: it hides real misses and widens visibility). State:
+  approved, A. Accepted scope: the KTD3 bullet "`commands/mod.rs` imports back only...".
+- **D3 — KTD7: which URL the bundle identity check reads.** Evidence: `update.rs:71`, `:94`, `bundle.rs:55`. A) The
+  seam's URL gets its own binding, and `Occupant::of` keeps the manifest URL (recommended, 10/10). B) Rebind `url` and
+  make U1's third scenario expect the refusal (4/10: the test then proves the seam changes update's verdict). State:
+  approved, A. Accepted scope: KTD7's first two bullets.
+- **D4 — Plan F's test files meet U2.** Evidence: plan F lines 203-205 and 741-742. A) Record the overlap, and have U2
+  report open PRs under `crates/*/tests/` before its move commit, without waiting (recommended, 9/10). B) Extend KD5's
+  gate to plan F's PRs (a gate change, xurl-plan-prime's call, and it could stall U2 behind plan F's Phase 3). C) No
+  change (5/10). State: approved, A. Accepted scope: the § Risks paragraph.
+- **D5 — KTD2: `SCHEDULED_CALLS_PAGE_SIZE`.** Evidence: `cli/mod.rs:954`, `:3280`, `commands/calls.rs:13`, `:42`. A)
+  Move it to `families/calls.rs` with a `pub(crate) use` in `cli/mod.rs` (recommended, 10/10: the family owns its
+  default). B) Keep it in `cli/mod.rs` and import it in `families/calls.rs` (10/10, differs in placement only). State:
+  approved, A. Accepted scope: the KTD2 bullet.
+- **D6 — KTD2: the top level of `families/broadcasts.rs`.** Evidence: `family_help.rs:845`, `:972-980`. A) State that
+  the moderators module is the top level under the matching-name rule, with names kept (recommended). B) Promote
+  `broadcasts_own` to the top level (a rename, B1). The options differ in kind, not coverage, so there is no
+  completeness score. State: approved, A. Accepted scope: the KTD2 bullet.
+- **D7 — KTD5: `decode`.** Evidence: `types.rs:1980`, `call.rs:10`. A) Keep it in `types/mod.rs` (recommended, 10/10).
+  B) Move it to a domain file and re-export (6/10: it is no domain's). State: approved, A.
+- **D8 — KTD5: the directory read in `spec_validation`.** Evidence: `crates/xurl-cli/tests/common/mod.rs:165`, and xdk's
+  `common` item list. A) `std::fs::read_dir` over the flat `types/` directory, sorted (recommended, 10/10: the standard
+  library, and `types/` has no subdirectories). B) Share `rust_files` into xdk's tests through `#[path]` (8/10: a new
+  cross-crate include for one call). State: approved, A.
+- **D9 — KTD6: the argv-parse claim.** Evidence: `hints.rs:2298`, `parse_path_guard.rs:57-87`. A factual correction that
+  changes no behavior, so no options. State: recorded.
+- **D10 — KTD10: the isolation rule's scope.** Evidence: `env_mutation_guard.rs:68`, `:73`, `:78`. A) Limit it to
+  entries under a member's `tests/` (recommended, 10/10). B) Move the three `src/config` tests out of `src` (outside R's
+  scope). State: approved, A.
+- **D11 — § Risks: aborting tests.** Evidence: KTD10, R8. A) Correct the row to say that no guard holds
+  `parse_stack_tests` (recommended, 9/10: smallest change, R8 as approved). B) Extend `test-layout/isolation` to an
+  `isolated` list that names it (10/10, but it adds guard behavior R8 doesn't name: B3, Brett's). State: approved, A.
+- **D12 — KTD11: test-file citations inside the crates.** Evidence: the `rg` lines listed in KTD11. A) U2's docs commit
+  edits each in place, and U2 recounts over `crates/` (recommended, 10/10: R5). B) Leave the comments (6/10: stale paths
+  that no guard reads). State: approved, A.
+- **D13 — Test paths named before U2.** Evidence: U10's file list, and § Sequencing. A) Fix U10's path, and add one note
+  that U1 and U5 to U9 name `492e187`'s paths (recommended, 10/10). B) Rewrite every unit's test paths for both orders
+  (8/10: more text for the same information). State: approved, A.
+- **D14 — `common` in the `isolated` binaries.** Evidence: `common/mod.rs:3`, `parse_stack_tests.rs`, `api_tests.rs:27`.
+  A) Declare it only where a file in that binary reads it (recommended, 10/10). B) Always declare it (8/10: a silent
+  extra compile). State: approved, A.
+- **D15 — Structure (complexity gate).** The plan's arrangement is about 50 new modules across the splits and the
+  layout. A) Original arrangement (recommended): R3 (Brett) names one file per family, KTD5 mirrors domains, and KD1
+  fixes the list. B) A smaller arrangement, such as grouped family files or fewer domain files, breaks R3 and adds no
+  safety. The options differ in kind, not coverage, so there is no completeness score. Pending remedies not decided
+  here: none. State: approved, A. Scope record: feature answers none (no cuts proposed, since KD1 fixes the scope);
+  structure: A, auto-decided under the brief; accepted scope: the plan as written plus D1 to D14 and D16; pending
+  remedies: none.
+- **D16 — Problem Frame: the job ranking.** Evidence: `gh run view 45944823191`. A factual correction, so no options.
+  State: recorded.
+
+Approval readiness: PASS. D1 to D8 and D10 to D15 are approved under the caller's brief, each with option A. D9 and D16
+are factual corrections recorded with their evidence. No accepted remedy lacks an answer.
+
+### Decisions only Brett can make
+
+None of these is decided here. The plan's current text stands until he answers.
+
+- **B1 (a name).** `families/broadcasts.rs`'s top level is the `broadcasts moderators` family
+  (`family_help::broadcasts`), and the `xr broadcasts` family is the nested `broadcasts_own`. Renaming them (for example
+  `broadcasts` → `broadcast_moderators`, `broadcasts_own` → `broadcasts`) is a rename outside a pure move.
+- **B2 (a public surface, a breaking change, a version call).** U5 removes the `xurl::cli::family_help::<family>`
+  modules from the published `xurl-rs` library target and adds `xurl::cli::families::*`. The plan reads the
+  `#[doc(hidden)]` `cli` module, which `crates/xurl-cli/src/lib.rs:3-5` calls "not an embedder API", as outside R10, the
+  Changelog, and a version bump. `cargo semver-checks` gates only `xdk-rs` (`ci.yml:298-319`). Whether that reading
+  holds for `xurl-rs` is his call.
+- **B3 (scope).** A guard that holds the process-aborting `parse_stack_tests` in `tests/isolated/`. R8 names
+  environment-mutating tests only, and D11 corrects the risk row rather than adding one.
+- **B4 (scope).** A `test_invocation_guard` rule that refuses a `--test all` with no `-p`. KTD11 says every `--test all`
+  carries `-p`, and nothing enforces it.
+- **B5 (names).** The new module names that the plan's KTDs chose, with no Brett answer cited: `cli/families/`,
+  `commands/checks.rs`, `sending.rs`, `paging.rs`, `accounts.rs`, `cli/argv_refusal.rs`, and the
+  `response/types/<domain>.rs` files. `tests/all/` and `tests/isolated/` come from the CI plan's approved CI-U6.
+
+For xurl-plan-prime, not Brett: plan F's KTD8 and line 742 call the merged layout "plan R's U6", and in this plan it is
+U2.
+
+**Disposition, by the plan's author after the review.** None of B1 to B5 needs Brett:
+
+- **B2 is settled by the repo's own docs.** The CLI crate's library target "exists for its own tests and is not an API"
+  (AGENTS.md line 14), and "is doc-hidden and exists so its integration tests can drive the dispatcher in-process"
+  (AGENTS.md § "Where a change goes", rule 3; `crates/xurl-cli/src/lib.rs:3-5`). The only public-API gate is the one on
+  `xdk-rs` (`ci.yml:298-319`). Moving `family_help`'s declaration modules under `families` changes no surface R10
+  counts, needs no Changelog line, and makes no version call.
+- **B3 and B4 are additions the scope list does not name.** Under the smallest-change rule a reviewer's new guard goes
+  under "Not in R", and both are listed there. U2 still puts `parse_stack_tests` in `tests/isolated/` (KTD8), and every
+  `--test all` the plan writes carries `-p` (KTD11).
+- **B1 and B5 are internal module names**, outside R10's public surface and outside the CI plan's approved names. They
+  are code calls, which xurl-plan-prime owns. The plan keeps them, and keeps `family_help::broadcasts` and
+  `broadcasts_own` as they are under KTD1. The rename B1 describes is listed under "Not in R". xurl-plan-prime has both
+  to confirm or overrule.
+
+### Completion summary
+
+- Step 0: Scope Challenge — scope accepted as-is
+- Reality rows: 7/7 applicable rows emitted (`PLAN_REALITY` below), 5 unverified premises
+- Architecture Review: 6 issues found
+- Code Quality Review: 6 issues found
+- Test Review: diagram produced, 0 gaps identified
+- Performance Review: 2 issues found
+- NOT in scope: written
+- What already exists: written
+- TODOS.md updates: 0 items proposed
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 5 in this review (B1 to B5, Brett's, undecided by design)
+- Outside voice: skipped (caller instruction)
+- Parallelization: 1 lane, 0 parallel / 9 sequential PRs
+- Lake Score: 12/12 (D1 to D5, D7, D8, D10 to D14 scored; D6 and D15 differ in kind; D9 and D16 are corrections)
+
+### Suppressed findings
+
+- (confidence 4/10) KTD2's table range "2095-4284" and the Problem Frame's "2106-4284" differ. 2095 is
+  `USAGE_CREDITS_HELP`, so both are readings of the same span.
+- (confidence 4/10) `schemars` derives could name a type by module path. The committed schemas key definitions by type
+  name, and `schema_tests` would fail on any change (R1), so this was not pursued.
 
 ## Developer Experience Review
 
@@ -924,3 +1491,32 @@ Pending.
 - 2026-11-27: plan written, and the CI speed plan closed in the same commit. Pending: `/plan-eng-review`,
   `/plan-devex-review`, `/compound-engineering:ce-doc-review`, one round each, each as its own Opus process.
 - 2026-11-27: `/plan-eng-review` round 1 started, as its own Opus process on a clone of this commit.
+- 2026-11-27: `/plan-eng-review` round 1 ended, on `d7a04d3`, as its own Opus process (`claude-opus-5-5` only, 132
+  turns, about 26 minutes). 14 section findings and one scope finding, each answered from the code and applied to the
+  plan text (D1 to D16). The review left B1 to B5 open. The author settles B2 from AGENTS.md, puts B3 and B4 under
+  "Not in R", and keeps B1 and B5 as code calls for xurl-plan-prime to confirm. No decision goes to Brett.
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger               | Why                             | Runs | Status                      | Findings                   |
+| -------------- | --------------------- | ------------------------------- | ---- | --------------------------- | -------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —                           | —                          |
+| Outside Review | none (codex)          | Independent 2nd opinion         | 0    | skipped (caller)            | —                          |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN (not persisted) | 14 issues, 0 critical gaps |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —                           | —                          |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | —                           | —                          |
+
+- **OUTSIDE COVERAGE:** codex, plan-review phase, skipped by the caller's brief ("run no outside voice and no
+  cross-model pass"); no findings.
+- **VERDICT:** no review CLEARED. Eng round 1 found 14 issues and applied each to the plan text, and its review log is
+  not persisted. Eng review required.
+
+**UNRESOLVED DECISIONS:**
+
+- B1 (name): the top level of `families/broadcasts.rs` is the `broadcasts moderators` family; rename or keep.
+- B2 (public surface, breaking change, version): removing `xurl::cli::family_help::<family>` and adding
+  `xurl::cli::families` in the doc-hidden `xurl-rs` lib; outside R10 and the Changelog, or not.
+- B3 (scope): a guard that holds `parse_stack_tests` in `tests/isolated/`.
+- B4 (scope): a `test_invocation_guard` rule that refuses `--test all` without `-p`.
+- B5 (names): `cli/families/`, `commands/{checks,sending,paging,accounts}.rs`, `cli/argv_refusal.rs`,
+  `response/types/<domain>.rs`.
