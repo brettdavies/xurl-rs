@@ -60,6 +60,21 @@ async fn nothing_was_yielded(receiver: &mut Receiver) -> bool {
         .is_err()
 }
 
+/// Sends `request` and takes the event it delivers, with the status X was
+/// answered: the receiver answers a delivery once its caller takes it.
+async fn take_delivery(request: reqwest::RequestBuilder, receiver: &mut Receiver) -> (u16, Event) {
+    let sent = tokio::spawn(async move {
+        request
+            .send()
+            .await
+            .expect("the receiver answers")
+            .status()
+            .as_u16()
+    });
+    let event = receiver.next_event().await.expect("an event");
+    (sent.await.expect("the delivery task"), event)
+}
+
 fn header<'a>(event: &'a Event, name: &str) -> Option<&'a str> {
     event
         .headers
@@ -112,16 +127,16 @@ async fn a_crc_check_without_a_token_is_a_bad_request() {
 async fn an_event_signed_with_the_client_secret_is_yielded() {
     let mut receiver = receiver(both_secrets()).await;
 
-    let response = reqwest::Client::new()
-        .post(url(&receiver, "/webhook"))
-        .header(OAUTH2_HEADER, BODY_UNDER_CLIENT_SECRET)
-        .body(BODY)
-        .send()
-        .await
-        .expect("the receiver answers");
+    let (status, event) = take_delivery(
+        reqwest::Client::new()
+            .post(url(&receiver, "/webhook"))
+            .header(OAUTH2_HEADER, BODY_UNDER_CLIENT_SECRET)
+            .body(BODY),
+        &mut receiver,
+    )
+    .await;
 
-    assert_eq!(response.status(), 200);
-    let event = receiver.next_event().await.expect("an event");
+    assert_eq!(status, 200);
     assert_eq!(event.body, BODY.as_bytes());
     assert_eq!(event.signature, Signature::OAuth2);
 }
@@ -130,16 +145,16 @@ async fn an_event_signed_with_the_client_secret_is_yielded() {
 async fn an_event_signed_with_the_consumer_secret_is_yielded() {
     let mut receiver = receiver(both_secrets()).await;
 
-    let response = reqwest::Client::new()
-        .post(url(&receiver, "/webhook"))
-        .header(LEGACY_HEADER, BODY_UNDER_CONSUMER_SECRET)
-        .body(BODY)
-        .send()
-        .await
-        .expect("the receiver answers");
+    let (status, event) = take_delivery(
+        reqwest::Client::new()
+            .post(url(&receiver, "/webhook"))
+            .header(LEGACY_HEADER, BODY_UNDER_CONSUMER_SECRET)
+            .body(BODY),
+        &mut receiver,
+    )
+    .await;
 
-    assert_eq!(response.status(), 200);
-    let event = receiver.next_event().await.expect("an event");
+    assert_eq!(status, 200);
     assert_eq!(event.body, BODY.as_bytes());
     assert_eq!(event.signature, Signature::OAuth1);
 }
@@ -148,16 +163,16 @@ async fn an_event_signed_with_the_consumer_secret_is_yielded() {
 async fn an_event_holds_its_signature_header_and_content_type_as_sent() {
     let mut receiver = receiver(both_secrets()).await;
 
-    reqwest::Client::new()
-        .post(url(&receiver, "/webhook"))
-        .header(OAUTH2_HEADER, BODY_UNDER_CLIENT_SECRET)
-        .header("Content-Type", "application/json; charset=utf-8")
-        .body(BODY)
-        .send()
-        .await
-        .expect("the receiver answers");
+    let (_, event) = take_delivery(
+        reqwest::Client::new()
+            .post(url(&receiver, "/webhook"))
+            .header(OAUTH2_HEADER, BODY_UNDER_CLIENT_SECRET)
+            .header("Content-Type", "application/json; charset=utf-8")
+            .body(BODY),
+        &mut receiver,
+    )
+    .await;
 
-    let event = receiver.next_event().await.expect("an event");
     assert_eq!(
         header(&event, OAUTH2_HEADER),
         Some(BODY_UNDER_CLIENT_SECRET)
@@ -173,15 +188,15 @@ async fn an_event_holds_its_signature_header_and_content_type_as_sent() {
 async fn a_legacy_signed_event_holds_the_legacy_header_only() {
     let mut receiver = receiver(both_secrets()).await;
 
-    reqwest::Client::new()
-        .post(url(&receiver, "/webhook"))
-        .header(LEGACY_HEADER, BODY_UNDER_CONSUMER_SECRET)
-        .body(BODY)
-        .send()
-        .await
-        .expect("the receiver answers");
+    let (_, event) = take_delivery(
+        reqwest::Client::new()
+            .post(url(&receiver, "/webhook"))
+            .header(LEGACY_HEADER, BODY_UNDER_CONSUMER_SECRET)
+            .body(BODY),
+        &mut receiver,
+    )
+    .await;
 
-    let event = receiver.next_event().await.expect("an event");
     assert_eq!(
         header(&event, LEGACY_HEADER),
         Some(BODY_UNDER_CONSUMER_SECRET)
@@ -194,16 +209,16 @@ async fn an_event_records_when_it_arrived() {
     let mut receiver = receiver(both_secrets()).await;
 
     let before = SystemTime::now();
-    reqwest::Client::new()
-        .post(url(&receiver, "/webhook"))
-        .header(OAUTH2_HEADER, BODY_UNDER_CLIENT_SECRET)
-        .body(BODY)
-        .send()
-        .await
-        .expect("the receiver answers");
+    let (_, event) = take_delivery(
+        reqwest::Client::new()
+            .post(url(&receiver, "/webhook"))
+            .header(OAUTH2_HEADER, BODY_UNDER_CLIENT_SECRET)
+            .body(BODY),
+        &mut receiver,
+    )
+    .await;
     let after = SystemTime::now();
 
-    let event = receiver.next_event().await.expect("an event");
     assert!(
         before <= event.received_at && event.received_at <= after,
         "{:?} lies outside {before:?}..={after:?}",
@@ -267,15 +282,15 @@ async fn an_unsigned_event_is_yielded_only_when_the_caller_allows_it() {
         .await
         .expect("the receiver binds");
 
-    let response = reqwest::Client::new()
-        .post(url(&receiver, "/webhook"))
-        .body(BODY)
-        .send()
-        .await
-        .expect("the receiver answers");
+    let (status, event) = take_delivery(
+        reqwest::Client::new()
+            .post(url(&receiver, "/webhook"))
+            .body(BODY),
+        &mut receiver,
+    )
+    .await;
 
-    assert_eq!(response.status(), 200);
-    let event = receiver.next_event().await.expect("an event");
+    assert_eq!(status, 200);
     assert_eq!(event.signature, Signature::Unsigned);
 }
 
@@ -390,20 +405,15 @@ async fn binding_an_address_the_host_does_not_have_stays_an_io_error() {
     assert_eq!(err.kind(), "io", "{err:?}");
 }
 
-/// Posts `sample` to `receiver` the way X delivers an event.
-async fn deliver_sample(receiver: &Receiver, sample: &SignedSample) -> u16 {
+/// Posts `sample` to `receiver` the way X delivers an event, and takes it.
+async fn deliver_sample(receiver: &mut Receiver, sample: &SignedSample) -> (u16, Event) {
     let mut request = reqwest::Client::new()
         .post(url(receiver, "/webhook"))
         .body(sample.body);
     for (name, value) in sample.headers() {
         request = request.header(name, value);
     }
-    request
-        .send()
-        .await
-        .expect("the receiver answers")
-        .status()
-        .as_u16()
+    take_delivery(request, receiver).await
 }
 
 #[tokio::test]
@@ -412,8 +422,8 @@ async fn a_signed_sample_verifies_under_the_client_secret() {
     let mut receiver = receiver(both_secrets()).await;
 
     assert_eq!(sample.signature_header, OAUTH2_SIGNATURE_HEADER);
-    assert_eq!(deliver_sample(&receiver, &sample).await, 200);
-    let event = receiver.next_event().await.expect("the sample");
+    let (status, event) = deliver_sample(&mut receiver, &sample).await;
+    assert_eq!(status, 200);
     assert_eq!(event.signature, Signature::OAuth2);
     assert_eq!(event.body, sample.body.as_bytes());
     let body: serde_json::Value = serde_json::from_slice(&event.body).expect("a JSON body");
@@ -430,8 +440,8 @@ async fn a_signed_sample_verifies_under_the_consumer_secret_alone() {
     let mut receiver = receiver(consumer_only).await;
 
     assert_eq!(sample.signature_header, LEGACY_SIGNATURE_HEADER);
-    assert_eq!(deliver_sample(&receiver, &sample).await, 200);
-    let event = receiver.next_event().await.expect("the sample");
+    let (status, event) = deliver_sample(&mut receiver, &sample).await;
+    assert_eq!(status, 200);
     assert_eq!(event.signature, Signature::OAuth1);
 }
 
@@ -451,16 +461,15 @@ fn a_sample_needs_a_secret_and_never_carries_one() {
 async fn the_testing_sender_delivers_a_sample_the_receiver_verifies() {
     let mut receiver = receiver(both_secrets()).await;
 
-    let status = xdk::testing::deliver_signed_sample(
-        receiver.local_addr(),
-        xdk::webhooks::DEFAULT_PATH,
-        &both_secrets(),
-    )
-    .await
-    .expect("the receiver answers");
-
-    assert_eq!(status, 200);
+    let address = receiver.local_addr();
+    let sent = tokio::spawn(async move {
+        xdk::testing::deliver_signed_sample(address, xdk::webhooks::DEFAULT_PATH, &both_secrets())
+            .await
+            .expect("the receiver answers")
+    });
     let event = receiver.next_event().await.expect("the sample");
+
+    assert_eq!(sent.await.expect("the delivery task"), 200);
     assert_eq!(event.signature, Signature::OAuth2);
     let body: serde_json::Value = serde_json::from_slice(&event.body).expect("a JSON body");
     assert_eq!(body["xr_test_event"], true);
@@ -628,4 +637,44 @@ async fn a_held_connection_does_not_starve_the_receiver_forever() {
         .await
         .expect("the slot is free again");
     assert_eq!(answered.status(), 200);
+}
+
+/// Delivers [`BODY`] signed with the client secret; the status the receiver
+/// answered with, or `None` when it closed the connection unanswered.
+async fn deliver_signed(url: String) -> Option<u16> {
+    reqwest::Client::new()
+        .post(url)
+        .header(OAUTH2_HEADER, BODY_UNDER_CLIENT_SECRET)
+        .body(BODY)
+        .send()
+        .await
+        .ok()
+        .map(|response| response.status().as_u16())
+}
+
+/// X does not deliver an event again, so a 200 is the receiver's word that
+/// its caller has the event. A caller that takes one of two events and
+/// drops the receiver at once, as `xr webhooks listen --max-events 1` does,
+/// has told X about the one it took, and about no other.
+#[tokio::test]
+async fn x_is_told_an_event_arrived_only_for_an_event_the_caller_took() {
+    let mut receiver = receiver(both_secrets()).await;
+    let deliveries: Vec<_> = (0..2)
+        .map(|_| tokio::spawn(deliver_signed(url(&receiver, "/webhook"))))
+        .collect();
+    // Both deliveries reach the receiver before the caller takes one.
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    receiver.next_event().await.expect("an event");
+    drop(receiver);
+
+    let mut statuses = Vec::new();
+    for delivery in deliveries {
+        statuses.push(delivery.await.expect("the delivery task"));
+    }
+    let answered_ok = statuses
+        .iter()
+        .filter(|status| **status == Some(200))
+        .count();
+    assert_eq!(answered_ok, 1, "one event taken, answers {statuses:?}");
 }

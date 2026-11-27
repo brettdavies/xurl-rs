@@ -20,6 +20,7 @@
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime};
 
 use bytes::Bytes;
@@ -30,7 +31,7 @@ use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode};
 use hyper_util::rt::{TokioIo, TokioTimer};
 use tokio::net::TcpListener;
-use tokio::sync::{Semaphore, mpsc};
+use tokio::sync::{Semaphore, mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
 
 use crate::error::{Error, Result};
@@ -68,7 +69,8 @@ pub const DEFAULT_MAX_CONNECTIONS: usize = 64;
 /// whose headers or body take longer than this to arrive is dropped.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Events held for a caller that is slower than X delivers.
+/// Events held for a caller that is slower than X delivers, each with X's
+/// request waiting on its answer.
 const EVENT_BUFFER: usize = 64;
 
 /// How long the accept loop waits after the listener reports an error, such
@@ -161,7 +163,8 @@ impl Event {
 
 /// A bound webhook receiver.
 ///
-/// Dropping it stops the listener, ends the connections it is serving, and
+/// Dropping it stops the listener, lets each delivery whose event the caller
+/// took finish its 200, ends every other connection it is serving, and
 /// releases the port. The token given to [`Receiver::bind`] stays as the caller
 /// left it.
 ///
@@ -191,7 +194,7 @@ impl Event {
 #[derive(Debug)]
 pub struct Receiver {
     local_addr: SocketAddr,
-    events: mpsc::Receiver<Event>,
+    events: mpsc::Receiver<Delivery>,
     // A child of the caller's token: the caller's stop reaches every task
     // through it, and `Drop` cancels it without touching the caller's token.
     stop: CancellationToken,
@@ -276,12 +279,20 @@ impl Receiver {
 
     /// The next event whose signature verified, or `None` once the receiver
     /// has been cancelled.
+    ///
+    /// X's delivery of an event is answered 200 when this returns it. An
+    /// event still waiting when the receiver stops is answered 503, or its
+    /// connection closes unanswered, so X is never told an event arrived
+    /// that the caller did not take.
     pub async fn next_event(&mut self) -> Option<Event> {
-        tokio::select! {
+        let delivery = tokio::select! {
             biased;
-            event = self.events.recv() => event,
+            delivery = self.events.recv() => delivery,
             () = self.stop.cancelled() => None,
-        }
+        }?;
+        delivery.taken.store(true, Ordering::Release);
+        let _ = delivery.answer.send(());
+        Some(delivery.event)
     }
 }
 
@@ -294,8 +305,17 @@ impl Drop for Receiver {
 
 struct Shared {
     config: ReceiverConfig,
-    sender: mpsc::Sender<Event>,
+    sender: mpsc::Sender<Delivery>,
     clock: ArrivalClock,
+}
+
+/// A verified event on its way to the caller. `answer` wakes the request
+/// waiting to answer X; `taken` tells the request's connection, which a stop
+/// can reach before that answer is written, that X is owed it.
+struct Delivery {
+    event: Event,
+    answer: oneshot::Sender<()>,
+    taken: Arc<AtomicBool>,
 }
 
 async fn accept_loop(listener: TcpListener, shared: Arc<Shared>, cancel: CancellationToken) {
@@ -324,24 +344,38 @@ async fn accept_loop(listener: TcpListener, shared: Arc<Shared>, cancel: Cancell
         let cancel = cancel.clone();
         tokio::spawn(async move {
             let _slot = slot;
-            let service = service_fn(move |request| {
-                let shared = Arc::clone(&shared);
-                async move { Ok::<_, Infallible>(respond(&shared, request).await) }
-            });
+            // One request per connection (keep-alive is off), so one flag.
+            let taken = Arc::new(AtomicBool::new(false));
+            let service = {
+                let taken = Arc::clone(&taken);
+                service_fn(move |request| {
+                    let shared = Arc::clone(&shared);
+                    let taken = Arc::clone(&taken);
+                    async move { Ok::<_, Infallible>(respond(&shared, request, taken).await) }
+                })
+            };
             let connection = hyper::server::conn::http1::Builder::new()
                 .timer(TokioTimer::new())
                 .header_read_timeout(REQUEST_TIMEOUT)
                 .keep_alive(false)
                 .serve_connection(TokioIo::new(stream), service);
+            tokio::pin!(connection);
             tokio::select! {
                 () = cancel.cancelled() => {}
-                _ = connection => {}
+                _ = &mut connection => return,
+            }
+            if taken.load(Ordering::Acquire) {
+                let _ = tokio::time::timeout(REQUEST_TIMEOUT, connection).await;
             }
         });
     }
 }
 
-async fn respond(shared: &Shared, request: Request<Incoming>) -> Response<Full<Bytes>> {
+async fn respond(
+    shared: &Shared,
+    request: Request<Incoming>,
+    taken: Arc<AtomicBool>,
+) -> Response<Full<Bytes>> {
     if request.uri().path() != shared.config.path {
         return plain(StatusCode::NOT_FOUND, "Not Found");
     }
@@ -349,7 +383,7 @@ async fn respond(shared: &Shared, request: Request<Incoming>) -> Response<Full<B
         return answer_crc(shared, &request);
     }
     if request.method() == Method::POST {
-        return receive_event(shared, request).await;
+        return receive_event(shared, request, taken).await;
     }
     let mut response = plain(StatusCode::METHOD_NOT_ALLOWED, "Method Not Allowed");
     response
@@ -388,7 +422,11 @@ fn answer_crc(shared: &Shared, request: &Request<Incoming>) -> Response<Full<Byt
     response
 }
 
-async fn receive_event(shared: &Shared, request: Request<Incoming>) -> Response<Full<Bytes>> {
+async fn receive_event(
+    shared: &Shared,
+    request: Request<Incoming>,
+    taken: Arc<AtomicBool>,
+) -> Response<Full<Bytes>> {
     let received_at = (shared.clock)();
     let header = |name: &str| {
         request
@@ -447,7 +485,13 @@ async fn receive_event(shared: &Shared, request: Request<Incoming>) -> Response<
         headers,
         received_at,
     };
-    if shared.sender.send(event).await.is_err() {
+    let (answer, answered) = oneshot::channel();
+    let delivery = Delivery {
+        event,
+        answer,
+        taken,
+    };
+    if shared.sender.send(delivery).await.is_err() || answered.await.is_err() {
         return plain(StatusCode::SERVICE_UNAVAILABLE, "Service Unavailable");
     }
     Response::new(Full::new(Bytes::new()))
