@@ -746,3 +746,5 @@ No run sends a request to X. Every run happens on the Linux server, never in CI.
 
 - 2026-11-27: plan written. Pending: KTD21 (Brett); `/plan-eng-review`, `/plan-devex-review`,
   `/compound-engineering:ce-doc-review`.
+- 2026-11-27: `/plan-eng-review` round 1 started, on Opus, as its own process from a clone of the commit that adds this
+  line.
