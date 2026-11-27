@@ -1919,6 +1919,7 @@ Pending.
   turns, about 13 minutes). Seven findings, all in U2, each applied to the plan text (X1 to X7). DX score 6/10 to 8/10.
   No decision goes to Brett, and X2 and X7 go to xurl-plan-prime to confirm. xurl-plan-prime decided B1 and B5 the same
   day: keep the names.
+- 2026-11-27: `/compound-engineering:ce-doc-review` round 1 started, as its own Opus process on a clone of this commit.
 
 ## GSTACK REVIEW REPORT
 
