@@ -6,11 +6,74 @@ deepened: 2026-10-27
 artifact_contract: ce-unified-plan/v1
 product_contract_source: ce-plan-bootstrap
 execution: code
+status: completed
 ---
 
 # CI Scoping and Speed - Plan
 
 **Target repo:** brettdavies/xurl-rs. Paths are in it unless prefixed `brettdavies/.github:`. **Base:** `dev`.
+
+## Status
+
+The plan is completed. Its goal, a green PR verdict in under 2 minutes with the hook included (KD5), is not met: the
+latest green PR run, 45944823191 on #645, takes 297 s from start to finish, and its slowest job, `ci / Tests (1/4)`,
+takes 251 s. The refactor plan reads the verdict twice more against the same goal:
+`docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md`.
+
+| Unit                                               | State       | Evidence                                                                                                                                                   |
+| -------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared-workflow inputs (merge order 1)             | Done        | `ci.yml:145` passes `warm_cache: true`; `brettdavies/.github#105` sets line tables in the reusable                                                         |
+| U1. Warm caches from push runs                     | Done        | #501, #509 (PR caches deleted on close), #551, #553                                                                                                        |
+| U2. Audit the tests first                          | Done        | 21 removals in three batches, merged as #482, #484, and #485; #486 cuts the hard-stop test from 42.9 s to 0.5 s                                            |
+| U3. nextest                                        | Done        | #519; `Tests` runs as four `--partition hash:k/4` jobs, the count #627 sets                                                                                |
+| U4. Shorten the real waits                         | Partly done | #486, the concurrent guard walks (#505, #506, and #516, which carries the hang fix), #507, #631, #633; step 1 is dropped                                   |
+| U5. Lighter debug info                             | Partly done | line tables (#431, `brettdavies/.github#105`), #641's opt-level list for ten dependency crates, and `opt-level = 3` for all dropped (#632); the rest moves |
+| U6. Merged test layout                             | Moved       | the refactor plan's U2                                                                                                                                     |
+| U7, U8, U9, U10                                    | Dropped     | below                                                                                                                                                      |
+| U11. One setup command, one version list           | Done        | #514: `.github/tool-versions`, `scripts/dev-setup.sh`                                                                                                      |
+| agent-skills completions template (merge order 11) | Dropped     | with U10                                                                                                                                                   |
+
+**Moved to the refactor plan:**
+
+- U6, the merged test layout, as its U2: KTD8's layout, `test_layout_guard` and `test_invocation_guard` with KTD14's
+  codes, the risk rows for the merged binary under `cargo test`, the 21 tests that fail for layout reasons, and the test
+  paths the docs cite.
+- U5's remaining measurement, dependency debug info off, cold and warm, on the merged layout, as its U3.
+- Lever 8 of the tests wall-clock spike (2026-11-25), a clone-URL seam in `SkillEnv` so no test clones github.com, as
+  its U1.
+- The closing verdict numbers, as its U4 and U11. KD5's 2-minute goal is measured there.
+
+**Tracked elsewhere:**
+
+- Lever 2, one `jq` per tree in the surface-bump script, is `brettdavies/agent-skills#247`, open. The script is canon,
+  so it reaches xurl-rs by a re-vendor once that PR merges.
+- The canon pre-push hook templates still claim the toolchain pin is newer than `rust-version`. Skills-prime owns those
+  templates and holds the finding.
+
+**Dropped, each with its reason:**
+
+- **U4 step 1**, an overridable webhook forward retry schedule: `webhooks_forward_tests` is not among the seven test
+  binaries that hold 68% of CI test time in the spike's baseline.
+- **U7, U8, U9, and U10**, the job table, the classifier, the tiers, the slow tier's own jobs, and their docs. The PR
+  verdict waits on `Tests`, 251 s, and the next slowest jobs, about 100 s, run beside it. Tiers would cut the job count
+  from 30 to about 11 and the runner minutes, but not the verdict, until `Tests` falls below about 100 s. The spike
+  projects about 140 s after the merged layout and lever 2. The tiers would cost a classifier, a job table, a guard,
+  renamed required checks, and a canon template change for U10. Dropping them costs about 19 extra jobs per PR, on free
+  runners. The agent-skills completions template (merge order 11) goes with U10.
+- **Lever 5**, seeding the store test in one update: −35% on a test that leaves the critical path once lever 1 is in.
+  The test-cutting work can take it if `store_tests` is reworked anyway.
+- **Lever 6**, a shared TLS verifier: no gain beyond noise on top of lever 1, and it would need direct `rustls` and
+  `rustls-platform-verifier` dependencies in `xdk` and a code path per TLS backend feature.
+- **Lever 7**, `slice` or `count` partitions in place of `hash`: no gain outside runner spread on CI (run 45579640004).
+- **Lever 9**, a nextest archive feeding more partitions: without the merged layout the archive's build, upload,
+  download, and run take longer than build and run in one job, and more partitions rename the required
+  `ci / Tests (k/4)` checks. It is not measured.
+
+**Not filed:** U1's upstream wiremock-rs issue. Brett dropped it.
+
+**Open, Brett's to decide:** KTD3's cache-eviction check. It reads `gh cache list` after a PR that changes `Cargo.lock`,
+and no reading is recorded for the lockfile PRs that merged (#618, #625, #634), whose cache state is gone. The options
+are to drop the check, or to read `gh cache list` on the next PR that changes `Cargo.lock`.
 
 ## Goal Capsule
 
@@ -41,7 +104,7 @@ execution: code
 ### Summary
 
 A push to a PR into `dev` runs a fast tier: format, clippy, nextest in parallel jobs, the guards, and whatever lint the
-change's paths call for, 10 jobs at most (11 if U3 splits the tests into two partitions). The slow checks (release build
+change's paths call for, 10 jobs at most with one `Tests` job (13 with its four partitions). The slow checks (release build
 and size ceiling, Windows, Go parity, MSRV, the library's feature matrix, semver, packaging, the consumer check,
 completions) run after each merge to `dev` and gate the release PR into `main`. One job table says why each job exists
 and which paths trigger it; CI, the pre-push hook, and a `--jobs` preview all read it. Push runs keep dependency caches
@@ -151,8 +214,8 @@ caught nothing (Appendix).
   free runners (KD7) the estimate is 2 to 3 minutes; a measured miss is reported to Brett with the per-job times.
 - The PR tier's slowest job takes 90 s or less on a warm cache, from 271 s, and the hook on a scoped change 30 s or
   less, from 370 s for the full sweep.
-- A PR into `dev` runs at most 10 jobs (11 with two test partitions), a docs-only PR 2, and none waits for a runner when
-  no other PR or post-merge run is running.
+- A PR into `dev` runs at most 10 jobs (13 with the four test partitions), a docs-only PR 2, and none waits for a
+  runner when no other PR or post-merge run is running.
 - Every job has a job-table row, and the guard fails on a seeded job without a row and a row without a job.
 - A PR's first run, with no cache of its own, compiles no dependency crate when `dev` has a matching warm cache.
 - Every guard named in KTD4, KTD8, and KTD9 fails on a seeded violation and passes on the repo as merged.
@@ -244,9 +307,9 @@ caught nothing (Appendix).
   command when it is missing, so a local run and CI run the tests the same way; plain `cargo test` still passes (KTD8
   keeps it correct) but is not the documented path. `nextest_config_guard` fails when a profile sets `retries` above 0
   without `flaky-result = "fail"`, or drops the slow-timeout's termination (R13). On the free runners (KD7) the PR tier
-  splits the reusable's one test job into parallel jobs: `Fmt, clippy` and `Tests`, with `Tests` run as one job or as
-  two `--partition hash:N/2` jobs, whichever U3 measures faster (each partition builds the test binaries itself, so the
-  split only pays when the run phase outweighs a second build). When a CLI path changes, the `Tests` job also runs `anc`
+  splits the reusable's one test job into parallel jobs: `Fmt, clippy` and `Tests`, with `Tests` run as four
+  `--partition hash:k/4` jobs (#627). Each partition builds the test binaries itself, so a split only pays when the run
+  phase outweighs a second build. When a CLI path changes, the `Tests` job also runs `anc`
   on the debug `xr` it built, keeping the agent-native score before merge (D12, U8, R18); the release build and size
   ceiling stay in the slow tier.
 - KTD5. **Audit before parallelizing.** The `test-audit` skill finds duplicate and low-value tests across both crates,
@@ -434,8 +497,8 @@ The PRs, by repository, in merge order:
 2. xurl-rs U1: push triggers and warm mode.
 3. xurl-rs U2: no code; its findings go to Brett, and each removal he approves lands as its own PR.
 4. xurl-rs U11: `.github/tool-versions` and `scripts/dev-setup.sh`.
-5. xurl-rs U3 (#519): nextest, its config and guard, the split PR-tier jobs with two test partitions, the pre-push hook,
-   the pinned installs, and the `scripts/tool-version.sh` header.
+5. xurl-rs U3 (#519): nextest, its config and guard, the split PR-tier jobs with their test partitions (four, #627),
+   the pre-push hook, the pinned installs, and the `scripts/tool-version.sh` header.
 6. xurl-rs U4: shorter waits.
 7. xurl-rs U6: the merged test layout, its two guards, and their codes.
 8. xurl-rs U5: each debug-info setting kept on measurement, or none.
@@ -455,6 +518,8 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U1. Warm dependency caches from push runs
 
+- **Status:** done: #501, #509 (PR caches deleted on close), #551, and #553. KTD3's cache-eviction check is open, Brett's
+  to decide (§ Status). U1's upstream wiremock-rs issue is not filed: Brett dropped it.
 - **Goal:** PRs into `dev`, and stacked PRs, restore dependencies built by push runs instead of building them cold.
 - **Requirements:** R1, R2, R9, R11; KD1, KTD2, KTD3, KTD11.
 - **Dependencies:** none.
@@ -495,6 +560,8 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U2. Audit the test suites before changing how they run
 
+- **Status:** done. The audit proposed 21 removals in three batches, merged as #482, #484, and #485, and #486 cuts the
+  hard-stop test from 42.9 s to 0.5 s.
 - **Goal:** know which tests are duplicate, low-value, or slow, and what each costs, before parallelizing or subsetting
   them.
 - **Requirements:** R4; KD2, KTD5.
@@ -514,6 +581,8 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U3. Run the tests with nextest
 
+- **Status:** done in #519. `Tests` runs as four `--partition hash:k/4` jobs, the count #627 sets, and the `dev` and
+  `main` rulesets require `ci / Tests (1/4)` to `(4/4)`.
 - **Goal:** tests run in parallel, each in its own process, the same way locally and in CI.
 - **Scope:** nextest only, plus the `scripts/tool-version.sh` header fix Brett chose to keep. The audit of the debug
   `xr` inside `Tests`, the `anc_version` scope output, and the `jobs` list that leaves out the reusable's own `anc` job
@@ -526,7 +595,7 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 - **Files:**
   - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `test_runner` input and the nextest install, landed with
     the shared-workflow PR (KTD11).
-  - `.github/workflows/ci.yml`: opts in with `test_runner: nextest` and two test partitions.
+  - `.github/workflows/ci.yml`: opts in with `test_runner: nextest` and four test partitions (#627).
   - `.config/nextest.toml`: the `default` and `ci` profiles.
   - `crates/xurl-cli/tests/nextest_config_guard.rs`, new (a module of `tests/all/` once U6 lands).
   - `scripts/hooks/pre-push`: runs nextest and stops with the install command when it is missing.
@@ -547,9 +616,9 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
   4. `nextest_config_guard` parses `.config/nextest.toml` and fails with `nextest-config/unsafe-retry` or
      `nextest-config/no-termination`, naming the profile and key, when any profile sets `retries` above 0 without
      `flaky-result = "fail"`, or a slow-timeout without `terminate-after`.
-  5. Split the PR tier's test job into `Fmt, clippy` and `Tests` (KTD4), and run `Tests` as two `--partition hash:N/2`
-     jobs, the faster shape on warm caches: the slower partition takes 200 to 231 s, against 244 to 306 s for `Tests` as
-     one job.
+  5. Split the PR tier's test job into `Fmt, clippy` and `Tests` (KTD4), and run `Tests` as `--partition hash:k/4`
+     jobs. Two partitions beat one job on warm caches (the slower partition 200 to 231 s, against 244 to 306 s for one
+     job), and #627 sets the count at four.
 - **Patterns to follow:** the `cargo binstall ... --force` install steps in `ci.yml` (`cargo-hack`, `anc`); a guard that
   reads repo files and names the offending entry (`env_mutation_guard`), without the `Cause:` marker `recipe_guard`
   reserves for the family recipe.
@@ -562,13 +631,16 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
     `terminate-after`.
   - A seeded test that fails on its first run and passes on its second fails the job, labeled flaky.
   - Without nextest, pre-push stops with `pre-push/missing-tool` and the `scripts/dev-setup.sh` command.
-- **Verification:** the test count, summed over the two partitions, matches `cargo test`; the test-running phase falls
-  from about 148 s toward 40 s; the slower partition's warm time is recorded beside one job's; no test fails
+- **Verification:** the test count, summed over the partitions, matches `cargo test`; the test-running phase falls
+  from about 148 s toward 40 s; the slowest partition's warm time is recorded beside one job's; no test fails
   intermittently across the rollout PRs; the guard fails on both seeded violations; `Tests` runs no `anc` step, and
   `Agent-native audit` still runs and stays a required `dev` check (R18).
 
 ### U4. Shorten the real waits in the slowest tests
 
+- **Status:** partly done, and closed. Done: #486, the concurrent guard walks (#505, #506, and #516, which carries the
+  hang fix), #507, #631, and #633. Step 1, an overridable forward retry schedule, is dropped (§ Status). The unit's
+  verification, each of the four binaries finishing in a few seconds, is not measured.
 - **Goal:** `webhooks_forward_tests`, `dry_run_guard`, `surface_bump_tests`, and `webhooks_program_tests` stop spending
   their time waiting.
 - **Requirements:** R3, R4; KTD6.
@@ -599,8 +671,11 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U5. Lighter debug info for test builds
 
-- **Status:** open. No debug info for dependencies alone, the unit's remaining item, is not measured. Dependencies at
-  `opt-level = 3` in dev and test builds were measured as a candidate and dropped (xurl-rs#632, closed unmerged).
+- **Status:** partly done; the rest moves to the refactor plan. `line-tables-only` holds in `ci.yml` (xurl-rs#431) and
+  in the reusable (`brettdavies/.github#105`). xurl-rs#641 sets `opt-level = 3` for ten dependency crates in
+  `.cargo/config.toml`, which CI's cache key hashes. `opt-level = 3` for every dependency is measured below and dropped
+  (xurl-rs#632, closed unmerged). The one open item, no debug info for dependencies alone, is the refactor plan's U3
+  (`docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md`), measured on the merged layout.
 - **Goal:** the test compile phase gets shorter without losing file-and-line backtraces.
 - **Requirements:** R3; KTD7.
 - **Dependencies:** U6.
@@ -642,6 +717,8 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U6. Cargo's multi-file test layout, held by guards
 
+- **Status:** moved to the refactor plan as its U2, with this unit's layout, guards, and codes:
+  `docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md`.
 - **Goal:** each crate's integration tests build as one binary, plus one for tests that change process state, with
   guards that keep any test from going uncompiled or any command from naming a target that moved.
 - **Requirements:** R3, R4, R10, R13; KTD8.
@@ -689,6 +766,7 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U7. One job table and the classifier that reads it
 
+- **Status:** dropped, with U7 to U10 (§ Status).
 - **Goal:** every CI job has a row saying what it alone protects, which paths trigger it, and its tier, and one script
   turns a diff into the jobs it runs, for CI, the pre-push hook, and a person or agent before a push.
 - **Requirements:** R6, R7, R8, R14, R16, R17; KD4, KTD9, KTD14.
@@ -729,8 +807,9 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U8. Run the tiers
 
-- **Goal:** a PR into `dev` runs only the PR-tier jobs its diff triggers (10 at most, 11 with two test partitions, 2 for
-  docs only), the slow tier runs after each merge and in full on the release PR, and both rulesets require the right
+- **Status:** dropped, with U7 to U10 (§ Status).
+- **Goal:** a PR into `dev` runs only the PR-tier jobs its diff triggers (10 at most, 13 with the four test partitions,
+  2 for docs only), the slow tier runs after each merge and in full on the release PR, and both rulesets require the right
   jobs, with no merge into `dev` left unchecked on the agent-native score (R18).
 - **Requirements:** R6, R7, R8, R9, R11, R15, R18; KD1, KD6, KD8, KTD4, KTD10, KTD11, KTD16.
 - **Dependencies:** U7, U1 (the push trigger), U3 (the split PR-tier jobs), and U11 (`anc`'s version in
@@ -802,6 +881,7 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U9. Record how CI behaves now
 
+- **Status:** dropped, with U7 to U10 (§ Status).
 - **Goal:** the repo's docs and comments describe the tiers, the job table, the warm runs, the test runner, the test
   layout and its guards, and the setup as built.
 - **Requirements:** R10, R11, R16.
@@ -823,6 +903,7 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U10. Shorten the slow tier's own jobs
 
+- **Status:** dropped, with U7 to U10 (§ Status).
 - **Goal:** the post-merge and release tiers finish soon after their slowest unavoidable job, with no job slower than it
   has to be.
 - **Requirements:** R15; KTD13.
@@ -846,6 +927,7 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ### U11. One setup command from one version list
 
+- **Status:** done in #514.
 - **Goal:** a fresh clone passes pre-push after one command, with every tool at the version CI uses.
 - **Requirements:** R16, R17; KTD15.
 - **Dependencies:** none.
@@ -873,24 +955,24 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ## Verification Contract
 
-| Gate                                                                            | Applies to         | Pass                                                                                                           |
-| ------------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `cargo nextest run --workspace --profile ci` and `cargo test --doc --workspace` | U3 onward          | All pass; test count equals the `cargo test` count                                                             |
-| The `change_classes_tests` module under nextest                                 | U7                 | All pass                                                                                                       |
-| `ci_jobs_table_guard` and `dev_setup_tests`                                     | U7, U11            | Each fails on its seeded violations and passes on the tree                                                     |
-| `scripts/hooks/pre-push`                                                        | every xurl-rs unit | Passes with nextest; without it, stops naming the install                                                      |
-| `nextest_config_guard`, `test_layout_guard`, `test_invocation_guard`            | U3, U6             | Each fails on its seeded violations and passes on the tree                                                     |
-| Test list before and after the move                                             | U6                 | Identical, file mapped to module                                                                               |
-| actionlint on changed workflows, in both repos                                  | U1, U3, U8         | Clean                                                                                                          |
-| Push to PR verdict, hook included, on two scoped PRs                            | after U3 and U8    | Under 2 minutes (KD5), or the per-job times go to Brett                                                        |
-| PR tier's slowest job on a warm PR (`gh run view --json jobs`)                  | after U6           | 90 s or less                                                                                                   |
-| `gtime scripts/hooks/pre-push` on a scoped change                               | after U8           | 30 s or less                                                                                                   |
-| Test compile phase (`Finished test profile`)                                    | U5, U6             | 50 s or less                                                                                                   |
-| Test-running phase                                                              | U3, U4             | 40 s or less                                                                                                   |
-| Dependency compilation in a fresh PR's test job                                 | U1                 | None when `dev` has a matching warm cache                                                                      |
-| Jobs on a PR into `dev`                                                         | U8                 | 10 at most (11 with two test partitions), 2 for docs only, none queued when no other PR or post-merge run runs |
-| Agent-native score check on every merge into `dev`                              | U8                 | `Agent-native audit` required until the PR adding the debug audit to `Tests`; a seeded score drop fails it     |
-| A fresh clone after `scripts/dev-setup.sh`                                      | U11                | pre-push passes                                                                                                |
+| Gate                                                                            | Applies to         | Pass                                                                                                                |
+| ------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `cargo nextest run --workspace --profile ci` and `cargo test --doc --workspace` | U3 onward          | All pass; test count equals the `cargo test` count                                                                  |
+| The `change_classes_tests` module under nextest                                 | U7                 | All pass                                                                                                            |
+| `ci_jobs_table_guard` and `dev_setup_tests`                                     | U7, U11            | Each fails on its seeded violations and passes on the tree                                                          |
+| `scripts/hooks/pre-push`                                                        | every xurl-rs unit | Passes with nextest; without it, stops naming the install                                                           |
+| `nextest_config_guard`, `test_layout_guard`, `test_invocation_guard`            | U3, U6             | Each fails on its seeded violations and passes on the tree                                                          |
+| Test list before and after the move                                             | U6                 | Identical, file mapped to module                                                                                    |
+| actionlint on changed workflows, in both repos                                  | U1, U3, U8         | Clean                                                                                                               |
+| Push to PR verdict, hook included, on two scoped PRs                            | after U3 and U8    | Under 2 minutes (KD5), or the per-job times go to Brett                                                             |
+| PR tier's slowest job on a warm PR (`gh run view --json jobs`)                  | after U6           | 90 s or less                                                                                                        |
+| `gtime scripts/hooks/pre-push` on a scoped change                               | after U8           | 30 s or less                                                                                                        |
+| Test compile phase (`Finished test profile`)                                    | U5, U6             | 50 s or less                                                                                                        |
+| Test-running phase                                                              | U3, U4             | 40 s or less                                                                                                        |
+| Dependency compilation in a fresh PR's test job                                 | U1                 | None when `dev` has a matching warm cache                                                                           |
+| Jobs on a PR into `dev`                                                         | U8                 | 10 at most (13 with the four test partitions), 2 for docs only, none queued when no other PR or post-merge run runs |
+| Agent-native score check on every merge into `dev`                              | U8                 | `Agent-native audit` required until the PR adding the debug audit to `Tests`; a seeded score drop fails it          |
+| A fresh clone after `scripts/dev-setup.sh`                                      | U11                | pre-push passes                                                                                                     |
 
 ## Definition of Done
 
