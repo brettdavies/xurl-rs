@@ -20,7 +20,7 @@
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::{Duration, SystemTime};
 
 use bytes::Bytes;
@@ -294,20 +294,23 @@ impl Receiver {
     /// X's delivery of an event is answered 200 when this returns it. An
     /// event still waiting when the receiver stops is answered 503, or its
     /// connection closes unanswered, so X is never told an event arrived
-    /// that the caller did not take. X waits ten seconds for its answer,
+    /// that the caller did not take, and such an event is never returned
+    /// afterwards. X waits ten seconds for its answer,
     /// and every event behind one the caller is still working on waits
     /// unanswered, so a caller that does slow work on an event, such as a
     /// forward, hands the event to a task or a channel before it calls this
     /// again.
     pub async fn next_event(&mut self) -> Option<Event> {
-        let delivery = tokio::select! {
-            biased;
-            delivery = self.events.recv() => delivery,
-            () = self.stop.cancelled() => None,
-        }?;
-        delivery.taken.store(true, Ordering::Release);
-        let _ = delivery.answer.send(());
-        Some(delivery.event)
+        loop {
+            let delivery = tokio::select! {
+                biased;
+                delivery = self.events.recv() => delivery,
+                () = self.stop.cancelled() => None,
+            }?;
+            if delivery.claim.take() && delivery.answer.send(()).is_ok() {
+                return Some(delivery.event);
+            }
+        }
     }
 
     /// Stops the receiver as dropping it does, and returns once each delivery
@@ -335,12 +338,40 @@ struct Shared {
 }
 
 /// A verified event on its way to the caller. `answer` wakes the request
-/// waiting to answer X; `taken` tells the request's connection, which a stop
-/// can reach before that answer is written, that X is owed it.
+/// waiting to answer X; `claim` settles a race a stop starts, between the
+/// caller taking the event and the stop ending its connection.
 struct Delivery {
     event: Event,
     answer: oneshot::Sender<()>,
-    taken: Arc<AtomicBool>,
+    claim: Arc<Claim>,
+}
+
+/// Whether the caller took a delivery's event or a stop ended its
+/// connection, whichever came first: X is answered 200 exactly when the
+/// caller has the event, on any runtime.
+#[derive(Default)]
+struct Claim(AtomicU8);
+
+impl Claim {
+    const OPEN: u8 = 0;
+    const TAKEN: u8 = 1;
+    const ENDED: u8 = 2;
+
+    /// Whether the caller took the event before a stop ended the connection.
+    fn take(&self) -> bool {
+        self.settle(Self::TAKEN)
+    }
+
+    /// Whether a stop ended the connection before the caller took the event.
+    fn end(&self) -> bool {
+        self.settle(Self::ENDED)
+    }
+
+    fn settle(&self, to: u8) -> bool {
+        self.0
+            .compare_exchange(Self::OPEN, to, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+    }
 }
 
 async fn accept_loop(
@@ -374,14 +405,14 @@ async fn accept_loop(
         let cancel = cancel.clone();
         connections.spawn(async move {
             let _slot = slot;
-            // One request per connection (keep-alive is off), so one flag.
-            let taken = Arc::new(AtomicBool::new(false));
+            // One request per connection (keep-alive is off), so one claim.
+            let claim = Arc::new(Claim::default());
             let service = {
-                let taken = Arc::clone(&taken);
+                let claim = Arc::clone(&claim);
                 service_fn(move |request| {
                     let shared = Arc::clone(&shared);
-                    let taken = Arc::clone(&taken);
-                    async move { Ok::<_, Infallible>(respond(&shared, request, taken).await) }
+                    let claim = Arc::clone(&claim);
+                    async move { Ok::<_, Infallible>(respond(&shared, request, claim).await) }
                 })
             };
             let connection = hyper::server::conn::http1::Builder::new()
@@ -394,7 +425,7 @@ async fn accept_loop(
                 () = cancel.cancelled() => {}
                 _ = &mut connection => return,
             }
-            if taken.load(Ordering::Acquire) {
+            if !claim.end() {
                 let _ = tokio::time::timeout(REQUEST_TIMEOUT, connection).await;
             }
         });
@@ -404,7 +435,7 @@ async fn accept_loop(
 async fn respond(
     shared: &Shared,
     request: Request<Incoming>,
-    taken: Arc<AtomicBool>,
+    claim: Arc<Claim>,
 ) -> Response<Full<Bytes>> {
     if request.uri().path() != shared.config.path {
         return plain(StatusCode::NOT_FOUND, "Not Found");
@@ -413,7 +444,7 @@ async fn respond(
         return answer_crc(shared, &request);
     }
     if request.method() == Method::POST {
-        return receive_event(shared, request, taken).await;
+        return receive_event(shared, request, claim).await;
     }
     let mut response = plain(StatusCode::METHOD_NOT_ALLOWED, "Method Not Allowed");
     response
@@ -455,7 +486,7 @@ fn answer_crc(shared: &Shared, request: &Request<Incoming>) -> Response<Full<Byt
 async fn receive_event(
     shared: &Shared,
     request: Request<Incoming>,
-    taken: Arc<AtomicBool>,
+    claim: Arc<Claim>,
 ) -> Response<Full<Bytes>> {
     let received_at = (shared.clock)();
     let header = |name: &str| {
@@ -519,7 +550,7 @@ async fn receive_event(
     let delivery = Delivery {
         event,
         answer,
-        taken,
+        claim,
     };
     if shared.sender.send(delivery).await.is_err() || answered.await.is_err() {
         return plain(StatusCode::SERVICE_UNAVAILABLE, "Service Unavailable");

@@ -678,3 +678,29 @@ async fn x_is_told_an_event_arrived_only_for_an_event_the_caller_took() {
         .count();
     assert_eq!(answered_ok, 1, "one event taken, answers {statuses:?}");
 }
+
+/// A stop ends the connection of each delivery the caller has not taken, and
+/// X records that delivery as failed. The caller is not handed its event
+/// afterwards, so it never holds an event X was not answered 200 for.
+#[tokio::test]
+async fn an_event_whose_delivery_the_stop_ended_is_not_handed_out() {
+    let stop = CancellationToken::new();
+    let mut receiver = Receiver::bind(
+        ReceiverConfig::new(loopback(), both_secrets()),
+        stop.clone(),
+    )
+    .await
+    .expect("the receiver binds");
+    let delivery = tokio::spawn(deliver_signed(url(&receiver, "/webhook")));
+    // The delivery waits in the buffer before the stop.
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    stop.cancel();
+    let status = delivery.await.expect("the delivery task");
+
+    assert_eq!(status, None, "the stop ends the delivery unanswered");
+    assert!(
+        receiver.next_event().await.is_none(),
+        "the caller was handed an event X was not answered for"
+    );
+}
