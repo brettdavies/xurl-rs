@@ -217,9 +217,13 @@ reads. Plan M's mutation runs on `auth` and `store` need the fixed code under th
   fix PR carries the product fix, its replay test, and its changelog entry.
 - KTD8. **Where a replay test lives.** A refresh replay goes in `crates/xdk/tests/saved_identity_tests.rs`, beside the
   seam it reuses. A headless replay goes in `crates/xdk/tests/auth_pending_tests.rs`. A layout replay goes in a new
-  `crates/xdk/tests/store_layout_tests.rs`, since no `xdk` integration test covers the move today, or in the module that
-  takes its place once plan R's U6 (one test binary per crate) has landed. A failing replay never lands on `dev` before
-  its fix: the zero-broken-tests rule puts it in the fix PR.
+  `crates/xdk/tests/store_layout_tests.rs`, since no `xdk` integration test covers the move today. Plan R's U2
+  (`docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md`, one test binary per crate) moves those
+  files, so the fix PR reads `dev` when it is cut. If R U2 is on `dev`, the test goes in U2's layout: a module declared
+  in `crates/xdk/tests/all/main.rs`, or under `crates/xdk/tests/isolated/` if it mutates the environment. Otherwise it
+  goes in the top-level file above, and U2 moves it, since R U2 lists the open PRs under `crates/*/tests/` before its
+  move commit. A top-level file that lands after U2 fails U2's `test-layout/stray-file` guard. A failing replay never
+  lands on `dev` before its fix: the zero-broken-tests rule puts it in the fix PR.
 - KTD9. **Line pins.** Refs into `crates/xdk/src/auth/oauth2.rs` are pinned only after #645 merges, against its merge
   commit on `dev`, and that commit is recorded here; until then they are cited by function name and marked "lines pinned
   after #645". Every other ref is pinned at `dev` 492e187. A model's own action table is pinned again at its sync commit
@@ -334,7 +338,7 @@ sequenceDiagram
   S2->>F: S2a loads, S2b checks client id, scopes, state
   S2->>X: S2c sends the code once
   X-->>S2: tokens
-  S2->>St: S2d stores under the flow's app
+  S2->>St: S2d stores under the run's app
   S2->>F: S2e deletes the flow
 ```
 
@@ -410,26 +414,26 @@ the login. For each lock sidecar (`~/.xurl.lock`, `~/.xurl.refresh.lock`, `~/.xu
 `~/.xurl/auth.yml.lock`, `~/.xurl/auth.yml.refresh.lock`), the inode the path names now. For each process, the inode it
 opened and whether it holds it. The pending file's location, for model 3. X's live set, as in model 1.
 
-| Action | What happens                                                                                                                                                                                    | Code                                                                                                                                                          |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M1     | M finds a single-file store at `~/.xurl` or a stranded `~/.xurl.migrating`, and opens `~/.xurl.lock`                                                                                            | `adopt_directory_layout` (`crates/xdk/src/store/layout.rs:85-96`), `lock_path_for` (`crates/xdk/src/store/lock.rs:30-34`)                                     |
-| M2     | M takes `~/.xurl.lock`, waiting for the inode it opened                                                                                                                                         | `StoreLock::acquire` (`crates/xdk/src/store/lock.rs:57-85`)                                                                                                   |
-| M3     | M keeps a stranded file as `.bak` when `~/.xurl/auth.yml` exists                                                                                                                                | `finish_interrupted_move` (`crates/xdk/src/store/layout.rs:200-203`), `keep_as_backup` (`:247-259`)                                                           |
-| M4     | M creates `~/.xurl/` and takes the stranded file's lock                                                                                                                                         | `crates/xdk/src/store/layout.rs:204-207`                                                                                                                      |
-| M5     | M renames the stranded file to `~/.xurl/auth.yml`, releases its lock, and carries both layouts' pending files while removing their lock files                                                   | `crates/xdk/src/store/layout.rs:208-212`, `move_sidecars` (`:264-272`)                                                                                        |
-| M6     | M renames `~/.xurl` to `~/.xurl.migrating`, after keeping an older stranded file as `.bak`                                                                                                      | `move_into_directory` (`crates/xdk/src/store/layout.rs:226-231`)                                                                                              |
-| M7     | M creates `~/.xurl/`                                                                                                                                                                            | `crates/xdk/src/store/layout.rs:232`, `create_store_dir` (`:309-318`)                                                                                         |
-| M8     | M renames `~/.xurl.migrating` to `~/.xurl/auth.yml`                                                                                                                                             | `crates/xdk/src/store/layout.rs:236`                                                                                                                          |
-| M9     | a step that fails undoes the ones before it                                                                                                                                                     | `crates/xdk/src/store/layout.rs:232-240`                                                                                                                      |
-| M10    | M carries `~/.xurl.pending` into the directory and removes `~/.xurl.lock` and `~/.xurl.refresh.lock` while it still holds the first                                                             | `crates/xdk/src/store/layout.rs:105`, `move_sidecars` (`:264-272`)                                                                                            |
-| M11    | M releases `~/.xurl.lock`                                                                                                                                                                       | drop of `StoreLock` (`crates/xdk/src/store/lock.rs:93-100`) at the end of `adopt_directory_layout` (`crates/xdk/src/store/layout.rs:125`)                     |
-| MCrash | M dies at any point; a later run starts at M1                                                                                                                                                   | A5; `crates/xurl-cli/src/cli/runner.rs:452`                                                                                                                   |
-| W1     | W locates the store once: `~/.xurl` while it is a file, `~/.xurl.migrating` while it is stranded and no `auth.yml` exists, `auth.yml` otherwise                                                 | `locate_store` (`crates/xdk/src/store/layout.rs:63-68`), `path_to_open` (`:143-153`), `is_own_stranded_store` (`:159-171`)                                    |
-| W2     | W opens the lock sidecar beside its path, creating it when missing                                                                                                                              | `StoreLock::acquire` (`crates/xdk/src/store/lock.rs:57-78`)                                                                                                   |
-| W3     | W runs one locked update once the inode it opened is free: it re-reads its path (a directory is unreadable and refused, a missing file is a fresh store), writes, saves by rename, and releases | `TokenStore::update` (`crates/xdk/src/store/mod.rs:745-767`), `load_backing_file` (`:242-263`), `write_atomically` (`crates/xdk/src/store/atomic.rs:214-234`) |
-| W4     | W refreshes: under `<its path>.refresh.lock` it re-reads, sends the grant, then saves through W3                                                                                                | model 1's P2 to P5 at this grain (lines pinned after #645)                                                                                                    |
-| R1     | R refreshes the same login through `~/.xurl/auth.yml` under `~/.xurl/auth.yml.refresh.lock`                                                                                                     | as W4, at the new path                                                                                                                                        |
-| Done   | every process has returned or died                                                                                                                                                              |                                                                                                                                                               |
+| Action | What happens                                                                                                                                                                                                                                                                                                                                              | Code                                                                                                                                                                                          |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1     | M finds a single-file store at `~/.xurl` or a stranded `~/.xurl.migrating`, and opens `~/.xurl.lock`                                                                                                                                                                                                                                                      | `adopt_directory_layout` (`crates/xdk/src/store/layout.rs:85-96`), `lock_path_for` (`crates/xdk/src/store/lock.rs:30-34`)                                                                     |
+| M2     | M takes `~/.xurl.lock`, waiting for the inode it opened                                                                                                                                                                                                                                                                                                   | `StoreLock::acquire` (`crates/xdk/src/store/lock.rs:57-85`)                                                                                                                                   |
+| M3     | M keeps a stranded file as `.bak` when `~/.xurl/auth.yml` exists                                                                                                                                                                                                                                                                                          | `finish_interrupted_move` (`crates/xdk/src/store/layout.rs:200-203`), `keep_as_backup` (`:247-259`)                                                                                           |
+| M4     | M creates `~/.xurl/` and takes the stranded file's lock                                                                                                                                                                                                                                                                                                   | `crates/xdk/src/store/layout.rs:204-207`                                                                                                                                                      |
+| M5     | M renames the stranded file to `~/.xurl/auth.yml`, releases its lock, and carries both layouts' pending files while removing their lock files                                                                                                                                                                                                             | `crates/xdk/src/store/layout.rs:208-212`, `move_sidecars` (`:264-272`)                                                                                                                        |
+| M6     | M renames `~/.xurl` to `~/.xurl.migrating`, after keeping an older stranded file as `.bak`                                                                                                                                                                                                                                                                | `move_into_directory` (`crates/xdk/src/store/layout.rs:226-231`)                                                                                                                              |
+| M7     | M creates `~/.xurl/`                                                                                                                                                                                                                                                                                                                                      | `crates/xdk/src/store/layout.rs:232`, `create_store_dir` (`:309-318`)                                                                                                                         |
+| M8     | M renames `~/.xurl.migrating` to `~/.xurl/auth.yml`                                                                                                                                                                                                                                                                                                       | `crates/xdk/src/store/layout.rs:236`                                                                                                                                                          |
+| M9     | a step that fails undoes the ones before it                                                                                                                                                                                                                                                                                                               | `crates/xdk/src/store/layout.rs:232-240`                                                                                                                                                      |
+| M10    | M carries `~/.xurl.pending` into the directory and removes `~/.xurl.lock` and `~/.xurl.refresh.lock` while it still holds the first                                                                                                                                                                                                                       | `crates/xdk/src/store/layout.rs:105`, `move_sidecars` (`:264-272`)                                                                                                                            |
+| M11    | M releases `~/.xurl.lock`                                                                                                                                                                                                                                                                                                                                 | drop of `StoreLock` (`crates/xdk/src/store/lock.rs:93-100`) at the end of `adopt_directory_layout` (`crates/xdk/src/store/layout.rs:125`)                                                     |
+| MCrash | M dies at any point; a later run starts at M1                                                                                                                                                                                                                                                                                                             | A5; `crates/xurl-cli/src/cli/runner.rs:452`                                                                                                                                                   |
+| W1     | W locates the store once: `~/.xurl` while it is a file, `~/.xurl.migrating` while it is stranded and no `auth.yml` exists, `auth.yml` otherwise                                                                                                                                                                                                           | `locate_store` (`crates/xdk/src/store/layout.rs:63-68`), `path_to_open` (`:143-153`), `is_own_stranded_store` (`:159-171`)                                                                    |
+| W2     | W opens the lock sidecar beside its path, creating it when missing                                                                                                                                                                                                                                                                                        | `StoreLock::acquire` (`crates/xdk/src/store/lock.rs:57-78`)                                                                                                                                   |
+| W3     | W runs one locked update once the inode it opened is free: it re-reads its path (a directory is unreadable and refused; a missing file is a fresh store, where a write to a named app is refused, a write to the default app creates it, and a refresh's guarded save writes nothing yet the fresh store is saved), writes, saves by rename, and releases | `TokenStore::update` (`crates/xdk/src/store/mod.rs:745-767`), `load_backing_file` (`:242-263`), `resolve_app_mut` (`:685-693`), `write_atomically` (`crates/xdk/src/store/atomic.rs:214-234`) |
+| W4     | W refreshes: under `<its path>.refresh.lock` it re-reads, sends the grant, then saves through W3                                                                                                                                                                                                                                                          | model 1's P2 to P5 at this grain (lines pinned after #645)                                                                                                                                    |
+| R1     | R refreshes the same login through `~/.xurl/auth.yml` under `~/.xurl/auth.yml.refresh.lock`                                                                                                                                                                                                                                                               | as W4, at the new path                                                                                                                                                                        |
+| Done   | every process has returned or died                                                                                                                                                                                                                                                                                                                        |                                                                                                                                                                                               |
 
 | Rule                              | Sentence                                                                                                                             | Harm if it breaks                                                                | Broken variant that must break it                                                                                                            |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -688,7 +692,7 @@ changes. Recommended.**
 | A replay needs a seam the code does not have                             | KTD6, and a stop condition                                                                                                              |
 | #645 moves the refresh path again before it merges                       | KTD9: those refs wait for the merge commit                                                                                              |
 | F's fixes move `auth` and `store` lines under plan M's mutation baseline | order doc rule 1: F's fixes land first (KD4)                                                                                            |
-| Plan R's U6 moves the test files a replay lands in                       | KTD8: the replay goes where U6 puts that module                                                                                         |
+| Plan R's U2 moves the test files a replay lands in                       | KTD8: the replay goes where U2 puts that module                                                                                         |
 | X allows a grace period after all, or refuses differently                | A1 is the stricter case; a looser X only removes counterexamples                                                                        |
 
 ---
@@ -696,8 +700,10 @@ changes. Recommended.**
 ## Implementation Units
 
 Units run as the agent-slot skill lays out for a slot: each in a slot of its own, on a branch cut from `dev`, reporting
-to the repo prime. Models are written in a scratch folder outside the repo, as the `statechart` skill asks, until U6
-gives them their place.
+to the repo prime. Models are written in one folder under the prime checkout's `.context/`, which git ignores and no
+clone holds, so they stay outside the repo as the `statechart` skill asks, until U6 gives them their place. Each unit
+runs in a slot of its own, and `.context/` is where a slot writes into its prime (agent-slot skill), so each later unit
+reads the earlier units' specs and reports there.
 
 ### U1. Model 1: the store writers
 
@@ -705,8 +711,8 @@ gives them their place.
   variant.
 - **Requirements:** R1 to R5, R8; KD6.
 - **Dependencies:** #645 to #647 merged; KTD9's pins taken at the merge commit.
-- **Files:** none in the repo. The spec, one config per setting, the chart config, and `view.mjs` sit in a scratch
-  folder.
+- **Files:** none in the repo. The spec, one config per setting, the chart config, and `view.mjs` sit in the models'
+  folder under the prime's `.context/` (§ "Implementation Units").
 - **Approach:**
   1. Read the code at the sync commit, and write the action table again with its `file:line` pins.
   2. Write the spec from § "Model 1": the abstract peer (KTD3), the constants (KTD4), history variables set only by the
@@ -714,8 +720,10 @@ gives them their place.
   3. Write `view.mjs` in the reader's words: P's phase as the state, nested under "holding the refresh lock", and each
      step as the user sees it happen. Aim for about 20 arrows; give every step on a bug path a label, never `null`.
   4. Run every config through `statechart` with a fresh `--out` folder each time, and read `report.md`.
-  5. For each rule, run its broken-variant config, confirm the break, and confirm the rule holds again without the
-     variant (R5).
+  5. For each rule, run its broken-variant config on a setting whose code config holds the rule (`Writer = "store"` with
+     `RefreshLockHolds = TRUE` in model 1), confirm the break, and confirm the rule holds again there without the
+     variant (R5). A break the code config shows in another setting is that config's recorded verdict (U6), not a failed
+     check. A rule the code breaks in every setting goes to U4 first, and its break-and-catch runs on the fixed code.
   6. Hand each break that is not an assumption's consequence to U4. The `Writer = "hook"` break of `LandsWhereRead` is
      H2/H4 (KD6).
 - **Patterns to follow:** the prior run's peer variable and its deadline-as-event actions
@@ -771,8 +779,10 @@ gives them their place.
 - **Requirements:** R6, R7.
 - **Dependencies:** the model whose break it replays.
 - **Files:** `crates/xdk/tests/saved_identity_tests.rs` (refresh paths), `crates/xdk/tests/auth_pending_tests.rs`
-  (headless paths), and a new `crates/xdk/tests/store_layout_tests.rs` (layout paths), or their places under plan R's U6
-  (KTD8). Each test is written on the fix branch of U5; a replay that does not reproduce is not committed.
+  (headless paths), and a new `crates/xdk/tests/store_layout_tests.rs` (layout paths); if R U2 is on `dev` when the fix
+  PR is cut, a module declared in `crates/xdk/tests/all/main.rs` instead, or under `crates/xdk/tests/isolated/` if it
+  mutates the environment (KTD8). Each test is written on the fix branch of U5; a replay that does not reproduce is not
+  committed.
 - **Approach:**
   1. Turn the report's shortest path into test steps, one per action, each step through the seam KTD6 names for its
      kind.
@@ -796,14 +806,14 @@ gives them their place.
   - An in-code credential and an `xr` refresh of the same login send one refresh token in two grants, counted by the
     stateful responder (P8). The control runs the in-code refresh alone, and an `xr` call after it finds the stored pair
     fresh and sends no grant.
-  - A handle located at `~/.xurl.migrating` keeps writing there after the move finishes, and its write is missing from
-    the store a fresh `locate_store` opens (Q-L2). The control is a handle located after the move, whose write is in
-    `auth.yml`.
+  - A handle located at `~/.xurl.migrating` keeps writing there under the default app after the move finishes (a named
+    app's write is refused there, W3), and its write is missing from the store a fresh `locate_store` opens (Q-L2). The
+    control is a handle located after the move, whose write is in `auth.yml`.
   - A refresh through `~/.xurl` and one through `~/.xurl/auth.yml` send one refresh token in two grants, counted by the
     stateful responder (Q-L4). The control holds both refreshes on one path, and the responder sees one grant.
-  - A handle on `~/.xurl.migrating` writes twice after the move, with an `adopt_directory_layout` call after each write,
-    and the second `.bak` replaces the first, so the first write is in no file (Q-L5). The control writes once, and its
-    write is in `~/.xurl.migrating.bak`.
+  - A handle on `~/.xurl.migrating` writes twice under the default app after the move, with an `adopt_directory_layout`
+    call after each write, and the second `.bak` replaces the first, so the first write is in no file (Q-L5). The
+    control writes once, and its write is in `~/.xurl.migrating.bak`.
 - **Verification:** each replay's failure on the unfixed code is quoted in its fix PR, and each control passes; the
   guards in `AGENTS.md` § "Testing" pass (`store_isolation_guard`, `env_mutation_guard`).
 
@@ -813,7 +823,7 @@ gives them their place.
 - **Requirements:** R7; KD4, KD6.
 - **Dependencies:** U4's verdict for that bug.
 - **Files:** the product file the bug lives in under `crates/xdk/src/store/` or `crates/xdk/src/auth/`, and the replay's
-  test file (KTD8).
+  test file: in R U2's layout if R U2 is on `dev` when the PR is cut, at the top level otherwise (KTD8).
 - **Approach:**
   1. One `fix(...)` branch from `dev` per bug, with a `### Fixed` changelog entry in the PR body under `xdk-rs`, and
      under `xurl-rs` too when `xr` users see the change.
@@ -857,24 +867,28 @@ gives them their place.
        and headless sign-in functions in `crates/xdk/src/auth/`, `crates/xurl-cli/src/cli/runner.rs`, the step hints in
        `crates/xurl-cli/src/cli/hints.rs`), so a change to them lists the skill. It sets no `disable-model-invocation`,
        which every pstack skill sets and which would hide this one from every agent.
-     - **A first step that answers "does this concern me" in seconds:** `git diff --stat <sync commit> HEAD --` followed
-       by the covered files, copied from the coverage record. No output ends the check as in sync with nothing to run.
-       Otherwise the skill maps each changed file to the model and actions that name it, and says that rerunning an
-       unchanged spec proves nothing about the code: the agent first compares the changed functions with the action
-       table and updates the spec where the code changed shape, then reruns that model.
+     - **A first step that answers "does this concern me" in seconds:** `git diff --stat <sync commit> --` followed by
+       the covered files, copied from the coverage record. It compares the working tree, so a change not yet committed
+       counts. No output ends the check as in sync with nothing to run. Otherwise the skill maps each changed file to
+       the model and actions that name it, and says that rerunning an unchanged spec proves nothing about the code: the
+       agent first compares the changed functions with the action table and updates the spec where the code changed
+       shape, then reruns that model.
      - **Prerequisites with a check each:** Java 11 or later (`java -version`); the pinned `tla2tools.jar` (v1.7.4 and
        its sha256), fetched once into a cache folder outside the repo and checked with `sha256sum -c`, since
        `statechart` does not check a jar named by `TLA2TOOLS`; and pstack for `/statechart`. pstack is not a Claude Code
        plugin on this machine, and its skills refuse the `Skill` tool, so the skill says that Claude Code reads a pstack
        skill by file as pstack's `docs/harness/claude-code.md` maps it, records no machine path to it, and names
        `https://github.com/cursor/plugins` (the `pstack` folder) for an agent that finds no copy.
-     - **One rerun command** for a model or all three: plain TLC with the pinned jar on each config, with TLC's metadata
-       folder outside the repo (`-metadir`), comparing each run's verdict with the verdict the config records for
-       itself. A code config records the rules it holds and, by finding or assumption ID, each break U1 to U3 found on
-       the code and left open, such as, under `Writer = "hook"`, `LandsWhereRead` (H2/H4) and `SingleSpend` and
-       `NoGrantWithoutKeep` (P8) until KD6 is settled; under `RefreshLockHolds = FALSE`, `SingleSpend` (A2). A
-       broken-variant config checks only the rule it must break. The skill records the sweep's measured time at its sync
-       commit.
+     - **One rerun command** for a model or all three: plain TLC with the pinned jar, one run per rule of each config,
+       with that rule as the run's only `INVARIANT` in a copy of the config written outside the repo, and TLC's metadata
+       folder outside the repo (`-metadir`). TLC stops at the first rule a run breaks, so one run over all of a config's
+       rules reports one expected break and leaves the rest unchecked; `statechart` reruns without each broken rule for
+       the same reason (`statechart/scripts/run.ts:330-380`). The command compares each rule's verdict with the verdict
+       the config records for it. A code config records the rules it holds and, by finding or assumption ID, each break
+       U1 to U3 found on the code and left open, such as, under `Writer = "hook"`, `LandsWhereRead` (H2/H4) and
+       `SingleSpend` and `NoGrantWithoutKeep` (P8) until KD6 is settled; under `RefreshLockHolds = FALSE`, `SingleSpend`
+       (A2). A broken-variant config checks only the rule it must break. The skill records the sweep's measured time at
+       its sync commit.
      - **What each failure means and what to do next**, ending in the maintain skill's four outcomes (in sync, updated,
        bug, blocked) as a result line per model, `<model>: <outcome>, <reason>`: Java missing or older than 11, a
        checksum mismatch after one fresh fetch, or no pstack copy is blocked; a TLC parse or Java error is blocked, with
@@ -938,10 +952,10 @@ gives them their place.
 | Gate               | Command or check                                                                                                           | Applies to         |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | Model check        | `statechart` with `TLA2TOOLS` and `JAVA` set, a fresh `--out` folder per run, `report.md` read in place of the exit status | U1, U2, U3, U6, U8 |
-| Break and catch    | each rule's broken-variant config breaks it, and the code config holds it                                                  | U1, U2, U3, U6     |
+| Break and catch    | each rule's broken-variant config breaks it, and the code config of the same setting holds it (U1 step 5)                  | U1, U2, U3, U6     |
 | Verify skill run   | U6 step 2 from a cold start: the first step names the scratch change, the rerun breaks its rule, `git status` stays clean  | U6                 |
 | Replay fails first | the replay run on the unfixed code, its failure quoted, then on the fix                                                    | U4, U5             |
-| One test binary    | `cargo nextest run -p xdk-rs --test <file>`                                                                                | U4, U5             |
+| One test binary    | `cargo nextest run -p xdk-rs --test <file>`, or `--test all <module>::` once plan R's U2 has landed (KTD8)                 | U4, U5             |
 | Suite              | `cargo nextest run --workspace` and `cargo test --doc --workspace`                                                         | U5                 |
 | Local CI mirror    | `scripts/hooks/pre-push`                                                                                                   | U5, U7             |
 | Test guards        | `store_isolation_guard`, `env_mutation_guard`, and `walk_tests` pass                                                       | U4, U5             |
@@ -1117,6 +1131,86 @@ expected verdicts carry those breaks until then. The verify skill's name, which 
 KD6 holds gate plan M's `store` and `auth` mutation run. Whether to add the `scripts/cargo-inputs.paths` exclusion, or
 any item this review lists as considered and not built.
 
+### `/compound-engineering:ce-doc-review`
+
+One round, run unattended as one Opus process in `mode:non-interactive`, on the plan as pushed at `1279c37` (the tree at
+`13a1010`, whose `crates/` is `dev` 492e187's). The document is a unified plan. Its credential store would activate the
+security and adversarial lenses, which run the review at full depth; full depth did not run, because this repo reviews
+without subagents. The skill's lite path ran inline instead, one pass applying the coherence, feasibility, and
+scope-guardian lenses, so the review was not independent of the process that applied its fixes. No outside voice, codex,
+or cross-model pass ran. Edits were limited to the implementation and verification sections, under the brief's grant to
+correct them to satisfy the Product Contract; no Product Contract text, `session-settled:` annotation, or decision left
+to Brett changed. Every question was answered from the code, `AGENTS.md`, plan R's text, the pstack skill files, and
+`qmd query ... --collection solutions`, taking the recommended option where the evidence settled nothing. Verdict:
+issues open, seven findings (P0 0, P1 2), every remedy applied after a check against the code or the tool's source.
+
+**Findings.**
+
+- P1. U6's rerun command ran plain TLC once on each config. TLC stops at the first invariant a run breaks, and the code
+  configs under `Writer = "hook"` break three rules by design, so one run reports one expected break and checks no other
+  rule: a rule a change broke reads as in sync. `statechart` reruns without each broken rule for this reason
+  (`statechart/scripts/run.ts:330-380`). Changed: U6 runs TLC once per rule, that rule the run's only `INVARIANT`, and
+  compares each rule's verdict; U7 runs the same command.
+- P1. U6's first step was `git diff --stat <sync commit> HEAD --`, which compares two commits and omits the working
+  tree. The skill's reader is an agent mid-change, whose edit to covered code is not yet committed, so the step reported
+  "nothing to run" for the change it guards. Changed: `git diff --stat <sync commit> --`, which compares the working
+  tree.
+- P2. KTD8, U4, and § "Risks" named "plan R's U6" for the merged test layout. In plan R it is U2 (the CI plan's CI-U6),
+  which moves `crates/xdk/tests/*.rs` into `tests/all/` and `tests/isolated/`, and whose `test_layout_guard` fails a new
+  top-level test file (`test-layout/stray-file`) and an undeclared module; plan R's own record flags the wrong number
+  for the prime. After U2, KTD8's new `store_layout_tests.rs` would fail that guard, and the gate `--test <file>` names
+  no binary. Changed: KTD8, U4's Files, the Risks row, and the "One test binary" gate.
+- P2. U1 step 5 and the "Break and catch" gate asked that the code config hold each rule once its broken variant is
+  dropped. KTD4 runs every setting, and U6 records breaks the code shows by design (`LandsWhereRead`, `SingleSpend`, and
+  `NoGrantWithoutKeep` under `Writer = "hook"`; `SingleSpend` under `RefreshLockHolds = FALSE`), so the gate as written
+  could not pass while KD6 is open. Changed: the variant runs on a setting whose code config holds the rule, a break in
+  another setting is that config's recorded verdict, and a rule the code breaks in every setting goes to U4 first.
+- P2. Each unit runs in a slot of its own, and U2, U3, U4, and U6 read the specs and reports earlier units wrote, but
+  the plan put each model in an unnamed scratch folder. A slot writes into its prime only in `.context/` (agent-slot
+  `SKILL.md`, "Work only in the slot"), and `statechart` asks for a folder outside the repo, which `.context/` is for
+  every clone. Changed: § "Implementation Units" and U1's Files put the models in one folder under the prime's
+  `.context/` until U6 places them.
+- P2. Model 2's W3 said a missing file re-reads as a fresh store and the write saves. On a fresh store a write to a
+  named app is refused (`refuse_if_app_missing`, `crates/xdk/src/store/mod.rs:335-341`), a write to the default app
+  creates it (`resolve_app_mut`, `:685-693`), and a refresh's guarded save finds no token it was minted from and writes
+  nothing, yet `update` still saves the fresh store (`:764-765`). A Q-L2 or Q-L5 replay through a named app would not
+  reproduce, and R7 would then call a correct model wrong. Changed: W3's row, and U4's Q-L2 and Q-L5 scenarios write
+  under the default app.
+- P3. Model 3's sequence diagram had S2d store "under the flow's app". Step 2 stores under the app the run names
+  (`exchange_code_for_token` uses `auth.app_name()`), as S2d's row says; the diagram stated `SavedUnderStep1App` as the
+  code. Changed: the diagram says "the run's app".
+
+**Noted, not acted on.** The Goal Capsule's "one change that adds the verification" reads against U6, whose skill grows
+a section as each later model passes, each in a change of its own (KTD7); the Goal Capsule is outside the edit grant,
+and either reading builds the same files. The "Model check" gate lists U6, whose rerun is plain TLC with `/statechart`
+for reading results; nothing runs differently. R8 holds: every finding of `.context/state-machines-2026-11-26.md` in
+targets 1 to 3 (S2 to S7, R1, H2, H4, Issues 1 and 1b, P1, P2, P8, and § 5's items) has a row in § "Cross-check". About
+40 `file:line` refs were checked against the tree, and all hold.
+
+**Questions raised and the answers chosen.**
+
+| D   | Question                                                                  | Answer                                                                           | Evidence                                                                                                  |
+| --- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| D1  | Review depth?                                                             | Lite, inline; full depth did not run                                             | the credential store activates security and adversarial; this repo reviews without subagents; the brief   |
+| D2  | Do the plan's pins match the tree?                                        | Yes                                                                              | `git diff --stat 492e187 HEAD -- crates/` is empty; about 40 refs read in place                           |
+| D3  | Can one plain TLC run per config give every rule's verdict?               | No; one run per rule                                                             | TLC halts at the first violated invariant; `statechart/scripts/run.ts:330-380` reruns per rule            |
+| D4  | Should U6's first step see uncommitted changes?                           | Yes; compare the working tree                                                    | `git diff <commit> --` semantics; the devex review's persona, an agent mid-change                         |
+| D5  | Which unit of plan R merges the test binaries, and what does it ask of F? | U2; a module of `tests/all/` declared in `main.rs`                               | plan R § U2 and its record's note for the prime; `test_layout_guard`'s `test-layout/stray-file`           |
+| D6  | On which setting does a broken variant run?                               | One whose code config holds the rule; model 1's is `Writer = "store"`, lock held | U6's recorded breaks; KD6; A2                                                                             |
+| D7  | Where do the models live between units in different slots?                | One folder under the prime's `.context/`                                         | agent-slot `SKILL.md` ("Work only in the slot"); `statechart/SKILL.md:13`; option (c) uses the same place |
+| D8  | Does a write on a missing stranded file succeed (Q-L2, Q-L5)?             | For the default app only; a refresh's guarded save writes nothing but saves      | `crates/xdk/src/store/mod.rs:335-341`, `:685-693`, `:764-765`; `crates/xdk/src/store/tokens.rs:136-147`   |
+| D9  | Does step 2 store under the flow's app or the run's?                      | The run's                                                                        | `exchange_code_for_token`, `crates/xdk/src/auth/oauth2.rs` (`auth.app_name()`); `check_flow`              |
+| D10 | Does R8's cross-check cover the 2026-11-26 audit?                         | Yes                                                                              | the audit's §§ 1 to 5, read in full; the 2026-11-10 file was not opened (KD2)                             |
+| D11 | Fix the Goal Capsule's "one change" wording?                              | No; noted                                                                        | outside the implementation and verification sections the brief opens                                      |
+| D12 | Add a script that runs the per-rule loop for the skill and U7?            | No; it stays under "Scope Boundaries" as considered and not built                | § "Scope Boundaries"; the smallest-change rule                                                            |
+| D13 | Any decision left beyond those the plan already reserves?                 | No new one                                                                       | KD5, KD6, and the earlier reviews' lists                                                                  |
+
+**Decisions only Brett can make.** Where the model lives (KD5): (a), (b), or (c), left open; under (a) and (b) the
+committed expected verdicts name H2/H4 and P8 as open breaks on `main`. The `OnTokenRefreshed` API for H2/H4, and for P8
+if its fix needs one (KD6); no API is proposed. The verify skill's name, which cannot be `verify`. Whether the fixes KD6
+holds gate plan M's `store` and `auth` mutation run. Whether to build any item § "Scope Boundaries" lists as considered
+and not built.
+
 ## Review log
 
 - 2026-11-27: plan written. Target 1's refs into `crates/xdk/src/auth/oauth2.rs` wait on #645 (open). Pending:
@@ -1133,12 +1227,23 @@ any item this review lists as considered and not built.
   runs because the plan adds a verify skill an agent runs and, under option (a), a CI job.
 - 2026-11-27: `/plan-devex-review` ended: issues open, twelve findings (P0 0, P1 5), all applied once checked: the
   three-line `.gitignore` in a scratch repo against `~/.config/git/ignore:8`, `disable-model-invocation: true` in 58 of
-  pstack's 59 skills, `statechart/scripts/run.ts:186-188`, and the `!.claude/**` lint glob (`.github/workflows/ci.yml:207`).
-  The decisions left to Brett are unchanged, plus the items it lists as considered and not built (§ "Review record").
-  Changed: U6's `.gitignore` lines start with `!.claude/`; U6 carries invocable frontmatter, a first step that checks
-  the diff against the coverage record, prerequisites with the pstack route in Claude Code, one plain-TLC rerun command
-  with each config's expected verdict, known breaks included, and a failure guide; U6 step 2 says what a catch is and
-  runs from a cold start; under (a), U7 triggers on the skill's folder only, and its red run tells the agent it halts
-  what to do.
-- 2026-11-27: `/compound-engineering:ce-doc-review mode:non-interactive` started, one round, as its own Opus process,
-  on the plan as pushed at `1279c37`.
+  pstack's 59 skills, `statechart/scripts/run.ts:186-188`, and the `!.claude/**` lint glob
+  (`.github/workflows/ci.yml:207`). The decisions left to Brett are unchanged, plus the items it lists as considered and
+  not built (§ "Review record"). Changed: U6's `.gitignore` lines start with `!.claude/`; U6 carries invocable
+  frontmatter, a first step that checks the diff against the coverage record, prerequisites with the pstack route in
+  Claude Code, one plain-TLC rerun command with each config's expected verdict, known breaks included, and a failure
+  guide; U6 step 2 says what a catch is and runs from a cold start; under (a), U7 triggers on the skill's folder only,
+  and its red run tells the agent it halts what to do.
+- 2026-11-27: `/compound-engineering:ce-doc-review mode:non-interactive` started, one round, as its own Opus process, on
+  the plan as pushed at `1279c37`.
+- 2026-11-27: `/compound-engineering:ce-doc-review` ended: lite path inline (full depth did not run, since this repo
+  reviews without subagents), issues open, seven findings (P0 0, P1 2), all applied once checked against the code or
+  the tool's source; the decisions left to Brett are unchanged (§ "Review record"). Changed: U6 reruns TLC once per rule
+  and diffs the working tree against the sync commit; KTD8, U4, the Risks row, and the test-binary gate name plan R's U2
+  and its `tests/all/` layout; U1 step 5 and the break-and-catch gate run each variant on a setting whose code config
+  holds the rule; the models live in one folder under the prime's `.context/`; model 2's W3 and U4's Q-L2 and Q-L5
+  scenarios carry the fresh store's handling of named and default apps; model 3's diagram stores under the run's app.
+- 2026-11-27: applied two fixes from plan R's eng review, sent by the repo prime: the merged test layout is cited as R
+  U2, and KTD8, U4, and U5 say where a replay goes, in R U2's layout (`tests/all/` or `tests/isolated/`) if R U2 is on
+  `dev` when the fix PR is cut, at the top level otherwise, for U2 to move. Checked against plan R's U2
+  (`test-layout/stray-file`, its open-PR listing before the move commit).
