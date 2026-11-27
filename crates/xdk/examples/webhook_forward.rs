@@ -73,7 +73,9 @@ async fn run() -> xdk::Result<()> {
         Ok(())
     });
     while let Some(event) = receiver.next_event().await {
-        let _ = queue.send(event);
+        if queue.send(event).is_err() {
+            break;
+        }
     }
     receiver.close().await;
     drop(queue);

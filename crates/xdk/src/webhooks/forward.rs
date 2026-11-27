@@ -88,7 +88,7 @@ impl From<AttemptTimedOut> for ForwardFailure {
 ///     // X is answered once `next_event` returns an event, so the forwards run
 ///     // in a task of their own and a slow target never holds that answer.
 ///     let (queue, mut queued) = tokio::sync::mpsc::unbounded_channel();
-///     tokio::spawn(async move {
+///     let forwarding = tokio::spawn(async move {
 ///         while let Some(event) = queued.recv().await {
 ///             let outcome = target.forward(&event, &budget).await;
 ///             println!("{} attempt(s): {:?}", outcome.attempts, outcome.result);
@@ -97,6 +97,9 @@ impl From<AttemptTimedOut> for ForwardFailure {
 ///     while let Some(event) = receiver.next_event().await {
 ///         let _ = queue.send(event);
 ///     }
+///     receiver.close().await;
+///     drop(queue);
+///     forwarding.await.expect("the forwarding task");
 ///     Ok(())
 /// }
 /// ```
