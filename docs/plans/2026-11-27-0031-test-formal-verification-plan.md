@@ -125,6 +125,9 @@ reads. Plan M's mutation runs on `auth` and `store` need the fixed code under th
 - Considered and not built: a TLC job that blocks a merge (none of the three options asks for one; a red model run is a
   finding to triage, not a gate), and a fault-injection seam in product code for replays (KTD6 says when one would be
   needed, and that case is a stop condition).
+- Considered and not built: a `!.claude/skills/<skill name>` entry in a new `scripts/cargo-inputs.paths`, which would
+  let a change to the verification files alone skip the Rust battery under (a) or (b) (§ "Where the model lives"). It is
+  a config entry the brief does not name.
 
 ### Success Criteria
 
@@ -133,18 +136,18 @@ reads. Plan M's mutation runs on `auth` and `store` need the fixed code under th
 
 ### Sources
 
-- `~/dev/xurl-rs/.context/2026-11-26-pstack-skills-audit.md`, § "Why formal verification fits xurl-rs
-  specifically" through § "How a run would go": targets, candidate rules, and the location options. Its `file:line` refs
-  are at `dev` 492e187.
+- `~/dev/xurl-rs/.context/2026-11-26-pstack-skills-audit.md`, § "Why formal verification fits xurl-rs specifically"
+  through § "How a run would go": targets, candidate rules, and the location options. Its `file:line` refs are at `dev`
+  492e187.
 - `docs/solutions/best-practices/model-check-a-request-lifecycle-with-one-request-and-an-abstract-peer.md`: the prior
   run's method and its tooling gotchas.
 - `~/github-stars/cursor/plugins/pstack/skills/create-formal-verification-skill/SKILL.md`, `statechart/SKILL.md`, and
   `maintain-formal-verification-skill/SKILL.md`, read through
   `~/github-stars/cursor/plugins/pstack/docs/harness/claude-code.md`.
-- `~/dev/xurl-rs/.context/2026-11-26-cleanup-order-of-events.md`: § "The rules that fix the order", Phase 3,
-  Phase 5 step 4, Phase 6 step 3, and § "Parallel tracks".
-- `~/dev/xurl-rs/.context/state-machines-2026-11-26.md`, read only after the actions and rules below were
-  drafted, as a cross-check (§ "Cross-check").
+- `~/dev/xurl-rs/.context/2026-11-26-cleanup-order-of-events.md`: § "The rules that fix the order", Phase 3, Phase 5
+  step 4, Phase 6 step 3, and § "Parallel tracks".
+- `~/dev/xurl-rs/.context/state-machines-2026-11-26.md`, read only after the actions and rules below were drafted, as a
+  cross-check (§ "Cross-check").
 - PR #645 (`fix/state-machines-01-rotated-pair-stored-where-read`), open at the time of writing; it changes
   `refresh_oauth2_token` in `crates/xdk/src/auth/oauth2.rs`.
 
@@ -171,12 +174,14 @@ reads. Plan M's mutation runs on `auth` and `store` need the fixed code under th
   act is one locked `TokenStore::update`, as the prior run collapsed every other run of a target into one variable. A
   second full refresher would double the state space and hide the lifecycle in the chart.
 - KTD4. **A constant per known bypass, and a config per setting.** Model 1: `Writer` (`"store"` for
-  `refresh_oauth2_token`, `"hook"` for the in-code credential with `StoreRefreshHook`) and `RefreshLockHolds` (TRUE on a
-  filesystem that honours `flock`, FALSE for one that does not, A2). Model 2: `LongLivedHandle` (TRUE when an embedder,
-  an older `xr`, or an `xr` whose own move failed holds a path it located before the move; FALSE when only `xr`
-  processes run, which move the store before they open it, `crates/xurl-cli/src/cli/runner.rs:452`). Model 3:
-  `SharedClientId` (two stored apps carry one client id). Each model runs every setting, so a break that needs a bypass
-  is told apart from one that does not.
+  `refresh_oauth2_token`, `"hook"` for the in-code credential with a `StoreRefreshHook` built for the default app, the
+  store's own `OnTokenRefreshed` or `refresh_hook_for("")`, which resolves the app at each write,
+  `crates/xdk/src/store/hook.rs:20-21`, `:42-46`; a hook built for a named app ignores Q7 and meets only H4's path) and
+  `RefreshLockHolds` (TRUE on a filesystem that honours `flock`, FALSE for one that does not, A2). Model 2:
+  `LongLivedHandle` (TRUE when an embedder, an older `xr`, or an `xr` whose own move failed holds a path it located
+  before the move; FALSE when only `xr` processes run, which move the store before they open it,
+  `crates/xurl-cli/src/cli/runner.rs:452`). Model 3: `SharedClientId` (two stored apps carry one client id). Each model
+  runs every setting, so a break that needs a bypass is told apart from one that does not.
 - KTD5. **The rules run at full bounds, and the chart from its own config.** When the rules config passes 500 states,
   `statechart` draws only the bug paths and still checks every rule; a second config with tighter bounds draws the
   passing chart. Each reduction is recorded with the counts before and after it and what it gives up (§ "Feasibility"
@@ -187,15 +192,21 @@ reads. Plan M's mutation runs on `auth` and `store` need the fixed code under th
   takes the crash-and-restart variant of the path when the model has one that ends in the same state; otherwise it is a
   stop condition, since a seam is a change to product code.
 
-| Model action                                               | How the replay takes the step                                                                                                                                                                  |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A peer writes while a request is out                       | A wiremock `Respond` that writes the store when the request arrives, as `ChangeThenAnswer` does in `crates/xdk/tests/saved_identity_tests.rs`                                                  |
-| X rotates, refuses a spent token, or refuses a reused code | A stateful responder that keeps the live refresh tokens and codes and answers `invalid_grant` for a spent one (A1, A3)                                                                         |
-| The answer is lost after X acted                           | The responder records the grant, then answers after the client's timeout                                                                                                                       |
-| A crash or Ctrl-C at an await                              | Drop the future at that await; the disk is what a kill leaves (A5)                                                                                                                             |
-| A crash between two syscalls of one function               | Build the disk state that crash leaves, then take the next action through the public call, as `a_move_interrupted_between_its_renames_is_finished` (`crates/xdk/src/store/layout.rs:421`) does |
-| Another process holds a lock                               | The test opens the sidecar and calls `File::lock` on it, as another process does                                                                                                               |
-| A long-lived handle                                        | A `TokenStore` opened at the path `locate_store` returned, kept across the move                                                                                                                |
+| Model action                                               | How the replay takes the step                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A peer writes while a request is out                       | A wiremock `Respond` that writes the store when the request arrives, as `ChangeThenAnswer` does in `crates/xdk/tests/saved_identity_tests.rs`                                                                                                                                                                                                                                                                                                                                                |
+| X rotates, refuses a spent token, or refuses a reused code | A stateful responder that keeps the live refresh tokens and codes and answers `invalid_grant` for a spent one (A1, A3)                                                                                                                                                                                                                                                                                                                                                                       |
+| The answer is lost after X acted                           | The responder records the grant, then answers after the client's timeout                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| A crash or Ctrl-C at an await                              | Drop the future at that await; the disk is what a kill leaves (A5). At an await on a `spawn_blocking` task, `TokenStore::update_at` (`crates/xdk/src/store/mod.rs:787-794`, H2's save) and `RefreshLock::acquire_off_runtime` (`crates/xdk/src/store/lock.rs:168-172`, P2), a dropped future does not stop a task that has started (tokio 1.54.1, `spawn_blocking` docs), so the write or the lock still happens; there the replay builds the disk state a kill leaves, as the next row does |
+| A crash between two syscalls of one function               | Build the disk state that crash leaves, then take the next action through the public call, as `a_move_interrupted_between_its_renames_is_finished` (`crates/xdk/src/store/layout.rs:421`) does                                                                                                                                                                                                                                                                                               |
+| Another process holds a lock                               | The test opens the sidecar and calls `File::lock` on it, as another process does                                                                                                                                                                                                                                                                                                                                                                                                             |
+| A long-lived handle                                        | A `TokenStore` opened at the path `locate_store` returned, kept across the move                                                                                                                                                                                                                                                                                                                                                                                                              |
+
+  Every other process in a replay runs on a thread of its own. `StoreLock` records the paths each thread holds
+  (`crates/xdk/src/store/lock.rs:58-62`), and an update under a lock its thread already holds runs its closure with no
+  reload and no save (`crates/xdk/src/store/mod.rs:759-761`), so two handles on one thread are not two processes, and a
+  sidecar removed and recreated at one path keeps that record's key. A replay of an embedder's pending path uses
+  `pending_path_for_store` of the temp store, since `store_isolation_guard` refuses `default_pending_path()`.
 
 - KTD7. **Verification files never ride in a fix PR.** Specs, configs, views, and the verify skill change in a change of
   their own, as `maintain-formal-verification-skill` says ("Put the verification updates in a change of their own"). A
@@ -225,8 +236,10 @@ reads. Plan M's mutation runs on `auth` and `store` need the fixed code under th
   out of scope.
 - A5. A dead process's `flock`s are released, and each file is as its last completed rename left it
   (`crates/xdk/src/store/atomic.rs:1-10`); a temp file it left is swept after 60 s
-  (`crates/xdk/src/store/atomic.rs:24-27`, `:58-88`). A dropped future runs destructors a kill skips (the temp-file
-  unlink, the unlock), whose effects the OS gives a kill anyway, so the replay's crash at an await matches a kill.
+  (`crates/xdk/src/store/atomic.rs:24-27`, `:58-88`). A dropped future runs destructors a kill skips: the unlock, whose
+  effect the OS gives a kill anyway, and the temp-file unlink, which a kill leaves to the 60 s sweep. No rule reads a
+  temp file, so the replay's crash at an await matches a kill for every rule, except at the `spawn_blocking` awaits KTD6
+  names.
 - A6. Ctrl-C on an ordinary command kills the process: `xr` installs a signal handler only for the browser sign-in,
   streaming, and `webhooks listen` (`crates/xurl-cli/src/cli/shutdown.rs`, used at
   `crates/xurl-cli/src/cli/commands/auth/signin.rs:156`), so a Ctrl-C during a refresh or a headless step is the crash
@@ -338,30 +351,30 @@ second label, the unnamed slot) the token it holds and whether it carries an acc
 live set. P's phase, the token it read, and the pair it was given. History variables for the rules: the grants each
 refresh token was sent in, and the store as the peer last left it.
 
-| Action | What happens                                                                                                                                              | Code                                                                                                                                                                                                                                                               |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| P1     | P finds its login expired on the view it loaded                                                                                                           | `refresh_oauth2_token`, first `stored_oauth2_token` and `is_expired` (`crates/xdk/src/auth/oauth2.rs`, lines pinned after #645)                                                                                                                                    |
-| P2     | P checks the store can keep a pair, then takes the refresh lock, waiting while another process holds it                                                   | `TokenStore::refuse_unless_writable` (`crates/xdk/src/store/mod.rs:919-935`); `RefreshLock::acquire_off_runtime` (`crates/xdk/src/store/lock.rs:168-172`, `:137-158`)                                                                                              |
-| P3     | P re-reads the store; a pair another process stored meanwhile ends the refresh with that pair, and a store that cannot keep a pair ends it with a refusal | `reload` (`crates/xdk/src/store/mod.rs:800-829`, `load_backing_file` `:242-263`), the second `refuse_unless_writable`, `stored_oauth2_user` (`crates/xdk/src/auth/oauth2.rs`, lines pinned after #645)                                                             |
-| P4     | P sends the grant; X retires the token it was sent and answers with a new pair                                                                            | `refresh_grant` (`crates/xdk/src/auth/oauth2.rs`, lines pinned after #645)                                                                                                                                                                                         |
-| P4L    | the grant reaches X and X acts, but the answer is lost                                                                                                    | `refresh_grant` returning `Error::Http`                                                                                                                                                                                                                            |
-| P4R    | X refuses a token it has retired                                                                                                                          | `token_endpoint::answer` returning `Error::Auth`                                                                                                                                                                                                                   |
-| P5     | P stores the pair where the token it was minted from still sits, under the store lock, by rename                                                          | `put_refreshed_oauth2_token`, `write_oauth2_token` (`crates/xdk/src/store/tokens.rs:115-188`), `MintedFrom::destination` (`:830-854`), `TokenStore::update` (`crates/xdk/src/store/mod.rs:745-767`), `write_atomically` (`crates/xdk/src/store/atomic.rs:214-234`) |
-| P6     | P asks `/2/users/me` for what the store lacks: a name, or the account id                                                                                  | `fetch_identity` in `refresh_oauth2_token` (lines pinned after #645)                                                                                                                                                                                               |
-| P7     | P records the answer on the pair it stored, if that pair is still there                                                                                   | the second `put_refreshed_oauth2_token`, keyed by the rotated token (lines pinned after #645)                                                                                                                                                                      |
-| P8     | P releases the refresh lock and returns the new access token                                                                                              | drop of `RefreshLock` (`crates/xdk/src/store/lock.rs:175-179`)                                                                                                                                                                                                     |
-| H1     | under `Writer = "hook"`: P finds its in-memory credential expired and sends the grant, with no refresh lock and no re-read                                | `Credentials::refresh_oauth2` (`crates/xdk/src/auth/credentials.rs:181-202`)                                                                                                                                                                                       |
-| H2     | the hook stores the pair under the app's default user, else its first OAuth2 user                                                                         | `StoreRefreshHook::on_token_refreshed` (`crates/xdk/src/store/hook.rs:24-66`), `refresh_target_user` (`:95-101`), `TokenStore::update_at` (`crates/xdk/src/store/mod.rs:776-795`)                                                                                  |
-| Crash  | P dies at any phase: a crash, a kill, or Ctrl-C (A6)                                                                                                      | A5                                                                                                                                                                                                                                                                 |
-| Q1     | the peer signs in under the label P is refreshing                                                                                                         | `exchange_code_for_token` (`crates/xdk/src/auth/oauth2.rs`, lines pinned after #645), `put_oauth2_token` and `put_answered_oauth2_token` (`crates/xdk/src/store/tokens.rs:87-108`)                                                                                 |
-| Q2     | the peer clears that login                                                                                                                                | `clear_oauth2_token_for_app` (`crates/xdk/src/store/tokens.rs:697-722`)                                                                                                                                                                                            |
-| Q3     | the peer removes the app                                                                                                                                  | `TokenStore::remove_app` (`crates/xdk/src/store/mod.rs:433-443`)                                                                                                                                                                                                   |
-| Q4     | the peer empties the store: it clears every credential of the app, or the file is deleted                                                                 | `clear_all_for_app` (`crates/xdk/src/store/tokens.rs:774-781`); a missing file reloads as a fresh store (`crates/xdk/src/store/mod.rs:260`)                                                                                                                        |
-| Q5     | the peer refreshes the same login from start to save, while P holds no refresh lock, or at any time under `RefreshLockHolds = FALSE`                      | `refresh_oauth2_token` as a whole                                                                                                                                                                                                                                  |
-| Q6     | the peer makes another login the app's default user                                                                                                       | `TokenStore::set_default_user` (`crates/xdk/src/store/mod.rs:568`)                                                                                                                                                                                                 |
-| Q7     | the peer makes another app the store's default app, as `xr auth default <app>` does                                                                       | `TokenStore::set_default_app` (`crates/xdk/src/store/mod.rs:450-457`)                                                                                                                                                                                              |
-| E1     | the store stops being one a save can write: the file no longer parses, or its directory refuses a temp file                                               | `refuse_if_load_failed` (`crates/xdk/src/store/mod.rs:891-899`), `refuse_unless_writable` (`:919-935`)                                                                                                                                                             |
-| Done   | P has returned, failed, or died, and nothing changes                                                                                                      | the end states, so a correct end is not a deadlock                                                                                                                                                                                                                 |
+| Action | What happens                                                                                                                                                       | Code                                                                                                                                                                                                                                                               |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P1     | P finds its login expired on the view it loaded                                                                                                                    | `refresh_oauth2_token`, first `stored_oauth2_token` and `is_expired` (`crates/xdk/src/auth/oauth2.rs`, lines pinned after #645)                                                                                                                                    |
+| P2     | P checks the store can keep a pair, then takes the refresh lock, waiting while another process holds it                                                            | `TokenStore::refuse_unless_writable` (`crates/xdk/src/store/mod.rs:919-935`); `RefreshLock::acquire_off_runtime` (`crates/xdk/src/store/lock.rs:168-172`, `:137-158`)                                                                                              |
+| P3     | P re-reads the store; a pair another process stored meanwhile ends the refresh with that pair, and a store that cannot keep a pair ends it with a refusal          | `reload` (`crates/xdk/src/store/mod.rs:800-829`, `load_backing_file` `:242-263`), the second `refuse_unless_writable`, `stored_oauth2_user` (`crates/xdk/src/auth/oauth2.rs`, lines pinned after #645)                                                             |
+| P4     | P sends the grant; X retires the token it was sent and answers with a new pair                                                                                     | `refresh_grant` (`crates/xdk/src/auth/oauth2.rs`, lines pinned after #645)                                                                                                                                                                                         |
+| P4L    | the grant reaches X and X acts, but the answer is lost                                                                                                             | `refresh_grant` returning `Error::Http`                                                                                                                                                                                                                            |
+| P4R    | X refuses a token it has retired                                                                                                                                   | `token_endpoint::answer` returning `Error::Auth`                                                                                                                                                                                                                   |
+| P5     | P stores the pair where the token it was minted from still sits, under the store lock, by rename                                                                   | `put_refreshed_oauth2_token`, `write_oauth2_token` (`crates/xdk/src/store/tokens.rs:115-188`), `MintedFrom::destination` (`:830-854`), `TokenStore::update` (`crates/xdk/src/store/mod.rs:745-767`), `write_atomically` (`crates/xdk/src/store/atomic.rs:214-234`) |
+| P6     | P asks `/2/users/me` for what the store lacks: a name, or the account id                                                                                           | `fetch_identity` in `refresh_oauth2_token` (lines pinned after #645)                                                                                                                                                                                               |
+| P7     | P records the answer on the pair it stored, if that pair is still there                                                                                            | the second `put_refreshed_oauth2_token`, keyed by the rotated token (lines pinned after #645)                                                                                                                                                                      |
+| P8     | P releases the refresh lock and returns the new access token                                                                                                       | drop of `RefreshLock` (`crates/xdk/src/store/lock.rs:175-179`)                                                                                                                                                                                                     |
+| H1     | under `Writer = "hook"`: P finds its in-memory credential expired and sends the grant, with no refresh lock and no re-read                                         | `Credentials::refresh_oauth2` (`crates/xdk/src/auth/credentials.rs:181-202`)                                                                                                                                                                                       |
+| H2     | the hook stores the pair under the app's default user, else its first OAuth2 user, in the app it names or, built for the default app, the default app at the write | `StoreRefreshHook::on_token_refreshed` (`crates/xdk/src/store/hook.rs:24-66`), `refresh_target_user` (`:95-101`), `TokenStore::update_at` (`crates/xdk/src/store/mod.rs:776-795`)                                                                                  |
+| Crash  | P dies at any phase: a crash, a kill, or Ctrl-C (A6)                                                                                                               | A5                                                                                                                                                                                                                                                                 |
+| Q1     | the peer signs in under the label P is refreshing                                                                                                                  | `exchange_code_for_token` (`crates/xdk/src/auth/oauth2.rs`, lines pinned after #645), `put_oauth2_token` and `put_answered_oauth2_token` (`crates/xdk/src/store/tokens.rs:87-108`)                                                                                 |
+| Q2     | the peer clears that login                                                                                                                                         | `clear_oauth2_token_for_app` (`crates/xdk/src/store/tokens.rs:697-722`)                                                                                                                                                                                            |
+| Q3     | the peer removes the app                                                                                                                                           | `TokenStore::remove_app` (`crates/xdk/src/store/mod.rs:433-443`)                                                                                                                                                                                                   |
+| Q4     | the peer empties the store: it clears every credential of the app, or the file is deleted                                                                          | `clear_all_for_app` (`crates/xdk/src/store/tokens.rs:774-781`); a missing file reloads as a fresh store (`crates/xdk/src/store/mod.rs:260`)                                                                                                                        |
+| Q5     | the peer refreshes the same login from start to save, while P holds no refresh lock, or at any time under `RefreshLockHolds = FALSE`                               | `refresh_oauth2_token` as a whole                                                                                                                                                                                                                                  |
+| Q6     | the peer makes another login the app's default user                                                                                                                | `TokenStore::set_default_user` (`crates/xdk/src/store/mod.rs:568`)                                                                                                                                                                                                 |
+| Q7     | the peer makes another app the store's default app, as `xr auth default <app>` does                                                                                | `TokenStore::set_default_app` (`crates/xdk/src/store/mod.rs:450-457`)                                                                                                                                                                                              |
+| E1     | the store stops being one a save can write: the file no longer parses, or its directory refuses a temp file                                                        | `refuse_if_load_failed` (`crates/xdk/src/store/mod.rs:891-899`), `refuse_unless_writable` (`:919-935`)                                                                                                                                                             |
+| Done   | P has returned, failed, or died, and nothing changes                                                                                                               | the end states, so a correct end is not a deadlock                                                                                                                                                                                                                 |
 
 | Rule                    | Sentence                                                                                                                                                | Harm if it breaks                                                                                                      | Broken variant that must break it                                                                                                  |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -373,15 +386,16 @@ refresh token was sent in, and the store as the peer last left it.
 | `LiveAfterRefresh`      | When a refresh returns success, the store holds, for that login, a refresh token X still accepts, unless another process replaced or cleared the login. | A refresh that reported success left a dead login, and the next one fails.                                             | Save the refresh token that was sent in place of the one X answered with.                                                          |
 
 **Bounds.** One app under `Writer = "store"` and two under `Writer = "hook"`, so Q7 can change the app the hook
-resolves; two labels and the unnamed slot; at most two peer acts; X mints at most four tokens. **Expected
-states.** The reduced feasibility spec (one label, no hook writer, no Q4, Q6, or E1) reached 325. The full model is
-expected between 500 and 2,000 states; its chart config (`Writer = "store"`, `RefreshLockHolds = TRUE`, one label) is
-expected under 500.
+resolves; two labels and the unnamed slot; at most two peer acts; X mints at most four tokens. **Expected states.** The
+reduced feasibility spec (one label, no hook writer, no Q4, Q6, or E1) reached 325. The full model is expected between
+500 and 2,000 states; its chart config (`Writer = "store"`, `RefreshLockHolds = TRUE`, one label) is expected under 500.
 
 #### Model 2: the directory-layout move, with a refresher across it (target 2, composed with target 1)
 
-**Actors.** M is an `xr` process running `adopt_directory_layout`, which the next `xr` call runs again after a crash. W
-is a long-lived handle under `LongLivedHandle`. It located the store before or during the move and keeps that path: an
+**Actors.** M is `adopt_directory_layout` as every `xr` process runs it before it opens the store
+(`crates/xurl-cli/src/cli/runner.rs:452`): the first run moves the store, and each later `xr` call, after a crash or
+not, runs it again from M1, so a later run is where M3 keeps a file W stranded. R's own start is one of those runs. W is
+a long-lived handle under `LongLivedHandle`. It located the store before or during the move and keeps that path: an
 embedder's `TokenStore`, an `xr` 4.3.0 or earlier, or an `xr` whose own move failed. W writes through locked updates and
 refreshes as target 1 does. R is an `xr` process that started after the move and refreshes the same login through
 `~/.xurl/auth.yml`.
@@ -405,7 +419,7 @@ opened and whether it holds it. The pending file's location, for model 3. X's li
 | M9     | a step that fails undoes the ones before it                                                                                                                                                     | `crates/xdk/src/store/layout.rs:232-240`                                                                                                                      |
 | M10    | M carries `~/.xurl.pending` into the directory and removes `~/.xurl.lock` and `~/.xurl.refresh.lock` while it still holds the first                                                             | `crates/xdk/src/store/layout.rs:105`, `move_sidecars` (`:264-272`)                                                                                            |
 | M11    | M releases `~/.xurl.lock`                                                                                                                                                                       | drop of `StoreLock` (`crates/xdk/src/store/lock.rs:93-100`) at the end of `adopt_directory_layout` (`crates/xdk/src/store/layout.rs:125`)                     |
-| MCrash | M dies at any point; the next `xr` call starts at M1                                                                                                                                            | A5; `crates/xurl-cli/src/cli/runner.rs:452`                                                                                                                   |
+| MCrash | M dies at any point; a later run starts at M1                                                                                                                                                   | A5; `crates/xurl-cli/src/cli/runner.rs:452`                                                                                                                   |
 | W1     | W locates the store once: `~/.xurl` while it is a file, `~/.xurl.migrating` while it is stranded and no `auth.yml` exists, `auth.yml` otherwise                                                 | `locate_store` (`crates/xdk/src/store/layout.rs:63-68`), `path_to_open` (`:143-153`), `is_own_stranded_store` (`:159-171`)                                    |
 | W2     | W opens the lock sidecar beside its path, creating it when missing                                                                                                                              | `StoreLock::acquire` (`crates/xdk/src/store/lock.rs:57-78`)                                                                                                   |
 | W3     | W runs one locked update once the inode it opened is free: it re-reads its path (a directory is unreadable and refused, a missing file is a fresh store), writes, saves by rename, and releases | `TokenStore::update` (`crates/xdk/src/store/mod.rs:745-767`), `load_backing_file` (`:242-263`), `write_atomically` (`crates/xdk/src/store/atomic.rs:214-234`) |
@@ -426,7 +440,8 @@ replayed, so none is a bug yet.
 
 - Q-L1. `move_sidecars` removes `~/.xurl.lock` while M still holds it (`crates/xdk/src/store/layout.rs:105`, inside the
   lock taken at `:96`). Can a second process then hold a lock on the same store at once, and does any lost write follow?
-  This is the open question of the pstack skills audit (§ "Sources"), and `OneWriterAtATime` and `NoLostWrite` answer it.
+  This is the open question of the pstack skills audit (§ "Sources"), and `OneWriterAtATime` and `NoLostWrite` answer
+  it.
 - Q-L2. A handle that located `~/.xurl` or `~/.xurl.migrating` before the move finished keeps that path. Its next update
   re-reads a missing file as a fresh store (`crates/xdk/src/store/mod.rs:260`) and saves a new file there, which no
   later call reads once `auth.yml` exists. The feasibility spec reached this order and broke `NoLostWrite`.
@@ -436,11 +451,17 @@ replayed, so none is a bug yet.
 - Q-L4. A refresh through the old path holds `~/.xurl.refresh.lock`, which M10 removes. An `xr` process after the move
   refreshes the same login under `~/.xurl/auth.yml.refresh.lock`. Do the two send one refresh token in two grants
   (`SingleSpend`), and does the old path's save fail or land in a fresh file (`LiveAfterRefresh`)?
+- Q-L5. `keep_as_backup` renames onto `<aside>.bak` with `fs::rename` (`crates/xdk/src/store/layout.rs:248-249`), which
+  replaces a `.bak` already there. Under `LongLivedHandle`, each write of a handle on `~/.xurl.migrating` after the move
+  strands a fresh file there (Q-L2), and the next `xr` call keeps it as `.bak` (M3). Does a second stranding overwrite
+  the first `.bak` and the credential in it (`StrandedKept`)? Two later runs of M are the fewest that reach it.
 
-**Bounds.** One mover with at most one restart; W with at most two writes in the rules config and one in the chart
-config; R by config. **Expected states.** The feasibility spec (M plus a generic writer, no refresh) reached 708 at two
-writes and 356 at one (§ "Feasibility"). With W as a refresher and R added, the rules config is expected between 1,500
-and 5,000 states, so its chart draws bug paths only (KTD5); the chart config (R off, one write) is expected under 500.
+**Bounds.** The mover's first run plus at most two later runs, after a crash or not, in the rules config, and one in the
+chart config; W with at most two writes in the rules config and one in the chart config; R by config. **Expected
+states.** The feasibility spec (M plus a generic writer, no refresh, one restart) reached 708 at two writes and 356 at
+one (§ "Feasibility"). With W as a refresher, R added, and a second later run, the rules config is expected between
+1,500 and 10,000 states `[estimated]`, so its chart draws bug paths only (KTD5); the chart config (R off, one write, one
+later run) is expected under 500.
 
 #### Model 3: the headless sign-in, composed with the move (target 3)
 
@@ -474,7 +495,7 @@ at the grain of its renames of the pending file and the store. A clock event end
 replaces the first's flow, since there is one pending file per store. A flow an embedder saves beside the single-file
 store (`default_pending_path` reads `locate_store`) while M moves it: `pending::save` takes no lock.
 
-**Bounds.** Two apps, two step 1 runs, two step 2 runs, one consent, the mover with at most one restart. **Expected
+**Bounds.** Two apps, two step 1 runs, two step 2 runs, one consent, the mover with at most one later run. **Expected
 states.** Above 500 for the rules config; the chart config (one step 1, one step 2, no mover) is expected under 500.
 
 ### What the models leave out
@@ -529,10 +550,10 @@ The audit's invariants for the same machines map onto the rules too. S3's "at mo
 token" is `SingleSpend`, "`Granting` only when the store can be written" is `NoGrantWithoutKeep`, and "a save replaces
 exactly the token the pair was minted from" is `LandsWhereRead`. S3's "and keeps that token's account id" is not a rule:
 the model tracks the id only so that P6 fires when the store lacks it. S3's spawned refresh task
-(`crates/xdk/src/api/request/auth_header.rs:189`) means a dropped request future is not a Crash. The model's Crash is the
-process dying, and the replay drops the refresh's own future, as a dying process does. S6's re-read under the sidecar
-lock is `PeerWriteStands`. S2's "any failure before `Done` keeps the file" and "`Invalid` and `Expired` answer with the
-sign-in step" are `RefusalRestarts`, and "consumed only by a step 2 whose client id and scopes match" is
+(`crates/xdk/src/api/request/auth_header.rs:189`) means a dropped request future is not a Crash. The model's Crash is
+the process dying, and the replay drops the refresh's own future, as a dying process does. S6's re-read under the
+sidecar lock is `PeerWriteStands`. S2's "any failure before `Done` keeps the file" and "`Invalid` and `Expired` answer
+with the sign-in step" are `RefusalRestarts`, and "consumed only by a step 2 whose client id and scopes match" is
 `SavedUnderStep1App` and S2b. S2's checks of mode, owner, and links appear only as S2a's refusals, and its `--dry-run`
 peek is left out, since a dry run writes nothing.
 
@@ -601,8 +622,8 @@ and a `view.mjs` that gives the chart its words; and one verify skill, a `SKILL.
   TLC on each config, asserting each config's expected verdict. The CI runner has no copy of `statechart`. Java and the
   jar are cached under the global CI caching rule, measured cold and warm. `ci.yml` already mixes reusable-workflow
   calls (`ci`, `lint`) with inline jobs (`docs`, `semver`, `release-scripts`), so the job can sit inline beside them.
-  Each run is a minute or two of CI time on the PRs it triggers on. Upkeep: the action pins, the jar pin, and the job
-  itself.
+  Each run is a minute or two of CI time on the PRs it triggers on. A change to the verification files alone also runs
+  the full Rust battery, as under (b). Upkeep: the action pins, the jar pin, and the job itself.
 - *What it guards:* a spec edit that makes a rule fail or stops a broken variant from failing, and a TLC or Java change
   that alters a verdict. *What it cannot guard:* code drift, as above. A red run blocks nothing, so someone has to read
   it.
@@ -616,7 +637,11 @@ changes. Recommended.**
   frontmatter, and runs it. The maintain skill runs when store or auth code changes without that, and once after plan
   M's cuts if they touched covered code.
 - *Cost:* on the machine that runs it, Java 11 or later, the pinned jar, and bun or node for `statechart`; a minute or
-  so per model. No CI minutes. Upkeep: moving the skill's sync commit forward after each check.
+  so per model. No TLC job in CI. A change to the verification files alone still runs the full Rust battery in CI and in
+  `scripts/hooks/pre-push`: `scripts/cargo-inputs.sh` counts every path under `.claude/skills/` as a cargo input, a
+  `SKILL.md` by a file name tests read and a `.tla`, `.cfg`, or `.mjs` as a path it does not know (fed
+  `.claude/skills/x/SKILL.md` and `.claude/skills/x/Store.tla`, it printed both). Upkeep: moving the skill's sync commit
+  forward after each check.
 - *What it guards:* everything (a) guards, when someone runs it; nothing reruns it on its own. *What it cannot guard:*
   code drift between runs.
 - *Why it is recommended:* the code under the models changes rarely now, and a CI job adds a Java toolchain to CI for
@@ -638,7 +663,7 @@ changes. Recommended.**
 1. F starts once #645, #646, and #647 have merged (order doc rule 4), and runs alongside plan R, which touches neither
    `crates/xdk/src/auth/` nor `crates/xdk/src/store/`.
 2. Models 1 and 2 first (U1, U2), with their replays and fix PRs (U4, U5); then model 3, composed with model 2 (U3),
-   with its own.
+   with its own. Model 3 waits for model 2's fixes and for model 1's other than those KD6 holds.
 3. Every `auth` and `store` fix PR merges before plan M's mutation run reaches those areas (order doc Phase 5 step 4;
    KD4).
 4. The verify skill (U6) comes once a model has passed its break-and-catch run, and only after Brett picks the location;
@@ -697,7 +722,7 @@ gives them their place.
 ### U2. Model 2: the layout move, with a refresher across it
 
 - **Goal:** the target 2 model, with target 1's refresher at the grain where the two meet, every rule checked, and Q-L1
-  to Q-L4 answered.
+  to Q-L5 answered.
 - **Requirements:** R1 to R5, R8.
 - **Dependencies:** U1, for the refresher's actions and rules at their coarse grain.
 - **Files:** none in the repo; scratch as in U1.
@@ -708,19 +733,19 @@ gives them their place.
   3. Run the rules config at full bounds and the chart config at the reduced ones (KTD5). Record each reduction's counts
      and what it gives up.
   4. Break each rule on its variant, as in U1 step 5.
-  5. Answer each of Q-L1 to Q-L4 with the rule that settles it and the report's path or "holds", and hand each break to
+  5. Answer each of Q-L1 to Q-L5 with the rule that settles it and the report's path or "holds", and hand each break to
      U4.
 - **Patterns to follow:** U1; the existing interrupted-move tests in `crates/xdk/src/store/layout.rs` (`:421`, `:441`,
   `:491`) for the on-disk states a crash leaves.
 - **Test scenarios:** `Test expectation: none -- a model; U4 holds its replays.`
-- **Verification:** as U1, and each of Q-L1 to Q-L4 has an answer.
+- **Verification:** as U1, and each of Q-L1 to Q-L5 has an answer.
 
 ### U3. Model 3: the headless sign-in, composed with the move
 
 - **Goal:** the target 3 model, with every rule checked and its questions answered.
 - **Requirements:** R1 to R5, R8.
-- **Dependencies:** U2, for the mover at the grain of its pending-file renames; U4 and U5 for models 1 and 2 done, so
-  that model 3 composes with the fixed move.
+- **Dependencies:** U2, for the mover at the grain of its pending-file renames; U4 and U5 done for model 2, so that
+  model 3 composes with the fixed move, and for model 1 except the replays and fixes KD6 holds.
 - **Files:** none in the repo; scratch as in U1.
 - **Approach:**
   1. Pin the action table again at the sync commit, including the hint functions in `crates/xurl-cli/src/cli/hints.rs`
@@ -750,16 +775,17 @@ gives them their place.
      model is wrong: find the action that cannot happen in the code, fix the model, and rerun its unit.
   4. Record each verdict: the rule, the path in the code's words, the harm in one sentence, the commit the bug came
      from, and the replay's path.
-- **Patterns to follow:** `ChangeThenAnswer` and `NoteTheStoredRefreshToken` in
+- **Patterns to follow:** `ChangeThenAnswer` and `NoteTheStoredRefreshToken` (which #645 adds) in
   `crates/xdk/tests/saved_identity_tests.rs`; `TokenStore::new_with_path` and `Auth::new_with_store_path_and_overrides`
   on a `TempDir` (`AGENTS.md` § "Testing").
 - **Test scenarios:** one per counterexample, each with its control. The ones expected, if the models find them:
-  - A refresh by `StoreRefreshHook` while another process makes a second app the default writes the rotated pair into
-    that app's login (H2). The control has no peer act, and the pair lands on the login it came from. The audit's
-    `the_store_hook_leaves_an_app_whose_client_did_not_mint_the_pair` is this replay.
+  - A refresh by a `StoreRefreshHook` built for the default app while another process makes a second app the default
+    writes the rotated pair into that app's login (H2). The control has no peer act, and the pair lands on the login it
+    came from. The audit's `the_store_hook_leaves_an_app_whose_client_did_not_mint_the_pair` is this replay; it was
+    written in `crates/xdk/tests/client_builder_tests.rs` at `9936fe7` and reverted with that fix.
   - The same refresh while another process clears the default user's login brings the cleared login back holding the
     pair (H4); a peer that makes another login the default user (Q6) breaks the rule the same way. The audit's
-    `the_store_hook_writes_where_a_request_with_no_user_reads` is this replay.
+    `the_store_hook_writes_where_a_request_with_no_user_reads`, at the same commit, is this replay.
   - An in-code credential and an `xr` refresh of the same login send one refresh token in two grants, counted by the
     stateful responder (P8). The control runs the in-code refresh alone, and an `xr` call after it finds the stored pair
     fresh and sends no grant.
@@ -768,6 +794,9 @@ gives them their place.
     `auth.yml`.
   - A refresh through `~/.xurl` and one through `~/.xurl/auth.yml` send one refresh token in two grants, counted by the
     stateful responder (Q-L4). The control holds both refreshes on one path, and the responder sees one grant.
+  - A handle on `~/.xurl.migrating` writes twice after the move, with an `adopt_directory_layout` call after each write,
+    and the second `.bak` replaces the first, so the first write is in no file (Q-L5). The control writes once, and its
+    write is in `~/.xurl.migrating.bak`.
 - **Verification:** each replay's failure on the unfixed code is quoted in its fix PR, and each control passes; the
   guards in `AGENTS.md` § "Testing" pass (`store_isolation_guard`, `env_mutation_guard`).
 
@@ -784,8 +813,8 @@ gives them their place.
   2. Fix the code; the replay goes from failing to passing, its control stays green, and the suite stays green.
   3. Change no model in the PR (KTD7); the model's unit reruns after the merge to confirm the rule now holds on the
      fixed code.
-  4. H2/H4 needs a change to the `OnTokenRefreshed` API, which is Brett's decision (KD6), and P8 goes the same way if its
-     fix needs one. Their replays wait with them, and no API is proposed here.
+  4. H2/H4 needs a change to the `OnTokenRefreshed` API, which is Brett's decision (KD6), and P8 goes the same way if
+     its fix needs one. Their replays wait with them, and no API is proposed here.
   5. Reviews as the global review table and the agent-slot rules give them: `ce-code-review`, plus `/cso` for a change
      to credentials or the store.
 - **Patterns to follow:** #555, #558, #559, #564, and #645, each a `fix(store)` or `fix(auth)` PR carrying its
@@ -803,7 +832,8 @@ gives them their place.
   location; the skill grows a section as each later model passes.
 - **Files, by option:**
   - (a) and (b): `.claude/skills/<skill name>/SKILL.md`, with the specs, configs, and views beside it, and the
-    `.gitignore` negation that lets `.claude/skills/` be committed.
+    `.gitignore` negation that lets `.claude/skills/` be committed: `.claude/*` then `!.claude/skills/`, so
+    `.claude/settings.local.json` stays ignored.
   - (c): the same files under the prime checkout's `.context/`, and a `docs/solutions/` entry published through
     `sd-commit-doc`.
 - **Approach:**
@@ -879,9 +909,82 @@ gives them their place.
 
 ---
 
+## Review record
+
+Each review's findings, the questions it answered with their evidence, and the decisions it left to Brett. The Review
+log below says when each ran.
+
+### `/plan-eng-review`
+
+One round, run unattended as one Opus process at `47ef03d`, whose `crates/` tree is `dev` 492e187's. The reviewer
+answered every question from the code, `AGENTS.md`, and `qmd query ... --collection solutions`, taking the recommended
+option where the evidence settled nothing. It ran the skill's lite path: no subagent, outside voice, or cross-model pass
+ran, since this repo reviews without subagents and the brief forbids an outside voice. Verdict: issues open, eight
+findings (P0 0, P1 2), every remedy applied in this plan. Each was checked against the code before it was applied.
+
+**Findings.**
+
+- P1. Model 2 ran the mover again only after a crash, but every `xr` call runs `adopt_directory_layout` first
+  (`crates/xurl-cli/src/cli/runner.rs:452`), and `keep_as_backup` renames onto `<aside>.bak` with `fs::rename`, which
+  replaces a `.bak` already there (`crates/xdk/src/store/layout.rs:248-249`). Under the old bound TLC could never reach
+  two backups, so `StrandedKept` would read as holding where the code can overwrite a kept store. Changed: the mover runs
+  at every call, with two later runs in the rules config, Q-L5, and its replay in U4.
+- P1. Dropping the future at an await does not stop a `spawn_blocking` task that has started (tokio 1.54.1,
+  `src/task/blocking.rs:106-110`). `TokenStore::update_at` (`crates/xdk/src/store/mod.rs:787-794`, H2's save) and
+  `RefreshLock::acquire_off_runtime` (`crates/xdk/src/store/lock.rs:168-172`, P2) await one, so a dropped replay still
+  writes or locks, unlike a kill, and R7 would then call a correct model wrong. A5 also said a kill gets the temp-file
+  unlink; the 60-second sweep removes it instead. Changed: KTD6's crash row and A5.
+- P2. `StoreLock` records the paths each thread holds (`crates/xdk/src/store/lock.rs:58-62`), and an update under a
+  lock its thread already holds runs with no reload and no save (`crates/xdk/src/store/mod.rs:759-761`), so two handles
+  on one test thread are not two processes. Changed: KTD6 gives each process in a replay its own thread, and a replay
+  of an embedder's pending path uses `pending_path_for_store`, since `store_isolation_guard` refuses
+  `default_pending_path()`.
+- P2. Only a hook built for the default app resolves the app at each write (`crates/xdk/src/store/hook.rs:20-21`,
+  `:42-46`), so H2's Q7 path needs that hook. Changed: KTD4, the H2 row, and U4's first scenario name it.
+- P2. U3 waited on every model 1 fix, H2/H4's included, which KD6 holds on Brett's decision, though model 3 reads only
+  the mover. Changed: U3 and § "Sequencing" wait on model 2's fixes and on model 1's other than KD6's.
+- P2. Option (b) said "No CI minutes". `scripts/cargo-inputs.sh` prints `.claude/skills/x/SKILL.md` and
+  `.claude/skills/x/Store.tla` as cargo inputs, so a change to the verification files alone runs the full Rust battery
+  in CI and in `scripts/hooks/pre-push`. Changed: options (a) and (b) state it, and an exclusion entry is listed under §
+  "Scope Boundaries" as considered and not built.
+- P3. `NoteTheStoredRefreshToken` is not on `dev`; #645 adds it. The audit's two hook tests were written in
+  `crates/xdk/tests/client_builder_tests.rs` at `9936fe7` and reverted with that fix. A bare `!.claude/` negation
+  would re-include `.claude/settings.local.json`. Changed: U4 and U6 cite these, and U6's negation is `.claude/*` then
+  `!.claude/skills/`.
+
+**Noted, not acted on** (confidence 4/10 each). Whether `LandsWhereRead`'s broken variant breaks that rule as well as
+`PeerWriteStands` is unmeasured; U1 step 5 measures it. `xr auth default <app> <user>` sets both defaults in one update
+(`set_default_app_and_user`, `crates/xurl-cli/src/cli/commands/auth/session.rs:341`), which Q6 and Q7 split, and no
+rule seems to tell the two apart.
+
+**Questions raised and the answers chosen.**
+
+| D  | Question                                                                                                             | Answer                                                           | Evidence                                                                                                   |
+| -- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| D1 | Keep the three-model structure, or find a smaller arrangement?                                                       | Keep it                                                          | KTD2's measured counts (325, 708); no smaller arrangement keeps KTD2 and KTD4                              |
+| D2 | Model 2's mover: rerun at every `xr` call with Q-L5, or keep one restart and list the `.bak` overwrite as unbounded? | Every call, two later runs, Q-L5 and its replay                  | `crates/xurl-cli/src/cli/runner.rs:452`; `crates/xdk/src/store/layout.rs:248-249`                          |
+| D3 | Name the default-app hook in KTD4, add a `HookApp` constant, or leave it?                                            | Name it in KTD4                                                  | `crates/xdk/src/store/hook.rs:20-21`, `:42-46`; a constant adds configs the brief does not name            |
+| D4 | Narrow U3's dependency to model 2's fixes and model 1's other than KD6's?                                            | Narrow it                                                        | Model 3 reads only the mover (KTD2); KD6 waits on Brett                                                    |
+| D5 | Correct KTD6 and A5 for a crash at a `spawn_blocking` await?                                                         | Correct them                                                     | `crates/xdk/src/store/mod.rs:787-794`, `crates/xdk/src/store/lock.rs:168-172`, tokio `blocking.rs:106-110` |
+| D6 | One thread per process in a replay?                                                                                  | Yes                                                              | `crates/xdk/src/store/lock.rs:58-62`, `crates/xdk/src/store/mod.rs:759-761`; `store_isolation_guard`       |
+| D7 | State the CI cost of a verification-only change, and add the exclusion or list it?                                   | State it; list the exclusion as not built                        | the `scripts/cargo-inputs.sh` run; the smallest-change rule and the brief                                  |
+| D8 | Cite #645's responder, the audit tests' commit, and the negation's shape?                                            | Cite them                                                        | #645's diff; `9936fe7`; a scratch `git check-ignore` run                                                   |
+| D9 | What runs next?                                                                                                      | `/plan-devex-review`, then `/compound-engineering:ce-doc-review` | the Review log                                                                                             |
+
+**Decisions only Brett can make.** Where the model lives (KD5). The `OnTokenRefreshed` API for H2/H4, and for P8 if
+its fix needs one (KD6); no API is proposed. The verify skill's name. Whether the fixes KD6 holds gate plan M's `store`
+and `auth` mutation run, which KD4 as written makes wait on the API decision. Whether to add the
+`scripts/cargo-inputs.paths` exclusion.
+
 ## Review log
 
 - 2026-11-27: plan written. Target 1's refs into `crates/xdk/src/auth/oauth2.rs` wait on #645 (open). Pending:
   `/plan-eng-review`, `/plan-devex-review` (the plan adds a verify skill an agent runs, and under option (a) a CI job),
   and `/compound-engineering:ce-doc-review`.
 - 2026-11-27: `/plan-eng-review` started, one round, as its own Opus process, on the plan as pushed at `2035cbe`.
+- 2026-11-27: `/plan-eng-review` ended: issues open, eight findings (P0 0, P1 2), all applied after a check against the
+  code; five decisions left to Brett (§ "Review record"). Changed: model 2's mover runs at every `xr` call, with two
+  later runs and Q-L5; KTD6's crash replay at a `spawn_blocking` await builds the disk state, and A5's temp-file claim
+  is corrected; one thread per process in a replay; the H2 path names the default-app hook; U3 no longer waits on the
+  fixes KD6 holds; options (a) and (b) state that a verification-only change runs the Rust battery; and U4 and U6 cite
+  #645's responder, `9936fe7`, and the `.gitignore` negation.
