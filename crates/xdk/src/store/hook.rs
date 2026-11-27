@@ -7,15 +7,13 @@ use std::pin::Pin;
 
 use crate::auth::oauth2::epoch_secs;
 use crate::auth::{BoxError, OAuth2Credential, OnTokenRefreshed};
-use crate::error::Error;
 
 use super::TokenStore;
 
 /// Persists rotated `OAuth2` pairs into one app of a token store.
 ///
 /// Built by [`TokenStore::refresh_hook_for`]; the store itself implements
-/// the hook for its default app. A pair whose client is not the app's is
-/// refused, since that app's client could not refresh it.
+/// the hook for its default app.
 #[derive(Clone, Debug)]
 pub struct StoreRefreshHook {
     path: PathBuf,
@@ -30,7 +28,6 @@ impl OnTokenRefreshed for StoreRefreshHook {
     ) -> Pin<Box<dyn Future<Output = std::result::Result<(), BoxError>> + Send + 'a>> {
         let path = self.path.clone();
         let app = self.app.clone();
-        let client_id = credential.client_id.clone();
         let access_token = credential.access_token.clone();
         let refresh_token = credential.refresh_token.clone().unwrap_or_default();
         // An unknown expiry is stored as already expired, so the next load
@@ -39,25 +36,15 @@ impl OnTokenRefreshed for StoreRefreshHook {
         let expiration_time = credential.expires_at.map_or(0, epoch_secs);
         Box::pin(async move {
             // The app and user are resolved against the store as re-read under
-            // the lock, so the write follows a default another process changed
-            // since this hook was built, to an app whose client minted the pair.
+            // the lock, so a default changed by another process since this
+            // hook was built still receives the write.
             TokenStore::update_at(path, move |store| {
                 let app = if app.is_empty() {
                     store.default_app.clone()
                 } else {
                     app
                 };
-                let stored_client_id = &store.resolve_app(&app).client_id;
-                if !stored_client_id.is_empty() && *stored_client_id != client_id {
-                    return Err(Error::token_store(format!(
-                        "app {app:?} signs in through another client than the one that refreshed \
-                         this OAuth2 pair, so the pair is not stored there"
-                    )));
-                }
-                let user = store
-                    .first_oauth2_user_for_app(&app)
-                    .map(|(username, _)| username.to_string());
-                match user {
+                match store.refresh_target_user(&app) {
                     Some(username) => store.save_oauth2_token_for_app(
                         &app,
                         &username,
@@ -100,5 +87,16 @@ impl TokenStore {
             path: self.file_path.clone(),
             app: app_name.to_string(),
         }
+    }
+
+    /// The user a rotated pair is saved under: the app's default user, then
+    /// its first stored `OAuth2` user. Mirrors the read precedence so the
+    /// write lands where the next lookup looks.
+    fn refresh_target_user(&self, app_name: &str) -> Option<String> {
+        let app = self.resolve_app(app_name);
+        if !app.default_user.is_empty() {
+            return Some(app.default_user.clone());
+        }
+        app.oauth2_tokens.keys().next().cloned()
     }
 }
