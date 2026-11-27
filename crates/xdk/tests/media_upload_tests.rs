@@ -404,3 +404,65 @@ async fn the_response_is_finalize_unchanged_when_the_wait_did_not_complete() {
         .expect("FINALIZE's own state");
     assert_eq!(info.state, "pending");
 }
+
+/// Answers INIT after resizing the file being uploaded, as a recording still
+/// being written, or a file another program truncates, would be resized.
+struct ResizeThenInit {
+    file: std::path::PathBuf,
+    len: u64,
+    media_id: &'static str,
+}
+
+impl wiremock::Respond for ResizeThenInit {
+    fn respond(&self, _: &wiremock::Request) -> ResponseTemplate {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&self.file)
+            .and_then(|file| file.set_len(self.len))
+            .expect("resize the file");
+        ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": self.media_id, "media_key": "3_42", "expires_after_secs": 86400}
+        }))
+    }
+}
+
+/// INIT declares the file's size, and FINALIZE asks X to assemble that many
+/// bytes. A file that changed size after INIT would have the APPEND
+/// segments disagree with the declaration, so the upload stops before
+/// FINALIZE, naming the file.
+#[tokio::test]
+async fn an_upload_whose_file_changes_size_after_init_sends_no_finalize() {
+    for len in [32, 4] {
+        let server = MockServer::start().await;
+        mount_phases(&server, "42").await;
+        let tmp = TempDir::new().expect("tempdir");
+        let file = tmp.path().join("photo.png");
+        std::fs::write(&file, b"sixteen bytes!!!").expect("write");
+        Mock::given(method("POST"))
+            .and(path("/2/media/upload/initialize"))
+            .respond_with(ResizeThenInit {
+                file: file.clone(),
+                len,
+                media_id: "42",
+            })
+            .with_priority(1)
+            .mount(&server)
+            .await;
+
+        let result = user_client(server.uri()).upload_media(&file).send().await;
+
+        let requests = server.received_requests().await.expect("requests recorded");
+        let finalized = requests
+            .iter()
+            .any(|request| request.url.path().ends_with("/finalize"));
+        assert!(
+            !finalized,
+            "a file resized to {len} bytes after INIT declared 16 was finalized: {result:?}"
+        );
+        let error = result.expect_err("the upload stops");
+        assert!(
+            error.to_string().contains("photo.png"),
+            "the error names the file: {error}"
+        );
+    }
+}

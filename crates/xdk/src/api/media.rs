@@ -287,7 +287,9 @@ fn needs_processing(media_category: &str, finalize: &MediaUploadResponse) -> boo
             .is_some_and(|info| !matches!(info.state.as_str(), "succeeded" | "failed"))
 }
 
-/// Uploads file data in 4 MB chunks via APPEND requests.
+/// Uploads file data in 4 MB chunks via APPEND requests: exactly the
+/// `file_size` bytes INIT declared, since FINALIZE asks X to assemble that
+/// many.
 async fn upload_chunks(
     file_path: &str,
     media_id: &str,
@@ -302,11 +304,17 @@ async fn upload_chunks(
     let mut buffer = vec![0u8; chunk_size];
     let mut segment_index = 0;
     let mut bytes_uploaded: u64 = 0;
+    let changed_size = || {
+        Error::io(format!(
+            "{file_path} changed size while it was uploading; INIT declared {file_size} bytes"
+        ))
+    };
 
-    loop {
-        let bytes_read = file.read(&mut buffer)?;
+    while bytes_uploaded < file_size {
+        let left = usize::try_from(file_size - bytes_uploaded).unwrap_or(chunk_size);
+        let bytes_read = file.read(&mut buffer[..left.min(chunk_size)])?;
         if bytes_read == 0 {
-            break;
+            return Err(changed_size());
         }
 
         let file_name = Path::new(file_path)
@@ -347,6 +355,9 @@ async fn upload_chunks(
             target: MEDIA_TARGET,
             "Uploaded {bytes_uploaded} of {file_size} bytes ({pct:.2}%)"
         );
+    }
+    if file.read(&mut [0u8; 1])? != 0 {
+        return Err(changed_size());
     }
 
     tracing::info!(target: MEDIA_TARGET, "Upload complete!");
