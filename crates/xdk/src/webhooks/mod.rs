@@ -33,6 +33,7 @@ use hyper_util::rt::{TokioIo, TokioTimer};
 use tokio::net::TcpListener;
 use tokio::sync::{Semaphore, mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
+use tokio_util::task::TaskTracker;
 
 use crate::error::{Error, Result};
 
@@ -163,10 +164,12 @@ impl Event {
 
 /// A bound webhook receiver.
 ///
-/// Dropping it stops the listener, lets each delivery whose event the caller
-/// took finish its 200, ends every other connection it is serving, and
-/// releases the port. The token given to [`Receiver::bind`] stays as the caller
-/// left it.
+/// Dropping it stops the listener, ends every connection it is serving but
+/// those of the deliveries whose event the caller took, and releases the
+/// port. Those go on to write their 200 for as long as the runtime runs, so a
+/// caller that ends the runtime or the process next stops it with
+/// [`Receiver::close`] instead. The token given to [`Receiver::bind`] stays as
+/// the caller left it.
 ///
 /// # Example
 ///
@@ -199,6 +202,7 @@ pub struct Receiver {
     // through it, and `Drop` cancels it without touching the caller's token.
     stop: CancellationToken,
     task: tokio::task::JoinHandle<()>,
+    connections: TaskTracker,
 }
 
 /// What a receiver stamps each [`Event::received_at`] with.
@@ -262,12 +266,19 @@ impl Receiver {
             clock,
         });
         let stop = cancel.child_token();
-        let task = tokio::spawn(accept_loop(listener, shared, stop.clone()));
+        let connections = TaskTracker::new();
+        let task = tokio::spawn(accept_loop(
+            listener,
+            shared,
+            stop.clone(),
+            connections.clone(),
+        ));
         Ok(Self {
             local_addr,
             events,
             stop,
             task,
+            connections,
         })
     }
 
@@ -294,6 +305,16 @@ impl Receiver {
         let _ = delivery.answer.send(());
         Some(delivery.event)
     }
+
+    /// Stops the receiver as dropping it does, and returns once each delivery
+    /// whose event the caller took has written its 200, or has had ten
+    /// seconds to, X's own wait for an answer.
+    pub async fn close(mut self) {
+        self.stop.cancel();
+        let _ = (&mut self.task).await;
+        self.connections.close();
+        self.connections.wait().await;
+    }
 }
 
 impl Drop for Receiver {
@@ -318,7 +339,12 @@ struct Delivery {
     taken: Arc<AtomicBool>,
 }
 
-async fn accept_loop(listener: TcpListener, shared: Arc<Shared>, cancel: CancellationToken) {
+async fn accept_loop(
+    listener: TcpListener,
+    shared: Arc<Shared>,
+    cancel: CancellationToken,
+    connections: TaskTracker,
+) {
     // At least one slot, so a config that asks for none still serves.
     let slots = Arc::new(Semaphore::new(shared.config.max_connections.max(1)));
     loop {
@@ -342,7 +368,7 @@ async fn accept_loop(listener: TcpListener, shared: Arc<Shared>, cancel: Cancell
         };
         let shared = Arc::clone(&shared);
         let cancel = cancel.clone();
-        tokio::spawn(async move {
+        connections.spawn(async move {
             let _slot = slot;
             // One request per connection (keep-alive is off), so one flag.
             let taken = Arc::new(AtomicBool::new(false));

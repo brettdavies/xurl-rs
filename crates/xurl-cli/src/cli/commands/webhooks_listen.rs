@@ -195,7 +195,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
             }
         }
     }
-    drop(receiver);
+    receiver.close().await;
     if let Some(forwarding) = forwarding {
         forwarding.drain(out, stderr, &mut progress).await;
     }
