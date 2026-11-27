@@ -93,7 +93,9 @@ impl TokenStore {
         yaml_parsed
     }
 
-    /// Imports tokens from a `.twurlrc` file into the active app.
+    /// Imports tokens from a `.twurlrc` file into the active app: its first
+    /// OAuth1 profile and its first bearer token, each only where the app
+    /// holds none.
     ///
     /// # Errors
     ///
@@ -115,8 +117,7 @@ impl TokenStore {
         })
     }
 
-    /// Copies the first OAuth1 profile and the first bearer token of a parsed
-    /// `.twurlrc` into the active app, in memory.
+    /// [`TokenStore::import_from_twurlrc`] on a parsed `.twurlrc`, in memory.
     fn import_twurlrc_tokens(&mut self, twurlrc: &TwurlrcConfig) {
         let app = self.active_app_or_create();
 
@@ -149,7 +150,8 @@ impl TokenStore {
         }
 
         // Import the first bearer token from twurlrc
-        if let Some(bearer_tokens) = &twurlrc.bearer_tokens
+        if app.bearer_token.is_none()
+            && let Some(bearer_tokens) = &twurlrc.bearer_tokens
             && let Some(bearer_token) = bearer_tokens.values().next()
         {
             app.bearer_token = Some(Token {
@@ -219,6 +221,36 @@ configuration:
         assert_eq!(
             oauth1_token.unwrap().oauth1.as_ref().unwrap().access_token,
             "test_access_token"
+        );
+    }
+
+    /// The import fills what the default app lacks. A bearer token the store
+    /// holds, stored by `xr auth app` or a caller, is the user's choice, so
+    /// a `.twurlrc` that names another does not replace it.
+    #[test]
+    fn an_import_keeps_the_bearer_token_the_store_holds() {
+        let tmp = TempDir::new().unwrap();
+        fs::write(
+            tmp.path().join(".twurlrc"),
+            format!("{TWURLRC}\nbearer_tokens:\n  test_consumer_key: TWURLRC-BEARER\n"),
+        )
+        .unwrap();
+        let mut seeded = TokenStore::new_with_path(
+            &super::super::store_path_under(tmp.path()).to_string_lossy(),
+        );
+        seeded.save_bearer_token("STORED-BEARER").unwrap();
+
+        let store = TokenStore::from_home(tmp.path(), "", "");
+
+        assert_eq!(
+            store
+                .get_bearer_token()
+                .and_then(|token| token.bearer.as_deref()),
+            Some("STORED-BEARER")
+        );
+        assert!(
+            store.get_oauth1_tokens().is_some(),
+            "the OAuth1 pair the store lacked is imported"
         );
     }
 }
