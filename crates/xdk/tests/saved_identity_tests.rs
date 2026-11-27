@@ -1208,3 +1208,54 @@ async fn a_refresh_stores_its_pair_before_it_asks_who_the_login_is() {
         "the login stored without a name"
     );
 }
+
+/// Bob signs in under `work` while the lookup that follows a refresh of
+/// `work` is out. The refreshed pair was stored before the lookup and bob's
+/// sign-in replaced it, so the answer, which is about the refreshed token,
+/// is not recorded on bob's.
+#[tokio::test]
+async fn a_refresh_lookup_answer_is_not_recorded_on_a_login_signed_in_during_it() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| named(store, "work", true));
+    let server = answering(
+        ("GET", "/me"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: sign_bob_in_as_work,
+            body: alice_answer(),
+        },
+    )
+    .await;
+    Mock::given(method("POST"))
+        .and(path("/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(refreshed_pair()))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+        .mount(&server)
+        .await;
+
+    client(&store, &server)
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    let after = reloaded(&store);
+    let token = after
+        .get_oauth2_token_for_app(APP, "work")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("bob's login is stored");
+    assert_eq!(
+        (
+            token.refresh_token.as_str(),
+            token.user_id.as_deref(),
+            token.account_username.as_deref()
+        ),
+        ("BOB-REFRESH", Some("99"), Some("bob")),
+        "bob's login keeps bob's token and account"
+    );
+}
