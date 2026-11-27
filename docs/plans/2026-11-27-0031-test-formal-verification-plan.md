@@ -128,6 +128,10 @@ reads. Plan M's mutation runs on `auth` and `store` need the fixed code under th
 - Considered and not built: a `!.claude/skills/<skill name>` entry in a new `scripts/cargo-inputs.paths`, which would
   let a change to the verification files alone skip the Rust battery under (a) or (b) (§ "Where the model lives"). It is
   a config entry the brief does not name.
+- Considered and not built, each a change the brief does not name: a line in `AGENTS.md` pointing at the verify skill
+  (an agent finds it by its frontmatter alone); markdownlint globs that cover `.claude/skills/`, and the `lint` job's
+  comment in `.github/workflows/ci.yml` that calls `.claude/` absent from the checkout, which (a) and (b) make untrue;
+  and one script that both the skill and U7 call, in place of the rerun command written in each.
 
 ### Success Criteria
 
@@ -613,11 +617,12 @@ and a `view.mjs` that gives the chart its words; and one verify skill, a `SKILL.
 - *Files and who sees them:* the skill and its models under `.claude/skills/<skill name>/`, visible to anyone with the
   repo. `scripts/release/guarded-paths.sh` keeps `docs/plans/`, `docs/solutions/`, `.context/`, and `CONCEPTS.md` off
   `main`, and no `.claude/` path, so the files reach `main` and the public repo at the next release. Committing them
-  takes a negation in the repo's `.gitignore` or a force-add, because this machine's global ignore
-  (`~/.config/git/ignore:8`) ignores `.claude/` (`git check-ignore -v` shows it). A file under `crates/xdk/` would
-  instead land inside the `xdk-rs` package, so the models stay out of the crates.
-- *Who runs it, and when:* CI, on a PR that changes a model file or covered code, picked by the `scope` job's path
-  filter; an agent also runs the verify skill on its own change.
+  takes the three `.gitignore` lines U6 gives, because this machine's global ignore (`~/.config/git/ignore:8`) ignores
+  `.claude/` (`git check-ignore -v` shows it). A file under `crates/xdk/` would instead land inside the `xdk-rs`
+  package, so the models stay out of the crates.
+- *Who runs it, and when:* CI, on a PR that changes a file in the verify skill's folder, picked by a path filter in the
+  `scope` job; an agent runs the verify skill on its own change to covered code. A TLC run on a PR that changes only
+  covered code would check the unchanged spec and pass, which reads as a proof of code it never read.
 - *Cost:* a job that sets up Java (an action pinned to a SHA), downloads the jar and checks its sha256, and runs plain
   TLC on each config, asserting each config's expected verdict. The CI runner has no copy of `statechart`. Java and the
   jar are cached under the global CI caching rule, measured cold and warm. `ci.yml` already mixes reusable-workflow
@@ -625,8 +630,10 @@ and a `view.mjs` that gives the chart its words; and one verify skill, a `SKILL.
   Each run is a minute or two of CI time on the PRs it triggers on. A change to the verification files alone also runs
   the full Rust battery, as under (b). Upkeep: the action pins, the jar pin, and the job itself.
 - *What it guards:* a spec edit that makes a rule fail or stops a broken variant from failing, and a TLC or Java change
-  that alters a verdict. *What it cannot guard:* code drift, as above. A red run blocks nothing, so someone has to read
-  it.
+  that alters a verdict. *What it cannot guard:* code drift, as above. A red run is no required check, so the merge
+  button stays open, but an agent following the CI rule in its global instructions asserts every check is `SUCCESS` and
+  stops at a red one. So a red run halts an agent's merge until the prime or Brett triages it, and U7's failure output
+  must tell that agent what to do.
 
 **(b) Commit them with no CI job, and rerun through `maintain-formal-verification-skill` when store or auth code
 changes. Recommended.**
@@ -832,37 +839,81 @@ gives them their place.
   location; the skill grows a section as each later model passes.
 - **Files, by option:**
   - (a) and (b): `.claude/skills/<skill name>/SKILL.md`, with the specs, configs, and views beside it, and the
-    `.gitignore` negation that lets `.claude/skills/` be committed: `.claude/*` then `!.claude/skills/`, so
-    `.claude/settings.local.json` stays ignored.
+    `.gitignore` lines that let `.claude/skills/` be committed: `!.claude/`, then `.claude/*`, then `!.claude/skills/`.
+    The first line is needed because this machine's global ignore names `.claude/` itself (`~/.config/git/ignore:8`),
+    and a folder git ignores is never searched for a file to re-include: with only the last two lines,
+    `git check-ignore -v` still names the global rule for `.claude/skills/x/SKILL.md` (a scratch repo on this machine).
+    `.claude/*` keeps `settings.local.json`, `worktrees/`, and the prime's `guides` and `templates` links ignored. A
+    force-add is not a substitute: every file added later under an ignored folder, such as a config U8 writes, stays out
+    of `git status` and out of the commit.
   - (c): the same files under the prime checkout's `.context/`, and a `docs/solutions/` entry published through
     `sd-commit-doc`.
 - **Approach:**
-  1. Write the skill as `create-formal-verification-skill`, § "Generate the verify skill" asks. Frontmatter names the
-     area and when to use it. The coverage record lists, for each rule, the files and functions it covers. The sync
-     commit is the commit last confirmed to match. One rerun command uses the pinned jar (version and sha256). The skill
-     tells the agent to read every result with `/statechart`, and copies none of its commands.
-  2. Follow the skill once as the next agent would, on a scratch change that breaks a rule in the real code, such as
-     removing the `reload()` after the refresh lock. The skill must catch it. Then drop the change and confirm the check
-     is back where it started.
+  1. Write the skill as `create-formal-verification-skill`, § "Generate the verify skill" asks. The coverage record
+     lists, for each rule, the files and functions it covers, by name, with line pins only in the specs' action
+     comments. The sync commit is the commit last confirmed to match. The skill tells the agent to read every result
+     with `/statechart`, and copies none of its commands. Beyond that, the skill carries:
+     - **Frontmatter an agent is shown.** The description names the covered paths (`crates/xdk/src/store/`, the refresh
+       and headless sign-in functions in `crates/xdk/src/auth/`, `crates/xurl-cli/src/cli/runner.rs`, the step hints in
+       `crates/xurl-cli/src/cli/hints.rs`), so a change to them lists the skill. It sets no `disable-model-invocation`,
+       which every pstack skill sets and which would hide this one from every agent.
+     - **A first step that answers "does this concern me" in seconds:** `git diff --stat <sync commit> HEAD --` followed
+       by the covered files, copied from the coverage record. No output ends the check as in sync with nothing to run.
+       Otherwise the skill maps each changed file to the model and actions that name it, and says that rerunning an
+       unchanged spec proves nothing about the code: the agent first compares the changed functions with the action
+       table and updates the spec where the code changed shape, then reruns that model.
+     - **Prerequisites with a check each:** Java 11 or later (`java -version`); the pinned `tla2tools.jar` (v1.7.4 and
+       its sha256), fetched once into a cache folder outside the repo and checked with `sha256sum -c`, since
+       `statechart` does not check a jar named by `TLA2TOOLS`; and pstack for `/statechart`. pstack is not a Claude Code
+       plugin on this machine, and its skills refuse the `Skill` tool, so the skill says that Claude Code reads a pstack
+       skill by file as pstack's `docs/harness/claude-code.md` maps it, records no machine path to it, and names
+       `https://github.com/cursor/plugins` (the `pstack` folder) for an agent that finds no copy.
+     - **One rerun command** for a model or all three: plain TLC with the pinned jar on each config, with TLC's metadata
+       folder outside the repo (`-metadir`), comparing each run's verdict with the verdict the config records for
+       itself. A code config records the rules it holds and, by finding or assumption ID, each break U1 to U3 found on
+       the code and left open, such as, under `Writer = "hook"`, `LandsWhereRead` (H2/H4) and `SingleSpend` and
+       `NoGrantWithoutKeep` (P8) until KD6 is settled; under `RefreshLockHolds = FALSE`, `SingleSpend` (A2). A
+       broken-variant config checks only the rule it must break. The skill records the sweep's measured time at its sync
+       commit.
+     - **What each failure means and what to do next**, ending in the maintain skill's four outcomes (in sync, updated,
+       bug, blocked) as a result line per model, `<model>: <outcome>, <reason>`: Java missing or older than 11, a
+       checksum mismatch after one fresh fetch, or no pstack copy is blocked; a TLC parse or Java error is blocked, with
+       `tlc.out`, or the TLC output, as its trace; "Rules not checked" in a `statechart` report is blocked, never a
+       pass; a reused `--out` folder ("Pass --out with a new folder") takes a fresh one; a non-zero `statechart` exit is
+       read through `report.md`; and a verdict that differs from the record is replayed as U4 does before it is called a
+       bug.
+  2. Follow the skill once as the next agent would, from a cold start with no cached jar, on a scratch change that
+     breaks a rule in the real code, such as removing the `reload()` after the refresh lock. The skill catches it when
+     its first step names the changed function (`refresh_oauth2_token`, P3), the agent drops the re-read from model 1 to
+     match, and the rerun breaks `SingleSpend`; TLC on the unchanged spec passes, which is the trap the first step
+     exists for. Record the time from opening the skill to its result line. Then drop the change and the model edit, and
+     confirm the check is back where it started.
   3. Ship it under (a) or (b) as a change of its own (KTD7); under (c), publish the `docs/solutions` entry.
 - **Test scenarios:** `Test expectation: none -- a skill and models; step 2's break-and-catch run is its proof.`
-- **Verification:** the scratch break was caught and the clean rerun matches the last report; the skill names no
-  `statechart` command; under (a) and (b), `git check-ignore` no longer ignores the committed paths.
+- **Verification:** the scratch break was caught as step 2 describes and the clean rerun matches the recorded verdicts;
+  the cold-start time is recorded; the skill names no `statechart` command; `git status` shows no file a run wrote in
+  the repo; under (a) and (b), `git check-ignore` no longer ignores the committed paths, and `markdownlint-cli2` passes
+  on the `SKILL.md` by hand, since CI's `lint` job and the pre-push hook skip `.claude/**` (`.github/workflows/ci.yml`,
+  the `lint` job's globs).
 
 ### U7. Option (a) only: the TLC job
 
-- **Goal:** CI runs TLC on each model config when a model file or covered code changes, and never blocks a merge.
+- **Goal:** CI runs TLC on each model config when a file in the verify skill's folder changes, and is no required check.
 - **Requirements:** R11.
 - **Dependencies:** U6 under option (a).
 - **Files:** `.github/workflows/ci.yml` (a job and its path filter in the `scope` job).
 - **Approach:**
   1. The job sets up Java with an action pinned to a SHA, fetches the jar and checks its sha256, and caches both.
-  2. It runs plain TLC on each config and checks each verdict against the one the skill records for it: hold for the
-     code configs, break for each broken variant.
-  3. It is no required check, so a red run reports and blocks nothing.
+  2. It runs U6's rerun command on each config and checks each verdict against the one the config records (U6 step 1).
+     It triggers on the skill's folder only: a run on covered code alone checks the unchanged spec (§ "Where the model
+     lives").
+  3. It is no required check. A red run still stops an agent that follows the CI rule, so its failure output names, for
+     each config that differs, the config, the verdict recorded and the verdict TLC gave, and the next step: run the
+     verify skill on the branch; when the spec changed on purpose, record the new verdict in the same change; otherwise
+     report to the repo prime.
   4. Measure it cold and warm, and keep each cache only where it saves time.
 - **Test scenarios:** a run with no model change passes; a run on a scratch commit that flips one config's verdict goes
-  red without blocking the merge.
+  red, prints that config's recorded and actual verdicts with the next step, and leaves the merge open.
 - **Verification:** both runs observed; the cold and warm times recorded in the PR.
 
 ### U8. Keep the models true
@@ -888,6 +939,7 @@ gives them their place.
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | Model check        | `statechart` with `TLA2TOOLS` and `JAVA` set, a fresh `--out` folder per run, `report.md` read in place of the exit status | U1, U2, U3, U6, U8 |
 | Break and catch    | each rule's broken-variant config breaks it, and the code config holds it                                                  | U1, U2, U3, U6     |
+| Verify skill run   | U6 step 2 from a cold start: the first step names the scratch change, the rerun breaks its rule, `git status` stays clean  | U6                 |
 | Replay fails first | the replay run on the unfixed code, its failure quoted, then on the fix                                                    | U4, U5             |
 | One test binary    | `cargo nextest run -p xdk-rs --test <file>`                                                                                | U4, U5             |
 | Suite              | `cargo nextest run --workspace` and `cargo test --doc --workspace`                                                         | U5                 |
@@ -927,18 +979,17 @@ findings (P0 0, P1 2), every remedy applied in this plan. Each was checked again
 - P1. Model 2 ran the mover again only after a crash, but every `xr` call runs `adopt_directory_layout` first
   (`crates/xurl-cli/src/cli/runner.rs:452`), and `keep_as_backup` renames onto `<aside>.bak` with `fs::rename`, which
   replaces a `.bak` already there (`crates/xdk/src/store/layout.rs:248-249`). Under the old bound TLC could never reach
-  two backups, so `StrandedKept` would read as holding where the code can overwrite a kept store. Changed: the mover runs
-  at every call, with two later runs in the rules config, Q-L5, and its replay in U4.
+  two backups, so `StrandedKept` would read as holding where the code can overwrite a kept store. Changed: the mover
+  runs at every call, with two later runs in the rules config, Q-L5, and its replay in U4.
 - P1. Dropping the future at an await does not stop a `spawn_blocking` task that has started (tokio 1.54.1,
   `src/task/blocking.rs:106-110`). `TokenStore::update_at` (`crates/xdk/src/store/mod.rs:787-794`, H2's save) and
   `RefreshLock::acquire_off_runtime` (`crates/xdk/src/store/lock.rs:168-172`, P2) await one, so a dropped replay still
   writes or locks, unlike a kill, and R7 would then call a correct model wrong. A5 also said a kill gets the temp-file
   unlink; the 60-second sweep removes it instead. Changed: KTD6's crash row and A5.
-- P2. `StoreLock` records the paths each thread holds (`crates/xdk/src/store/lock.rs:58-62`), and an update under a
-  lock its thread already holds runs with no reload and no save (`crates/xdk/src/store/mod.rs:759-761`), so two handles
-  on one test thread are not two processes. Changed: KTD6 gives each process in a replay its own thread, and a replay
-  of an embedder's pending path uses `pending_path_for_store`, since `store_isolation_guard` refuses
-  `default_pending_path()`.
+- P2. `StoreLock` records the paths each thread holds (`crates/xdk/src/store/lock.rs:58-62`), and an update under a lock
+  its thread already holds runs with no reload and no save (`crates/xdk/src/store/mod.rs:759-761`), so two handles on
+  one test thread are not two processes. Changed: KTD6 gives each process in a replay its own thread, and a replay of an
+  embedder's pending path uses `pending_path_for_store`, since `store_isolation_guard` refuses `default_pending_path()`.
 - P2. Only a hook built for the default app resolves the app at each write (`crates/xdk/src/store/hook.rs:20-21`,
   `:42-46`), so H2's Q7 path needs that hook. Changed: KTD4, the H2 row, and U4's first scenario name it.
 - P2. U3 waited on every model 1 fix, H2/H4's included, which KD6 holds on Brett's decision, though model 3 reads only
@@ -948,14 +999,14 @@ findings (P0 0, P1 2), every remedy applied in this plan. Each was checked again
   in CI and in `scripts/hooks/pre-push`. Changed: options (a) and (b) state it, and an exclusion entry is listed under §
   "Scope Boundaries" as considered and not built.
 - P3. `NoteTheStoredRefreshToken` is not on `dev`; #645 adds it. The audit's two hook tests were written in
-  `crates/xdk/tests/client_builder_tests.rs` at `9936fe7` and reverted with that fix. A bare `!.claude/` negation
-  would re-include `.claude/settings.local.json`. Changed: U4 and U6 cite these, and U6's negation is `.claude/*` then
-  `!.claude/skills/`.
+  `crates/xdk/tests/client_builder_tests.rs` at `9936fe7` and reverted with that fix. A bare `!.claude/` negation would
+  re-include `.claude/settings.local.json`. Changed: U4 and U6 cite these, and U6 gives a negation that keeps
+  `.claude/settings.local.json` ignored (the devex review below sets its final lines).
 
 **Noted, not acted on** (confidence 4/10 each). Whether `LandsWhereRead`'s broken variant breaks that rule as well as
 `PeerWriteStands` is unmeasured; U1 step 5 measures it. `xr auth default <app> <user>` sets both defaults in one update
-(`set_default_app_and_user`, `crates/xurl-cli/src/cli/commands/auth/session.rs:341`), which Q6 and Q7 split, and no
-rule seems to tell the two apart.
+(`set_default_app_and_user`, `crates/xurl-cli/src/cli/commands/auth/session.rs:341`), which Q6 and Q7 split, and no rule
+seems to tell the two apart.
 
 **Questions raised and the answers chosen.**
 
@@ -971,10 +1022,100 @@ rule seems to tell the two apart.
 | D8 | Cite #645's responder, the audit tests' commit, and the negation's shape?                                            | Cite them                                                        | #645's diff; `9936fe7`; a scratch `git check-ignore` run                                                   |
 | D9 | What runs next?                                                                                                      | `/plan-devex-review`, then `/compound-engineering:ce-doc-review` | the Review log                                                                                             |
 
-**Decisions only Brett can make.** Where the model lives (KD5). The `OnTokenRefreshed` API for H2/H4, and for P8 if
-its fix needs one (KD6); no API is proposed. The verify skill's name. Whether the fixes KD6 holds gate plan M's `store`
-and `auth` mutation run, which KD4 as written makes wait on the API decision. Whether to add the
+**Decisions only Brett can make.** Where the model lives (KD5). The `OnTokenRefreshed` API for H2/H4, and for P8 if its
+fix needs one (KD6); no API is proposed. The verify skill's name. Whether the fixes KD6 holds gate plan M's `store` and
+`auth` mutation run, which KD4 as written makes wait on the API decision. Whether to add the
 `scripts/cargo-inputs.paths` exclusion.
+
+### `/plan-devex-review`
+
+One round, run unattended as one Opus process at `74c69e3` (the plan as pushed at `21e904b`, plus the line that started
+this review). It reviewed the two surfaces the plan adds for a developer or agent, the verify skill (U6) and, under
+option (a) only, the TLC job (U7), as planned. Every question was answered from the code, `AGENTS.md`, the pstack skill
+files, and `qmd query ... --collection solutions`, taking the recommended option where the evidence settled nothing. It
+ran the skill's lite path inline: full depth did not run, because this repo reviews without subagents, and no outside
+voice or cross-model pass ran (the brief forbids one, and `codex_reviews` is `disabled`). Mode: DX POLISH. Verdict:
+issues open, twelve findings (P0 0, P1 5), every remedy applied in U6, U7, § "Where the model lives", § "Scope
+Boundaries", and the Verification Contract. Each was checked against the code or a scratch run before it was applied.
+
+**Findings.**
+
+- P1. U6's `.gitignore` lines do not let the skill be committed on this machine. In a scratch repo with `.claude/*` then
+  `!.claude/skills/`, `git check-ignore -v .claude/skills/x/SKILL.md` printed `~/.config/git/ignore:8:.claude/`, and
+  `git status` showed nothing under `.claude/`; adding `!.claude/` first showed the skill files and kept
+  `settings.local.json` and `worktrees/` ignored. Without the global file, the two-line form works, which is how it
+  passes on CI or another machine. A force-add would leave each later file out of `git status`. Changed: U6's Files and
+  option (a)'s text.
+- P1. `/statechart` cannot be reached by that name from a Claude Code slot. pstack is not an installed Claude Code
+  plugin here (`~/.claude/plugins/installed_plugins.json` lists four others), every pstack skill sets
+  `disable-model-invocation: true`, and pstack's `docs/harness/claude-code.md` says the `Skill` tool refuses most pstack
+  skills and that Claude Code reads one by file. Changed: U6 says how, records no machine path, and names the source
+  repo for an agent with no copy.
+- P1. R9 asks for one rerun command with a pinned TLC, and `create-formal-verification-skill` forbids copying
+  `statechart`'s commands into the skill, so the plan named no command an agent could run. `statechart` also skips the
+  checksum when `TLA2TOOLS` is set (`statechart/scripts/run.ts:187-188`), and plain TLC writes its `states/` folder
+  where it runs unless `-metadir` moves it (`run.ts:283` passes it). Changed: U6's rerun command is plain TLC on each
+  config, with the jar fetched once outside the repo and checked, the metadata folder outside the repo, and
+  `/statechart` for reading results; U7 runs the same command.
+- P1. The code configs break rules on today's code by design: `LandsWhereRead`, `SingleSpend`, and `NoGrantWithoutKeep`
+  under `Writer = "hook"` (H2/H4, P8, held by KD6), and `SingleSpend` under `RefreshLockHolds = FALSE` (A2). An agent
+  rerunning the skill cannot tell those from a break it caused. Changed: each config records its expected verdict, with
+  the finding or assumption behind each expected break.
+- P1 (option (a)). U7 said a red run "reports and blocks nothing", but the global CI rule has an agent assert every
+  check is `SUCCESS` and never proceed past a red run, so a red TLC job halts every agent's merge on that PR, and the
+  plan gave the job no failure output. Changed: § (a) states it, and U7's output names the config, both verdicts, and
+  the next step.
+- P2. TLC never reads the code, so after a code change the useful first answer is whether the diff touches covered code
+  since the sync commit, and a rerun of the unchanged spec passes whatever the code does (§ "Where the model lives").
+  The plan gave no command for that step. Changed: U6's first step is `git diff --stat <sync commit> HEAD --` on the
+  covered files, and it says to update the spec before rerunning.
+- P2. U6 step 2 said "the skill must catch it" without saying how, and TLC on the unchanged spec passes the scratch
+  change, which an implementer could read as a miss. Changed: step 2 says the catch is the first step naming
+  `refresh_oauth2_token`, the model edit, and `SingleSpend` breaking.
+- P2. The skill had no failure guide: what an agent sees when Java, the jar, or pstack is missing, when TLC errors, when
+  a report lists "Rules not checked", when `--out` is reused (the prior run's § "Tooling notes"), or when a verdict
+  differs. Changed: U6 lists each with its next step and ends in the maintain skill's four outcomes.
+- P2 (option (a)). U7 triggered on covered code as well as model files. Such a run checks the unchanged spec and passes,
+  the case `maintain-formal-verification-skill` calls dangerous because it looks like a proof, and the filter needs a
+  second copy of the coverage list in `ci.yml`. Changed: U7 triggers on the skill's folder only.
+- P2. Discovery rests on frontmatter alone: pstack's own skills set `disable-model-invocation: true`, which copied here
+  would hide the skill, and a description that names no covered path leaves it unlisted for the change it guards.
+  Changed: U6 names both. The name stays Brett's; it cannot be `verify`, which is gstack's user-level skill and an `off`
+  entry in `skillOverrides` (solutions: `skill-off-in-settings-removes-its-bash-tool-description-sentence.md`).
+- P3. CI's `lint` job and the pre-push hook skip `.claude/**`, so a committed `SKILL.md` is never linted. Changed: U6
+  lints it by hand once; the globs are listed under § "Scope Boundaries".
+- P3. No step measured how long the skill takes an agent. Changed: U6 step 2 runs from a cold start and records the
+  time, and the skill records its sweep time at the sync commit.
+
+**Questions raised and the answers chosen.**
+
+| D   | Question                                                                        | Answer                                                             | Evidence                                                                                      |
+| --- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| D1  | Product type?                                                                   | A Claude Code skill, plus a CI job under (a)                       | U6, U7; the brief names both                                                                  |
+| D2  | Primary persona?                                                                | An AI coding agent in a slot, cold, mid-change                     | R9's "next agent"; § "Implementation Units" runs units in slots                               |
+| D3  | Run `/office-hours` first?                                                      | No                                                                 | unattended; the one design doc found is for typed API response structs                        |
+| D4  | TTHW target?                                                                    | Competitive, 2 to 5 min per model; seconds when nothing is covered | feasibility times 4.7 to 16.8 s per config; recommended option                                |
+| D5  | Magical-moment vehicle?                                                         | The first step, then one model's verdicts                          | TLC reads no code (§ "Where the model lives"); create skill's "whether a change touches"      |
+| D6  | Review mode?                                                                    | DX POLISH                                                          | an enhancement with a fixed brief; the skill's default                                        |
+| D7  | Is the empathy narrative accurate?                                              | Yes, corrected for pstack's install state                          | `installed_plugins.json`; pstack's harness doc                                                |
+| D8  | Correct the `.gitignore` lines?                                                 | Yes, `!.claude/` first                                             | the scratch run above                                                                         |
+| D9  | The one rerun command: plain TLC, or a `statechart` invocation?                 | Plain TLC with each config's expected verdict                      | R9; the create skill's ban on copying `statechart`'s commands; U7 runs plain TLC; recommended |
+| D10 | Record the known breaks as expected verdicts?                                   | Yes, with their IDs                                                | KD6; A2; the create skill's "failing only on the findings you will report"                    |
+| D11 | How does the skill reach `/statechart` in Claude Code?                          | pstack's harness mapping and the source repo, no machine path      | `docs/harness/claude-code.md`; the create skill's rule on paths                               |
+| D12 | Add a failure guide to the skill?                                               | Yes, ending in the maintain skill's four outcomes                  | the prior run's tooling notes; nothing settles the form, so the recommended option            |
+| D13 | Under (a), a red TLC run: keep it red with a next step, or `continue-on-error`? | Keep it red, and print the next step                               | the global CI rule; a green job would hide the finding                                        |
+| D14 | Under (a), U7's trigger?                                                        | The skill's folder only                                            | § "Where the model lives"; the maintain skill on a stale pass                                 |
+| D15 | Frontmatter: invocable, with the covered paths?                                 | Yes; the name stays Brett's                                        | pstack skills' `disable-model-invocation: true`; the `skillOverrides` solutions doc           |
+| D16 | Lint the committed `SKILL.md`?                                                  | By hand in U6; the globs are out of scope                          | `ci.yml`'s `lint` globs exclude `.claude/**`                                                  |
+| D17 | Measure the cold-start time?                                                    | Yes, in U6 step 2                                                  | the step already runs cold as the next agent; recommended option                              |
+| D18 | Add TODO entries for DX debt?                                                   | No                                                                 | the brief allows edits to this plan only                                                      |
+| D19 | What runs next?                                                                 | `/compound-engineering:ce-doc-review`                              | the Review log                                                                                |
+
+**Decisions only Brett can make.** Where the model lives (KD5): (a), (b), or (c), left open; U7's changes apply only
+under (a). The `OnTokenRefreshed` API for H2/H4, and for P8 if its fix needs one (KD6); no API is proposed, and the
+expected verdicts carry those breaks until then. The verify skill's name, which cannot be `verify`. Whether the fixes
+KD6 holds gate plan M's `store` and `auth` mutation run. Whether to add the `scripts/cargo-inputs.paths` exclusion, or
+any item this review lists as considered and not built.
 
 ## Review log
 
@@ -986,7 +1127,16 @@ and `auth` mutation run, which KD4 as written makes wait on the API decision. Wh
   code; five decisions left to Brett (§ "Review record"). Changed: model 2's mover runs at every `xr` call, with two
   later runs and Q-L5; KTD6's crash replay at a `spawn_blocking` await builds the disk state, and A5's temp-file claim
   is corrected; one thread per process in a replay; the H2 path names the default-app hook; U3 no longer waits on the
-  fixes KD6 holds; options (a) and (b) state that a verification-only change runs the Rust battery; and U4 and U6 cite
-  #645's responder, `9936fe7`, and the `.gitignore` negation.
+  fixes KD6 holds; options (a) and (b) state that a verification-only change runs the Rust battery; and U4 and U6
+  cite #645's responder, `9936fe7`, and the `.gitignore` negation.
 - 2026-11-27: `/plan-devex-review` started, one round, as its own Opus process, on the plan as pushed at `21e904b`. It
   runs because the plan adds a verify skill an agent runs and, under option (a), a CI job.
+- 2026-11-27: `/plan-devex-review` ended: issues open, twelve findings (P0 0, P1 5), all applied once checked: the
+  three-line `.gitignore` in a scratch repo against `~/.config/git/ignore:8`, `disable-model-invocation: true` in 58 of
+  pstack's 59 skills, `statechart/scripts/run.ts:186-188`, and the `!.claude/**` lint glob (`.github/workflows/ci.yml:207`).
+  The decisions left to Brett are unchanged, plus the items it lists as considered and not built (§ "Review record").
+  Changed: U6's `.gitignore` lines start with `!.claude/`; U6 carries invocable frontmatter, a first step that checks
+  the diff against the coverage record, prerequisites with the pstack route in Claude Code, one plain-TLC rerun command
+  with each config's expected verdict, known breaks included, and a failure guide; U6 step 2 says what a catch is and
+  runs from a cold start; under (a), U7 triggers on the skill's folder only, and its red run tells the agent it halts
+  what to do.
