@@ -1495,6 +1495,7 @@ Pending.
   turns, about 26 minutes). 14 section findings and one scope finding, each answered from the code and applied to the
   plan text (D1 to D16). The review left B1 to B5 open. The author settles B2 from AGENTS.md, puts B3 and B4 under
   "Not in R", and keeps B1 and B5 as code calls for xurl-plan-prime to confirm. No decision goes to Brett.
+- 2026-11-27: `/plan-devex-review` round 1 started, as its own Opus process on a clone of this commit.
 
 ## GSTACK REVIEW REPORT
 
