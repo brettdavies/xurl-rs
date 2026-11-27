@@ -1125,3 +1125,137 @@ async fn a_me_answer_is_recorded_on_the_token_a_refresh_inside_the_send_minted()
         ("REFRESHED-ACCESS", Some("42"))
     );
 }
+
+/// Answers `/2/users/me` as alice after noting the refresh token the store
+/// holds for the login when the lookup arrives, the lookup a refresh makes
+/// once its grant has been answered.
+struct NoteTheStoredRefreshToken {
+    store: std::path::PathBuf,
+    login: Option<&'static str>,
+    noted: std::sync::Arc<std::sync::Mutex<Vec<String>>>,
+}
+
+impl wiremock::Respond for NoteTheStoredRefreshToken {
+    fn respond(&self, _: &wiremock::Request) -> ResponseTemplate {
+        let store = reloaded(&self.store);
+        let token = match self.login {
+            Some(login) => store.get_oauth2_token_for_app(APP, login),
+            None => store.get_oauth2_token_unnamed_for_app(APP),
+        };
+        let refresh_token = token
+            .and_then(|token| token.oauth2.as_ref())
+            .map_or_else(String::new, |token| token.refresh_token.clone());
+        self.noted.lock().expect("the note").push(refresh_token);
+        ResponseTemplate::new(200).set_body_json(alice_answer())
+    }
+}
+
+/// The refresh token the store held for `login` while the lookup a refresh
+/// of it makes was in flight.
+async fn stored_during_the_lookup(login: Option<&'static str>) -> Vec<String> {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| match login {
+        Some(name) => named(store, name, true),
+        None => unnamed(store, true),
+    });
+    let noted = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(refreshed_pair()))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/me"))
+        .respond_with(NoteTheStoredRefreshToken {
+            store: store.clone(),
+            login,
+            noted: std::sync::Arc::clone(&noted),
+        })
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+        .mount(&server)
+        .await;
+
+    client(&store, &server)
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    noted.lock().expect("the note").clone()
+}
+
+/// X rotates the refresh token at the grant, so the pair it answered with
+/// is the only live copy until it is stored. A process killed during the
+/// lookup that follows (Ctrl+C, `timeout`, an agent's tool-call limit) would
+/// leave the spent token behind: the pair is stored before the lookup goes
+/// out.
+#[tokio::test]
+async fn a_refresh_stores_its_pair_before_it_asks_who_the_login_is() {
+    assert_eq!(
+        stored_during_the_lookup(Some("work")).await,
+        ["REFRESHED-REFRESH"],
+        "a labelled login without an id"
+    );
+    assert_eq!(
+        stored_during_the_lookup(None).await,
+        ["REFRESHED-REFRESH"],
+        "the login stored without a name"
+    );
+}
+
+/// Bob signs in under `work` while the lookup that follows a refresh of
+/// `work` is out. The refreshed pair was stored before the lookup and bob's
+/// sign-in replaced it, so the answer, which is about the refreshed token,
+/// is not recorded on bob's.
+#[tokio::test]
+async fn a_refresh_lookup_answer_is_not_recorded_on_a_login_signed_in_during_it() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| named(store, "work", true));
+    let server = answering(
+        ("GET", "/me"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: sign_bob_in_as_work,
+            body: alice_answer(),
+        },
+    )
+    .await;
+    Mock::given(method("POST"))
+        .and(path("/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(refreshed_pair()))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+        .mount(&server)
+        .await;
+
+    client(&store, &server)
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    let after = reloaded(&store);
+    let token = after
+        .get_oauth2_token_for_app(APP, "work")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("bob's login is stored");
+    assert_eq!(
+        (
+            token.refresh_token.as_str(),
+            token.user_id.as_deref(),
+            token.account_username.as_deref()
+        ),
+        ("BOB-REFRESH", Some("99"), Some("bob")),
+        "bob's login keeps bob's token and account"
+    );
+}

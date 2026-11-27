@@ -792,55 +792,45 @@ pub async fn refresh_oauth2_token(
         slot: stored_as.as_deref(),
         refresh_token: &oauth2.refresh_token,
     };
-    if username.is_empty() && complete {
-        auth.token_store.put_refreshed_oauth2_token(
-            &app_name,
-            &from,
-            stored_as.as_deref(),
-            token,
-            false,
-            false,
-        )?;
-    } else if username.is_empty() {
-        match auth.fetch_identity(http, &new_access_token).await {
-            Ok(identity) => {
-                identity.record_on(&mut token);
-                let name = stored_as.as_deref().unwrap_or(&identity.username);
-                auth.token_store.put_refreshed_oauth2_token(
-                    &app_name,
-                    &from,
-                    Some(name),
-                    token,
-                    stored_as.is_none(),
-                    true,
-                )?;
-            }
-            Err(_) => {
-                if stored_as.is_none() {
-                    tracing::warn!(
-                        target: "xdk::auth",
-                        "refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
-                    );
-                }
-                auth.token_store.put_refreshed_oauth2_token(
-                    &app_name,
-                    &from,
-                    stored_as.as_deref(),
-                    token,
-                    false,
-                    false,
-                )?;
-            }
+    // X retired the refresh token at the grant, so the new pair is the only
+    // one that still refreshes: it is stored before the lookup, which a run
+    // can end during.
+    auth.token_store.put_refreshed_oauth2_token(
+        &app_name,
+        &from,
+        stored_as.as_deref(),
+        token.clone(),
+        false,
+        false,
+    )?;
+    if !username.is_empty() || complete {
+        return Ok(new_access_token);
+    }
+    match auth.fetch_identity(http, &new_access_token).await {
+        Ok(identity) => {
+            identity.record_on(&mut token);
+            let name = stored_as.as_deref().unwrap_or(&identity.username);
+            let rotated_refresh_token = token.refresh_token.clone();
+            let stored = MintedFrom {
+                slot: stored_as.as_deref(),
+                refresh_token: &rotated_refresh_token,
+            };
+            auth.token_store.put_refreshed_oauth2_token(
+                &app_name,
+                &stored,
+                Some(name),
+                token,
+                stored_as.is_none(),
+                true,
+            )?;
         }
-    } else {
-        auth.token_store.put_refreshed_oauth2_token(
-            &app_name,
-            &from,
-            Some(username),
-            token,
-            false,
-            false,
-        )?;
+        Err(_) if stored_as.is_none() => {
+            tracing::warn!(
+                target: "xdk::auth",
+                "refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
+            );
+        }
+        Err(_) => {}
     }
 
     Ok(new_access_token)
