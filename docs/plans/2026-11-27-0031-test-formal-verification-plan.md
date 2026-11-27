@@ -1140,3 +1140,5 @@ any item this review lists as considered and not built.
   with each config's expected verdict, known breaks included, and a failure guide; U6 step 2 says what a catch is and
   runs from a cold start; under (a), U7 triggers on the skill's folder only, and its red run tells the agent it halts
   what to do.
+- 2026-11-27: `/compound-engineering:ce-doc-review mode:non-interactive` started, one round, as its own Opus process,
+  on the plan as pushed at `1279c37`.
