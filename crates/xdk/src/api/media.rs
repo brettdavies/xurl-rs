@@ -190,7 +190,10 @@ async fn phase_auth_preflight(
 /// APPEND, FINALIZE) fails. A processing failure or timeout after FINALIZE is
 /// reported in [`MediaUploadOutcome::processing`], not here.
 #[doc(hidden)]
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "doc-hidden plumbing that `xr media upload` passes each of its inputs through"
+)]
 pub async fn execute_media_upload(
     file_path: &str,
     media_type: &str,
@@ -339,7 +342,6 @@ async fn upload_chunks(
         bytes_uploaded += bytes_read as u64;
         segment_index += 1;
 
-        #[allow(clippy::cast_precision_loss)]
         let pct = (bytes_uploaded as f64 / file_size as f64) * 100.0;
         tracing::debug!(
             target: MEDIA_TARGET,

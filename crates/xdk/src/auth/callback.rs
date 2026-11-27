@@ -544,7 +544,6 @@ where
 /// # Errors
 ///
 /// See [`wait_for_callback_with`].
-#[allow(dead_code)] // Reserved for tests that drive the listener without a side-effect on bind.
 pub async fn wait_for_callback(
     redirect_uri: &Url,
     expected_state: &str,

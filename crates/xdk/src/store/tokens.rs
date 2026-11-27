@@ -4,7 +4,6 @@ use super::TokenStore;
 use super::types::{OAuth1Token, OAuth2Token, Token, TokenType};
 use crate::error::Result;
 
-#[allow(dead_code)] // Public library API — used by consumers and integration tests
 impl TokenStore {
     // ── Save ─────────────────────────────────────────────────────────
 

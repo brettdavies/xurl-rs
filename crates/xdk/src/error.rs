@@ -547,7 +547,6 @@ pub fn mismatch_shape<'a>(
     }
 }
 
-#[allow(dead_code)] // Public library API — used by consumers and integration tests
 impl Error {
     /// Create an API error with an HTTP status code and response body.
     pub fn api(status: u16, body: impl Into<String>) -> Self {
@@ -1113,11 +1112,9 @@ pub const USER_NOT_FOUND: &str = "not found in app";
 ///   `EXIT_AUTH_REQUIRED` (missing credential) — this signals a *wrong*
 ///   credential request that's fixable by changing `--auth`. Shares the
 ///   `EX_USAGE` numeric value with clap because both are usage faults.
-#[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_SUCCESS: i32 = 0;
 /// General / user-recoverable error. Sysexits default for anything not
 /// covered by a more specific code.
-#[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_GENERAL_ERROR: i32 = 1;
 /// Auth method mismatch. `EX_USAGE` from sysexits — `2`.
 ///
@@ -1126,38 +1123,31 @@ pub const EXIT_GENERAL_ERROR: i32 = 1;
 /// empty-intersection path when no stored credential on the active app
 /// satisfies the endpoint. Distinct from [`EXIT_AUTH_REQUIRED`] (= `77`,
 /// missing credential).
-#[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_MISMATCH: i32 = 2;
 /// Usage error. `EX_USAGE` from sysexits — `2`.
 ///
 /// Clap parse failures share this value, as do the errors a caller can fix
 /// by changing the invocation rather than the credentials. Distinct in
 /// meaning from [`EXIT_AUTH_MISMATCH`], which shares the number.
-#[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_USAGE_ERROR: i32 = 2;
 /// Authentication required. `EX_NOPERM` from sysexits — `77`.
 ///
 /// Auth-required errors exit `77` rather than `2`, so the code unambiguously
 /// distinguishes an auth failure from a clap usage error (`EX_USAGE` = `2`).
-#[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_AUTH_REQUIRED: i32 = 77;
 /// API rate limit hit (HTTP 429). Agents should back off and retry per
 /// the response's rate-limit headers.
-#[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_RATE_LIMITED: i32 = 3;
 /// Resource not found (HTTP 404).
-#[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NOT_FOUND: i32 = 4;
 /// A transport or filesystem failure: [`Error::Http`], [`Error::Io`], and an
 /// address another socket holds, [`Error::AddressInUse`]. An API response
 /// whose status has no code of its own exits [`EXIT_GENERAL_ERROR`].
-#[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 
 /// Maps an [`Error`] to a structured exit code.
 ///
 /// Free-function shim delegating to [`Error::exit_code`].
-#[allow(dead_code)] // Public library API — used by consumers
 #[must_use]
 pub fn exit_code_for_error(e: &Error) -> i32 {
     e.exit_code()

@@ -21,10 +21,7 @@ struct LegacyStore {
 // ── Twurlrc structures ──────────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)] // Fields populated by serde deserialization
 struct TwurlrcProfile {
-    username: Option<String>,
-    consumer_key: Option<String>,
     consumer_secret: Option<String>,
     token: Option<String>,
     secret: Option<String>,

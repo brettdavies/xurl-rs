@@ -26,13 +26,9 @@ pub(crate) use types::{RedirectUriGetResponse, RedirectUriSetResponse};
 /// Bundle of global flags relevant to auth subcommands.
 ///
 /// Mirrors the parent module's `GlobalFlags`, scoped to the subset auth needs.
-/// `verbose` is reserved for future auth handlers that surface verbose request
-/// tracing (e.g. the manual OAuth2 step exchange).
 #[derive(Debug, Clone, Copy)]
 pub(super) struct AuthGlobalFlags {
     pub(super) no_interactive: bool,
-    #[allow(dead_code)]
-    pub(super) verbose: bool,
     pub(super) dry_run: bool,
     pub(super) quiet: bool,
     pub(super) app_explicit: bool,
@@ -42,7 +38,6 @@ impl From<&GlobalFlags> for AuthGlobalFlags {
     fn from(flags: &GlobalFlags) -> Self {
         Self {
             no_interactive: flags.no_interactive,
-            verbose: flags.verbose,
             dry_run: flags.dry_run,
             quiet: flags.quiet,
             app_explicit: flags.app_explicit,
@@ -132,7 +127,6 @@ impl StoredAccountEntry {
 }
 
 /// Helper for `#[serde(skip_serializing_if)]` on `bool` fields that default false.
-#[allow(clippy::trivially_copy_pass_by_ref)]
 fn is_false(b: &bool) -> bool {
     !*b
 }
