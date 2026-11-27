@@ -923,3 +923,4 @@ Pending.
 
 - 2026-11-27: plan written, and the CI speed plan closed in the same commit. Pending: `/plan-eng-review`,
   `/plan-devex-review`, `/compound-engineering:ce-doc-review`, one round each, each as its own Opus process.
+- 2026-11-27: `/plan-eng-review` round 1 started, as its own Opus process on a clone of this commit.
