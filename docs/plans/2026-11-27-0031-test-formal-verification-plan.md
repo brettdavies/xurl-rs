@@ -988,3 +988,5 @@ and `auth` mutation run, which KD4 as written makes wait on the API decision. Wh
   is corrected; one thread per process in a replay; the H2 path names the default-app hook; U3 no longer waits on the
   fixes KD6 holds; options (a) and (b) state that a verification-only change runs the Rust battery; and U4 and U6 cite
   #645's responder, `9936fe7`, and the `.gitignore` negation.
+- 2026-11-27: `/plan-devex-review` started, one round, as its own Opus process, on the plan as pushed at `21e904b`. It
+  runs because the plan adds a verify skill an agent runs and, under option (a), a CI job.
