@@ -69,9 +69,10 @@ Where a large cut would come from, read from the suite's shape and not yet measu
 
 1. **Hand-written tests that a walk already covers.** The walks run every command over every store shape and assert one
    property each: `dry_run_guard`, `credential_step_walk`, `rerun_walk`, `validation_value_guard`, `post_id_guard`, and
-   `help_claims_guard`. A per-command test of the same property duplicates them by construction. 107 tests outside the
-   walks have `dry_run` in their name, and 142 test files outside the walks and guards assert `next_step`. Some of them
-   pin a value no walk checks.
+   `help_claims_guard`. A per-command test of the same property duplicates them by construction. 90 test functions in
+   `crates/*/tests/*.rs` outside the walks and guards have `dry_run` in their name, and 27 test files there outside the
+   walks and guards mention `next_step` (`rg -l next_step crates/*/tests/*.rs`, less the files named for a guard or
+   walk). Some of them pin a value no walk checks.
 2. **The same contract at several layers:** the library (`crates/xdk/tests`), the CLI driven in-process
    (`run_with_store_path`), the spawned binary (`common::xr()`), and a golden fixture. A dry-run envelope pinned by its
    golden and by field assertions in `cli_tests.rs` is the typical case.
@@ -124,9 +125,10 @@ against killing tests is the evidence each cut and each gap test rests on.
 
 - AE1. In a fresh clone at M1's merge commit, `cargo mutants --workspace --list | wc -l` prints the count M1's PR body
   records (4,473 at 492e187), and `git status --porcelain` prints nothing afterwards.
-- AE2. In that clone, `cargo mutants --workspace -f crates/xdk/src/webhooks/budget.rs -F '<one mutant name>'` passes its
-  baseline in the copied tree, tests the one mutant, and writes `/tmp/xurl-rs-mutants/mutants.out`, with nothing new
-  inside the checkout.
+- AE2. In that clone, `cargo mutants --workspace -f crates/xdk/src/webhooks/signing.rs -F '<one mutant name>'` passes
+  its baseline in the copied tree, tests the one mutant, and writes `/tmp/xurl-rs-mutants/mutants.out`, with nothing new
+  inside the checkout. `signing.rs` holds no struct-field mutant, which `-F` would not filter out (KTD10), so the run
+  tests exactly one.
 - AE3. `cargo build -p anstyle-parse --profile mutants -v` shows `-C opt-level=3` and `-C strip=debuginfo` on the
   `anstyle_parse` compile line, and no `-C debuginfo`.
 - AE4. On the pilot's output, the script's missed list equals `missed.txt` line for line, and every mutant in
@@ -156,9 +158,12 @@ against killing tests is the evidence each cut and each gap test rests on.
 - Brett's decisions for this plan, relayed in the coordinating session's brief of 2026-11-27 (KTD1 to KTD8), and
   xurl-plan-prime's calls on KTD9, KTD10, and KTD22.
 - The cleanup order-of-events note of 2026-11-26: Phase 5 is this plan, and its phases 0 to 4 and its order rules set
-  this plan's gates. Its plan R is the refactor plan (lever 8, the merged test layout, the source splits) and its plan F
-  the formal-verification plan (the TLA+ models and their fix PRs). Neither is on `origin/dev` yet, so this plan cites
-  them by phase and step.
+  this plan's gates. Its plan R is the refactor plan,
+  `docs/plans/2026-11-27-0026-refactor-file-splits-and-test-layout-plan.md` on `dev`: lever 8 is its U1, the merged test
+  layout its U2, the source splits its U5 to U8 (`response/types.rs` is U8), the `hints.rs` test move its U9, and the
+  `cli_tests.rs` split its U10. Its plan F is the formal-verification plan,
+  `docs/plans/2026-11-27-0031-test-formal-verification-plan.md`, whose fix PRs for `auth` and `store` are its U5. This
+  plan cites the order note's phases and steps beside those units.
 - The pstack skills audit of 2026-11-26, § "Tests" through § "Do we want our own skill for it?": suite size, discovery
   classes, the gate, the four lists, the three wrong-answer traps, and the skill question.
 - The test audit of 2026-11-03 (CI plan U2): its decision list (batches A to C, landed as #482, #484, #485), its
@@ -241,6 +246,14 @@ The decisions below settle what the sources leave open.
     (`crates/xurl-cli/src/cli/commands/webhooks_program.rs:42`, why a `webhooks listen` program failed).
   - Genres of the 4,473: 2,608 function-value, 980 binary-operator, 322 match-arm, 295 unary-operator, 144 match-guard,
     124 struct-field. `--list` builds nothing (23 s, 83 MB) and leaves `git status` clean.
+  - No name regex reaches a struct-field mutant (`delete field <f> from struct <S> expression in <fn>`). cargo-mutants
+    27.1.0 pushes that genre without the `allows_mutant` check every other genre passes (`src/visit.rs:747` against
+    `src/visit.rs:335`, read at `v27.1.0`), so neither `-F`/`examine_re` nor `-E`/`exclude_re` filters it. Probe at
+    492e187: `cargo mutants --workspace --list -f 'crates/xdk/src/webhooks/**' -F '^no such mutant$'` exits 0 and lists
+    `crates/xdk/src/webhooks/budget.rs:102:16: delete field first_wait from struct Self expression in
+    RetryBudget::with_first_wait`, and `-E 'delete field'` leaves it listed. All 124 struct-field mutants are in the
+    4,473: 95 in the CLI, 26 in the rest of `xdk`, 2 in `store`, 1 in `webhooks`, none in `auth`. A file filter (`-f`,
+    `-e`) does reach them. KTD20 and KTD22 work around the gap.
 - KTD11. **`[profile.mutants]` lives in the root `Cargo.toml`, beside `[profile.release]`, with `inherits = "test"` and
   `debug = "none"`.** The cargo-mutants book suggests that table there (`performance.md`). `.cargo/config.toml` already
   holds the ten `[profile.dev.package.*]` opt-levels from #641, and its comment says CI's cache key hashes that file and
@@ -271,7 +284,11 @@ The decisions below settle what the sources leave open.
   `output_parent_dir = options.output_in_dir ... unwrap_or(workspace.root())`), and nothing expands `~` or a variable.
   So the only value that is outside every clone from any directory is an absolute path, and `/tmp` exists on Linux and
   macOS. cargo-mutants creates the last path component itself (`create_dir`, not `create_dir_all`, in `src/output.rs`).
-  The default it replaces is `mutants.out` in the workspace root, which would need a `.gitignore` entry to hide.
+  The default it replaces is `mutants.out` in the workspace root, which would need a `.gitignore` entry to hide. The
+  shared `/tmp/xurl-rs-mutants` holds one plain run at a time: a second plain run, from any clone, moves the first to
+  `mutants.out.old` and a third deletes that, and two at once wait on `lock.json` (`OutputDir::new`,
+  `src/output.rs:116-135`). No run this plan relies on is a plain run, and each run's own `<run>/out` is never reused,
+  so a rerun never rotates a run's output away.
 - KTD15. **A run never shares a target directory between jobs.** cargo-mutants 27.1.0 neither sets nor clears
   `CARGO_TARGET_DIR`: no file in its `src/` names it, and it only adjusts `CARGO_ENCODED_RUSTFLAGS`. With the variable
   exported, or `build.target-dir` set in a cargo config, every job would build into one directory, and one job's tests
@@ -314,11 +331,18 @@ The decisions below settle what the sources leave open.
   9. **Jobs.** `-j2` is the pilot's setting. Later batches use `-j3` only when the pilot's load and memory show room: 16
      CPUs and 93 GB of memory, with nextest running up to 16 test threads in each job.
 - KTD17. **Every missed mutant is checked against the doctests before it counts as a gap.** nextest doesn't run
-  doctests, so a bug that only a doctest catches shows as missed. About 25 doctests exist, in 20 files (`shortcuts.rs`
-  4, `credential_step.rs` 3, `checkpoint.rs` 3, and one or two in each of 17 more). For each missed mutant in a file
-  that holds a doctest, or in a function a doctest calls by name, apply its diff from `mutants.out/diff/` in a scratch
-  clone at the run's commit and run `cargo test --doc -p <package>`. A doctest that fails catches it. The mutant is then
-  recorded as caught by that doctest, with no gap test. Doctests are never cut.
+  doctests, so a bug that only a doctest catches shows as missed. Only a doctest that runs can catch a mutant that
+  compiles: a `no_run` block is compiled and never run, a `compile_fail` block passes on code that fails to build, and a
+  `text` block is not a test. At 492e187 four doctests run, all over `xdk::webhooks`:
+  `crates/xdk/src/webhooks/budget.rs:52`, `crates/xdk/src/webhooks/checkpoint.rs:156`,
+  `crates/xdk/src/webhooks/signing.rs:125`, and `crates/xdk/src/testing/webhooks.rs:21`. The other Rust blocks are 18
+  `rust,no_run` (`shortcuts.rs` 4, one each in ten other `src` files, and the 4 in `crates/xdk/README.md`, which
+  `crates/xdk/src/lib.rs:1` includes) and one `compile_fail` (`call.rs`); `credential_step.rs`'s and `hints.rs`'s blocks
+  are `text`. Each run recounts the code fences in `crates/*/src` doc comments and in `crates/xdk/README.md` with `rg`,
+  reading each fence's info string. For each missed mutant in a function a running doctest reaches, apply its diff from
+  `mutants.out/diff/` in a scratch clone at the run's commit and run `cargo test --doc -p <package>`. A doctest that
+  fails catches it. The mutant is then recorded as caught by that doctest, with no gap test. An area that no running
+  doctest reaches skips the check and says so in its gap PR. Doctests are never cut.
 - KTD18. **The log-to-matrix script is `scripts/mutants-matrix.py`**, a stdlib-only `uv run --script` with the shebang
   `scripts/generate-changelog.py` uses (`#!/usr/bin/env -S PYTHONDONTWRITEBYTECODE=1 uv run --script`), so it leaves no
   virtual environment, lock file, or bytecode in the tree. Python rather than shell, because a set cover and JSON joins
@@ -327,14 +351,18 @@ The decisions below settle what the sources leave open.
     and genre), `outcomes.json` (each scenario's summary, `log_path`, `diff_path`, and per-phase durations),
     `caught.txt`, `missed.txt`, `timeout.txt`, `unviable.txt`, and `log/`. The log directory is `log/`
     (`src/output.rs:139`), not the `logs/` the book names. The baseline log supplies the full test list. Each run's
-    recorded commit comes with it. An optional keep list names tests that are never cut.
+    recorded commit comes with it. An optional keep list names tests that are never cut, each marked `credit` or
+    `no-credit` (KTD19). An optional accepted list names missed struct-field mutants a gap PR accepted (KTD22), which
+    list 1 reports apart. Both lists are plain text in `~/.cache/xurl-rs-mutants/lists/`, beside the runs they serve,
+    and each PR that relies on them quotes the entries it adds.
   - **Parsing:** in each mutant's log, every nextest result line that ends a test unsuccessfully (`FAIL`, `TIMEOUT`, a
     signal, or whatever else the pilot's logs show) counts as a kill by that test, keyed by nextest's
     `<binary-id> <test-name>`. The pilot's logs fix the exact line shapes. The script is written from them, not from
     this list.
   - **Output**, written into the run directory: the matrix as JSON (each caught mutant mapped to its killing tests, and
     each test mapped to the mutants it kills, with its home area per KTD19), and the four lists as text:
-    1. missed mutants, by file and function, with their diff paths;
+    1. missed mutants, by file and function, with their diff paths, and apart from them the mutants that only
+       `no-credit` tests catch (KTD19), which are gap candidates too;
     2. tests that catch no mutant;
     3. redundant tests: those outside the keep set KTD19 chooses, each with the kept tests that cover its catches;
     4. load-bearing tests: each test that is the only catcher of a mutant, with those mutants.
@@ -351,7 +379,16 @@ The decisions below settle what the sources leave open.
   boundary: AGENTS.md makes `xdk` "consumable from downstream Rust crates" with `xr` as one consumer, and discovery
   class 2 keeps the strongest boundary.
   1. Seed the keep set with the keep list (golden fixture tests, wire-format tests, source-reading guards, chosen at
-     triage by reading), every load-bearing test, and every gap test.
+     triage by reading), every load-bearing test, and every gap test. A source-reading guard is kept with `no-credit`:
+     its catches cover no mutant in steps 2 and 3 and make no test load-bearing in list 4. Such a guard reads the
+     mutated copy's `src` as text, so it fails on a mutant that changes the text it scans whatever the behavior does:
+     `crates/xurl-cli/tests/dispatch_guard.rs` reads `crates/xurl-cli/src/cli/commands/*.rs` (`source`, lines 13-16) and
+     matches `Commands::<Variant>` in each group module, so a mutant that replaces a group's `run` body or deletes one
+     of its arms fails it. With credit, that catch would mark the behavioral test of the same command redundant, and
+     KTD20's rerun would still find the mutant caught, by the guard. `parse_path_guard.rs`
+     (`crates/xurl-cli/src/cli/parse.rs`), `http_client_guard.rs` (`crates/xdk/src`), the `spec_validation.rs` tests
+     that read `response/types.rs` by path, and every other test that reads a `src` file are `no-credit` too, chosen at
+     triage by reading. Golden fixture and wire-format tests keep `credit`, because they fail on what the code outputs.
   2. Cover the mutants in `crates/xdk/src` with `xdk`'s own tests (its `tests/` and its unit tests), greedily: at each
      step keep the test that catches the most mutants not yet covered, with ties going to a walk (a test whose failure
      message carries a `Cause:` line), then by name for a stable order. A CLI test's catches of `xdk` mutants don't
@@ -364,7 +401,15 @@ The decisions below settle what the sources leave open.
      count, against the goal, so it is listed and not filled.
 - KTD20. **A cut PR's rerun covers exactly the mutants a deleted test catches.** On the cut branch, run every mutant, in
   every area run so far, whose catchers include a deleted test, plus the area's timeouts, by name
-  (`-F '^<escaped name>$'` for each). Every one must end caught. Deleting a test can't change the outcome of a mutant
+  (`-F '^<escaped name>$'` for each), with `-f <file>` for each file that holds one. Every named mutant must end caught.
+  Two cargo-mutants behaviors shape the check. `-F` reaches no struct-field mutant (KTD10), so the file filter keeps the
+  run to the named files and their struct-field mutants come along: each of those is judged against its recorded
+  outcome, and only a named mutant must end caught. A `-F` that matches nothing exits 0 having tested nothing
+  (`--list -F '^no such mutant$'` exits 0), so a name that drifted (a helper deleted from `crates/xdk/src/testing/`, a
+  rebase) would pass the rerun silently: before the rerun counts, the sorted names in its `outcomes.json` must include
+  every expected name (`comm -13` of the two lists prints nothing), and a missing name sends the cut back to the
+  per-file refresh below. Deleting a unit test moves no mutant today: in each of the 51 `src` files with `#[cfg(test)]`,
+  the test module sits after every mutated line or in its own file. Deleting a test can't change the outcome of a mutant
   whose catchers were all kept: nextest runs each test in its own process, so a kept test that failed on a mutant fails
   on it again. A full rerun of the area would add only mutants that can't change. Before choosing cuts, every file whose
   content changed since its run (`git diff --quiet <run sha> <base> -- <file>`) is run again at the base, so every name
@@ -390,7 +435,11 @@ The decisions below settle what the sources leave open.
   meant), with a TOML comment giving the reason. It adds no dependency. The attribute form
   (`#[cfg_attr(test, mutants::skip)]` with `mutants` as a dev-dependency, `attrs.md`) keeps the reason beside the code
   but adds a crate to both manifests, and switching to it needs Brett's say-so. A renamed function stops matching its
-  entry, and its mutants show up as missed again on the next run, so the drift shows.
+  entry, and its mutants show up as missed again on the next run, so the drift shows. A struct-field mutant cannot take
+  an entry, because `exclude_re` never reaches that genre (KTD10). One that changes no behavior goes in the accepted
+  list (KTD18) by file, function, and field, with its reason, and the gap PR body quotes it. The script reports it apart
+  from list 1 on every later run, and an accepted entry that matches no missed mutant is reported too, so it is dropped
+  once a test catches it or the field goes.
 - KTD23. **The areas and their sizes,** with `-E` as in KTD10, at 492e187. "Serial" estimates 46 s per viable mutant: a
   build of about 6 s once R's merged test layout lands (the spike measured the rebuild of every test target after an
   `xdk` edit falling from 66.7 s and 56.5 s to 5.9 s and 6.0 s) plus a full suite of about 40 s (39.3 s locally after
@@ -408,6 +457,8 @@ The decisions below settle what the sources leave open.
   - per-mutant build and test time, from `outcomes.json`'s phase durations;
   - the unviable rate after the exclusions, and the timeout rate;
   - the peak size of one build directory, which sets the disk floor for later batches;
+  - the size of the `out` directory per mutant, since every area's `out` stays until its cut PR merges (under KTD21 B,
+    until the CLI's) and a caught mutant's log holds the output of every test it fails under `--no-fail-fast`;
   - load and memory at `-j2`, which decide `-j3`;
   - **the cost of `--no-fail-fast`**, outside cargo-mutants so that every cargo-mutants run still passes it: for ten
     caught mutants spread over the five `webhooks` files, apply each diff in a scratch clone at the pilot's commit and
@@ -451,9 +502,10 @@ The areas, each with the same two `-E` flags. "Serial" is KTD23's estimate of 46
 
 ### Assumptions
 
-- R's merged test layout (U6 of the CI speed plan) gives each crate one integration-test binary, so nextest names tests
-  as `xurl-rs::all <module>::<test>`, or the layout's real binary names. The script keys tests by what the pilot's logs
-  show.
+- R's merged test layout (R's U2, U6 of the CI speed plan) gives each crate two integration-test binaries, `tests/all/`
+  and `tests/isolated/` (the environment-mutating tests in `xdk-rs` and `parse_stack_tests` in `xurl-rs`), so nextest
+  names tests as `xurl-rs::all <module>::<test>` and `xurl-rs::isolated <module>::<test>`, or the layout's real binary
+  names. The script keys tests by what the pilot's logs show.
 - R's lever 8 removes every network access from the suite, so no mutant's run depends on anything outside the machine.
 - Tests share no fixed port or path across processes: the `localhost:8080` strings in the tests are URLs that nothing
   binds, and every bind found in the tests uses port 0. A clash between two jobs would show as a flake (KTD24).
@@ -495,24 +547,28 @@ gap PR reruns its mutants and finds them caught, and the cut PR's rerun finds no
 
 ### Risks & Dependencies
 
-| Risk                                                                                                       | Mitigation                                                                                        |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| The baseline fails in the copied tree, on a file or a state the copy lacks                                 | M1's one-mutant run (AE2) proves the baseline before any overnight batch                          |
-| Jobs share a target directory and run each other's binaries                                                | KTD15's unset and `cargo metadata` check                                                          |
-| The disk fills: one build directory per job plus the baseline                                              | KTD16's floor, the 10-second watcher, `cargo clean` before `trash`, and the pilot's measured peak |
-| Other slots build during a run and skew its timing or cause spurious timeouts                              | KTD16's idle check and lock, the recorded load, and KTD24's `-j1` rerun of timeouts               |
-| A flaky test fails under a mutant and hides a real gap                                                     | KTD24's `-j1` rerun of list-4 mutants                                                             |
-| The script misreads a log                                                                                  | KTD18's self-checks against cargo-mutants' own lists, and KTD20's rerun                           |
-| `src` changes between a run and the cut that relies on it                                                  | KTD20's per-file refresh                                                                          |
-| A cut removes the only catcher of a mutant in an area not yet run                                          | KTD21, pending Brett                                                                              |
-| A library behavior ends up tested only through the CLI                                                     | KTD19's crate-by-crate cover                                                                      |
-| A test guards something no mutant models                                                                   | the keep list (KTD7, KTD19) and triage by reading                                                 |
-| A behavior only a doctest checks shows as missed                                                           | KTD17                                                                                             |
-| Spec-refresh PRs change `shortcuts.rs` and `response/types.rs` between the rest of `xdk`'s run and its cut | KTD20's refresh reruns only the changed files                                                     |
+| Risk                                                                                                                             | Mitigation                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| The baseline fails in the copied tree, on a file or a state the copy lacks                                                       | M1's one-mutant run (AE2) proves the baseline before any overnight batch                          |
+| Jobs share a target directory and run each other's binaries                                                                      | KTD15's unset and `cargo metadata` check                                                          |
+| The disk fills: one build directory per job plus the baseline                                                                    | KTD16's floor, the 10-second watcher, `cargo clean` before `trash`, and the pilot's measured peak |
+| Other slots build during a run and skew its timing or cause spurious timeouts                                                    | KTD16's idle check and lock, the recorded load, and KTD24's `-j1` rerun of timeouts               |
+| A flaky test fails under a mutant and hides a real gap                                                                           | KTD24's `-j1` rerun of list-4 mutants                                                             |
+| The script misreads a log                                                                                                        | KTD18's self-checks against cargo-mutants' own lists, and KTD20's rerun                           |
+| `src` changes between a run and the cut that relies on it                                                                        | KTD20's per-file refresh                                                                          |
+| A cut removes the only catcher of a mutant in an area not yet run                                                                | KTD21, pending Brett                                                                              |
+| A library behavior ends up tested only through the CLI                                                                           | KTD19's crate-by-crate cover                                                                      |
+| A test guards something no mutant models                                                                                         | the keep list (KTD7, KTD19) and triage by reading                                                 |
+| A behavior only a doctest checks shows as missed                                                                                 | KTD17                                                                                             |
+| Spec-refresh PRs change `shortcuts.rs` and `response/types.rs` between the rest of `xdk`'s run and its cut                       | KTD20's refresh reruns only the changed files                                                     |
+| A source-reading guard catches a mutant by its text, and the cover cuts the behavioral test of the same code                     | KTD19's `no-credit` mark on every test that reads `src`                                           |
+| A by-name rerun tests nothing, because a name drifted and `-F` matching nothing exits 0                                          | KTD20's check that the rerun's `outcomes.json` holds every expected name                          |
+| `-F` and `-E` pass every struct-field mutant (124 at 492e187), so a rerun pulls in extra mutants and `exclude_re` can't drop one | KTD20's per-file `-f` and judging only the named set; KTD22's accepted list                       |
 
 Dependencies: #645, #646, and #647 (`auth`, `store`, `webhooks`), and #648 (`api/media.rs`), stacked on them; R's lever
-8 and merged test layout (Phase 1), its source splits (Phase 2, including `response/types.rs`), and its `cli_tests.rs`
-split (Phase 6, after M9); F's fix PRs for `auth` and `store` (Phase 3, step 13); the Phase 4 comment sweep.
+8 (R's U1) and merged test layout (R's U2) (Phase 1), its source splits (R's U5 to U8, Phase 2, `response/types.rs`
+being U8) and the `hints.rs` test move (R's U9), and its `cli_tests.rs` split (R's U10, Phase 6, after M9); F's fix PRs
+for `auth` and `store` (F's U5, Phase 3, step 13); the Phase 4 comment sweep.
 
 ### System-Wide Impact
 
@@ -600,6 +656,10 @@ The keys of `.cargo/mutants.toml`:
   - A copy of M2's output with one test removed from a caught mutant's log fails the "at least one killing test" or
     "test count" check, naming that mutant.
   - Two `out` directories of the same files at different commits are refused.
+  - With a keep list that marks a test `no-credit`, a mutant only that test catches leaves list 4 and shows in list 1's
+    guard-only part, and a test whose only catches are shared with that test is not called redundant on its strength.
+  - An accepted-list entry shows apart from list 1 while its mutant is missed, and is reported as stale once it matches
+    no missed mutant.
 - **Verification:** the four lists for `webhooks` go in the PR body as counts, with list 1 in full.
 
 ### M4. The skill decision
@@ -629,15 +689,17 @@ The keys of `.cargo/mutants.toml`:
      - **a `fix` PR:** the mutant shows the code is wrong.
   3. Each new test is seen failing on its mutant's diff (AE6): apply the diff in a scratch clone, run the test, and
      quote the failure.
-  4. Rerun the list-1 mutants on the branch by name. Each ends caught, or excluded.
+  4. Rerun the list-1 mutants on the branch by name, with `-f` for their files, under KTD20's two checks: the rerun's
+     `outcomes.json` names every expected mutant, and only the named ones are judged. Each ends caught, excluded, or,
+     for a struct-field mutant, in the accepted list (KTD22).
 - **Verification:** the rerun's summary line, the quoted failures, and the test count before and after
   (`cargo nextest list --workspace`), in the PR body.
 
 ### M6. `store` and `auth`: run and gap PR
 
 - **Requirements:** R4, R8, R9. KTD6, KTD16, KTD23.
-- **Dependencies:** F's fix PRs for `auth` and `store` (Phase 3, step 13) merged; #645 and #646 merged; the Phase 4
-  sweep landed in `crates/xdk/src/store/` and `crates/xdk/src/auth/`; M3.
+- **Dependencies:** F's fix PRs for `auth` and `store` (F's U5, Phase 3, step 13) merged; #645 and #646 merged; the
+  Phase 4 sweep landed in `crates/xdk/src/store/` and `crates/xdk/src/auth/`; M3.
 - **Approach:** run under KTD16, with `-f 'crates/xdk/src/store/**' -f 'crates/xdk/src/auth/**'`, in one or two batches,
   then the gap PR as M5 does.
 - **Verification:** as M2 and M5.
@@ -645,8 +707,8 @@ The keys of `.cargo/mutants.toml`:
 ### M7. The rest of `xdk`: run and gap PR
 
 - **Requirements:** R4, R8, R9. KTD6, KTD16, KTD23.
-- **Dependencies:** #648 merged (`api/media.rs`); R's `response/types.rs` split merged (Phase 2, step 4); the sweep
-  landed in the area's files; M3.
+- **Dependencies:** #648 merged (`api/media.rs`); R's `response/types.rs` split merged (R's U8, Phase 2, step 4); the
+  sweep landed in the area's files; M3.
 - **Approach:** run under KTD16 with
   `-f 'crates/xdk/src/**' -e 'crates/xdk/src/store/**' -e 'crates/xdk/src/auth/**' -e 'crates/xdk/src/webhooks/**'`, in
   two or three batches, then the gap PR as M5 does. The gap PR also carries the property test for
@@ -665,8 +727,8 @@ The keys of `.cargo/mutants.toml`:
 ### M8. The CLI: run and gap PR
 
 - **Requirements:** R4, R8, R9. KTD6, KTD16, KTD23.
-- **Dependencies:** R's source splits merged (Phase 2, steps 1 to 3 and the `hints.rs` test move); the sweep landed in
-  `crates/xurl-cli/src/`; M3.
+- **Dependencies:** R's source splits merged (R's U5 to U7, Phase 2, steps 1 to 3, and the `hints.rs` test move, R's
+  U9); the sweep landed in `crates/xurl-cli/src/`; M3.
 - **Approach:** run under KTD16 with `-f 'crates/xurl-cli/src/**'`, as `--shard k/n` batches on one commit, each sized
   to KTD16's 6 hours. The gap PR follows, as M5 does, with tests through `xr` (the spawned binary or the in-process
   run).
@@ -696,10 +758,11 @@ The keys of `.cargo/mutants.toml`:
      - `history`: `git log --follow --format='%h %s' -- <file>` for its file, and why it was written;
      - `validation`: the rerun's summary and the suite's summary line.
   4. Delete the tests, and any helper only they used, in one commit per test file.
-  5. Run KTD20's rerun on the branch. Every rerun mutant ends caught (AE5). On a miss, restore a test that caught it,
-     rerun, and record it on the card.
-- **Verification:** the cards, the rerun's summary, the test count before and after, `cargo nextest run --workspace` and
-  `cargo test --doc --workspace` green, and no golden fixture, wire-format test, or source-reading guard touched.
+  5. Run KTD20's rerun on the branch. Its `outcomes.json` names every expected mutant, and every named mutant ends
+     caught (AE5). On a miss, restore a test that caught it, rerun, and record it on the card.
+- **Verification:** the cards, the rerun's summary and its name check, the test count before and after,
+  `cargo nextest run --workspace` and `cargo test --doc --workspace` green, and no golden fixture, wire-format test, or
+  source-reading guard touched.
 
 ---
 
@@ -742,9 +805,156 @@ No run sends a request to X. Every run happens on the Linux server, never in CI.
 
 ---
 
+## Engineering Review
+
+`/plan-eng-review`, one round, run unattended at ae60d46 (the plan's `src` equals 492e187's): no question went to
+anyone, and each choice below is the review's recommended option, recorded in the section it changes. Evidence is of
+three kinds and labeled as such: a static read of this clone, `cargo mutants --list` probes with cargo-mutants 27.1.0
+(nothing built, `git status --porcelain` empty afterwards), and cargo-mutants' `src/` at tag `v27.1.0` read from GitHub.
+
+**Scope.** Scope accepted as-is. The work spans more than eight files across its PRs, so the structure question ran: the
+original arrangement, one PR per unit and per area, is kept, since a smaller one would merge PRs the area gates keep
+apart. No feature is cut or deferred.
+
+**Findings.**
+
+| ID  | Severity | Section                                              | Finding                                                                                                                                                                                                       | Disposition                                                                                                                                                                           |
+| --- | -------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1  | P1       | KTD10, KTD20, KTD22, AE2, M5                         | `-F` and `-E` never reach a struct-field mutant (`src/visit.rs:747`), so a by-name rerun pulls extra mutants and fails on any that were missed, `exclude_re` can't drop one, and AE2 would test two mutants   | Fixed: KTD10 records the gap and its probe; KTD20 and M5 rerun with `-f` per file and judge only the named set; KTD22 adds the accepted list; AE2 uses `signing.rs`, which holds none |
+| E2  | P1       | KTD20, M9                                            | A `-F` that matches nothing exits 0 having tested nothing, so a rerun whose names drifted passes silently                                                                                                     | Fixed: the rerun's `outcomes.json` must hold every expected name before it counts                                                                                                     |
+| E3  | P1       | KTD19, KTD18, M3                                     | A source-reading guard fails on a mutant's text: `dispatch_guard.rs` reads `commands/*.rs`. Kept with credit, it would let the cover cut the behavioral test of the same code, and the rerun would still pass | Fixed: such tests are kept `no-credit`; mutants only they catch are listed as gap candidates; two M3 scenarios cover it                                                               |
+| E4  | P2       | KTD17                                                | Four doctests run; the others are `no_run`, `compile_fail`, or `text` and can't catch a viable mutant, so a per-file check over "about 25" spends runs on nothing                                             | Fixed: the check covers running doctests only, recounted at each run                                                                                                                  |
+| E5  | P2       | Sources, Assumptions, Risks & Dependencies, M6 to M8 | Plans R and F are on `dev`, and R's layout has two binaries per crate (`all`, `isolated`)                                                                                                                     | Fixed: citations name R's U1, U2, U5 to U10 and F's U5; the assumption names both binaries                                                                                            |
+| E6  | P3       | Problem Frame                                        | "142 test files ... assert `next_step`" and "107 tests" don't re-derive: 27 files and 90 functions in `crates/*/tests/*.rs` outside the walks and guards                                                      | Fixed, with the counting command                                                                                                                                                      |
+| E7  | P3       | KTD24                                                | `out` directories stay until their cut PRs merge, and their size is never measured                                                                                                                            | Fixed: the pilot measures it                                                                                                                                                          |
+| E8  | P3       | KTD14                                                | Plain runs share `/tmp/xurl-rs-mutants`, and a third plain run deletes the first's output                                                                                                                     | Fixed: KTD14 says so and why no run of the plan is affected                                                                                                                           |
+| E9  | P3       | KTD10                                                | "`--list` builds nothing (23 s, 83 MB)": a warm `gtime cargo mutants --workspace --list` took 0.72 s and 25 MB here, so 23 s is likely a cold figure                                                          | Left as written; the figure gates nothing                                                                                                                                             |
+
+**Architecture.** No new module, service, or public surface: the plan adds two config tables and a leaf script nothing
+calls, so the design-twice check doesn't apply. Boundaries hold: nothing changes either crate's surface, CI, or a golden
+fixture. E3 is the one coupling defect: the keep list mixed tests kept for reasons mutants can't model with tests whose
+catches prove behavior.
+
+**Code quality.** E1, E2, and E8 are defects in how the plan drives cargo-mutants, all from behavior its book doesn't
+state. The script stays one file with one job, and the new lists are inputs it already had the shape for.
+
+**Tests.** The plan's own proof is the self-checks, the hand check of ten logs, the rerun, and red-first gap tests.
+Coverage of the plan's paths:
+
+```text
+CODE PATHS                                              STATUS
+.cargo/mutants.toml + [profile.mutants] (M1)
+  ├── list count equals the -E count                    [★★★ TESTED] M1 scenario 1, AE1
+  ├── profile keeps dependency opt-levels               [★★★ TESTED] AE3
+  └── baseline passes in the copy (copy_vcs)            [★★★ TESTED] AE2, one mutant
+run procedure (KTD16)
+  ├── exit 0/2/3 results, 4 stop, 1/70 stop             [★★ TESTED] M2 verification
+  └── cleanup after a hard kill                         [★★ TESTED] M2 verification
+scripts/mutants-matrix.py (M3)
+  ├── log parse → killing tests                         [★★★ TESTED] self-checks + 10 by hand
+  ├── a dropped kill or a short log                     [★★★ TESTED] corrupted copy scenario
+  ├── mixed commits refused                             [★★★ TESTED] M3 scenario
+  ├── no-credit keep entries (E3)                       [★★★ TESTED] M3 scenario
+  └── accepted list, stale entry (E1)                   [★★★ TESTED] M3 scenario
+gap PR (M5 to M8)
+  ├── gap test red on its mutant                        [★★★ TESTED] AE6
+  ├── doctest catch                                     [★★ TESTED] KTD17 check
+  └── rerun: every named mutant caught                  [★★★ TESTED] M5 step 4 + name check (E2)
+cut PR (M9)
+  ├── rerun of mutants a deleted test caught            [★★★ TESTED] AE5 + name check (E2)
+  └── a guard's textual catch hiding a lost test        [★★★ TESTED] no-credit (E3)
+
+COVERAGE: 14/14 paths with a ★★ or ★★★ check after the fixes; 2 were gaps before (E2, E3)
+```
+
+The script keeps KTD18's decision to have no test file: its proof is its self-checks over real output and the rerun
+downstream, and the two new scenarios run against a copy of M2's output like the existing ones. No test is made obsolete
+by this plan's own changes; the cuts are M9's.
+
+**Performance.** One finding, E7. The cost model (46 s per viable mutant, 56.9 h serial) is an estimate the pilot
+replaces. A by-name rerun without `-f` would add every struct-field mutant in the workspace, 124 × about 46 s, about 1.6
+h; E1's per-file `-f` keeps that to the named files'.
+
+**Failure modes.**
+
+| Path          | Realistic failure                                                   | Covered by                              | Seen or silent                                    |
+| ------------- | ------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------- |
+| Rerun by name | Names drift and `-F` tests nothing                                  | E2's name check                         | loud after the fix; silent before                 |
+| Set cover     | A guard's text catch covers a mutant, so the behavioral test is cut | E3's `no-credit`                        | loud after the fix (gap candidate); silent before |
+| Rerun by name | A struct-field mutant rides along and was missed in the matrix      | E1: judged against its recorded outcome | loud                                              |
+| Plain run     | A third plain run deletes the first's output                        | KTD14; no plan run is plain             | loud (missing directory)                          |
+| Run           | Disk fills mid-run                                                  | KTD16's watcher and floor               | loud                                              |
+| Matrix        | A flaky sole catcher hides a gap                                    | KTD24's `-j1` rerun                     | loud                                              |
+
+Two critical gaps flagged (E2, E3), both closed in the plan.
+
+**What already exists.** cargo-mutants' own outcome files are the script's cross-check, nextest's per-test process
+isolation is what makes KTD20's partial rerun sound, and the walks (`dry_run_guard`, `credential_step_walk`,
+`rerun_walk`, `validation_value_guard`, `post_id_guard`, `help_claims_guard`) are what discovery class 1 reads against.
+The gstack `test-audit` retirement card is the card M9 fills. Nothing here is rebuilt.
+
+**Not in scope.** Reporting the struct-field filter gap to cargo-mutants upstream: it is outward-facing, and the
+workaround needs no upstream change. The `#[mutants::skip]` attribute, which would reach struct-field mutants: KTD22
+keeps it Brett's call. A test file for the script: KTD18 decides against one.
+
+**Parallelization.** Sequential implementation, no parallelization opportunity: every run needs the idle machine (KTD16
+step 2), and each later unit reads the one before it. Gap and cut PRs are written while no run holds the machine.
+
+**Reality rows.**
+
+- REALITY: premise-table pass 31 claims checked, 3 corrected, unverified=2 (the list cost in KTD10 and the per-mutant
+  estimate in KTD23) docs/plans/2026-11-27-0033-test-mutation-testing-and-test-cuts-plan.md:72
+- REALITY: already-done pass `origin/dev` is three docs-only commits past ae60d46, and #645 to #648 are open
+  docs/plans/2026-11-27-0033-test-mutation-testing-and-test-cuts-plan.md:557
+- REALITY: surface-check finding every flag and key exists in `cargo mutants --help` and `--emit-schema=config`, and
+  `-F`/`-E` skip struct-field mutants docs/plans/2026-11-27-0033-test-mutation-testing-and-test-cuts-plan.md:249
+- REALITY: binding-decisions pass KTD1 to KTD8, KTD9, KTD10, KTD21, and KTD22 stand unedited
+  docs/plans/2026-11-27-0033-test-mutation-testing-and-test-cuts-plan.md:186
+- REALITY: numbers finding the mutant counts re-derive exactly, and the Problem Frame's file and test counts are
+  corrected docs/plans/2026-11-27-0033-test-mutation-testing-and-test-cuts-plan.md:481
+- REALITY: deferred-asks pass no linked issue docs/plans/2026-11-27-0033-test-mutation-testing-and-test-cuts-plan.md:156
+- REALITY: pr-count pass one PR per unit and area as Sequencing states, and this review adds none
+  docs/plans/2026-11-27-0033-test-mutation-testing-and-test-cuts-plan.md:583
+
+**Outside voice.** Not run: the run's instructions forbid agents and subagents, and the Codex CLI and the native
+fallback are both. No outside findings.
+
+**Decisions for Brett.** KTD21 stays pending as written. This review's view, not a decision: C holds, because KTD19's
+crate-by-crate cover, with E3's `no-credit` rule, makes an `xdk` test's cut depend only on `xdk`'s tests and mutants.
+
+---
+
 ## Review log
 
 - 2026-11-27: plan written. Pending: KTD21 (Brett); `/plan-eng-review`, `/plan-devex-review`,
   `/compound-engineering:ce-doc-review`.
 - 2026-11-27: `/plan-eng-review` round 1 started, on Opus, as its own process from a clone of the commit that adds this
   line.
+- 2026-11-27: `/plan-eng-review` round 1 ended (`claude-opus-5-5` only, 971 s): 3 P1, 2 P2, 4 P3 (E1 to E9 in §
+  Engineering Review), each folded into the plan but E9, which gates nothing. E1's struct-field gap was confirmed
+  against cargo-mutants' `src/visit.rs` and by `--list -E 'delete field'`, E4's doctest count by the fence info strings,
+  and E5's unit IDs against plans R and F on `dev`. Pending Brett: KTD21, and whether to report the struct-field filter
+  gap to cargo-mutants upstream. Next: `/plan-devex-review`.
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                                                    |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ----------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —           | —                                                           |
+| Outside Review | codex (skipped)       | Independent 2nd opinion         | 0    | skipped     | not run: the run's instructions forbid agents and subagents |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 7 issues, 2 critical gaps; all folded into the plan         |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —           | no UI                                                       |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | —           | —                                                           |
+
+The Eng row counts the four review sections (E1 to E5, E7, E8). E6 and E9 are reality-row findings outside that count.
+Both critical gaps, E2 and E3, are closed in the plan.
+
+**OUTSIDE COVERAGE:** codex, plan-review phase, skipped: the run allowed no agent or subagent. No outside findings.
+
+**VERDICT:** Eng review done, with every finding folded into the plan. Not CLEAR by the dashboard's rule, which clears
+only a review that found nothing: eng review required.
+
+**UNRESOLVED DECISIONS:**
+
+- KTD21 (Brett): when a cut PR may open, A, B (as written), or C (xurl-plan-prime's recommendation). It changes only
+  M9's gate.
