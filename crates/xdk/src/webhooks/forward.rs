@@ -85,10 +85,21 @@ impl From<AttemptTimedOut> for ForwardFailure {
 ///         Receiver::bind(ReceiverConfig::new(bind, secrets), CancellationToken::new()).await?;
 ///     let target = UrlTarget::new("http://127.0.0.1:3000/events", &["X-Team: blue"])?;
 ///     let budget = RetryBudget::default();
+///     // X is answered once `next_event` returns an event, so the forwards run
+///     // in a task of their own and a slow target never holds that answer.
+///     let (queue, mut queued) = tokio::sync::mpsc::unbounded_channel();
+///     let forwarding = tokio::spawn(async move {
+///         while let Some(event) = queued.recv().await {
+///             let outcome = target.forward(&event, &budget).await;
+///             println!("{} attempt(s): {:?}", outcome.attempts, outcome.result);
+///         }
+///     });
 ///     while let Some(event) = receiver.next_event().await {
-///         let outcome = target.forward(&event, &budget).await;
-///         println!("{} attempt(s): {:?}", outcome.attempts, outcome.result);
+///         let _ = queue.send(event);
 ///     }
+///     receiver.close().await;
+///     drop(queue);
+///     forwarding.await.expect("the forwarding task");
 ///     Ok(())
 /// }
 /// ```

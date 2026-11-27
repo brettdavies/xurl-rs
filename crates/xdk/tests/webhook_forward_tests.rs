@@ -39,8 +39,11 @@ async fn signed_event() -> Event {
     for (name, value) in sample.headers() {
         post = post.header(name, value);
     }
-    post.send().await.expect("the receiver answers");
-    receiver.next_event().await.expect("the event")
+    // The receiver answers a delivery once its caller takes the event.
+    let sent = tokio::spawn(async move { post.send().await.expect("the receiver answers") });
+    let event = receiver.next_event().await.expect("the event");
+    sent.await.expect("the delivery task");
+    event
 }
 
 /// A budget whose waits are short enough for a test: 10, 20, then 40 ms.

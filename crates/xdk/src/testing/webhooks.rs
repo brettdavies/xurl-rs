@@ -16,6 +16,11 @@ use crate::webhooks::{SignedSample, SigningSecrets};
 /// `address`, at `path`, the way X delivers an event, and returns the status
 /// the receiver answered with.
 ///
+/// A [`Receiver`](crate::webhooks::Receiver) answers a delivery once its
+/// caller takes the event with
+/// [`Receiver::next_event`](crate::webhooks::Receiver::next_event), so run
+/// this beside the call that takes it, as the example spawns it.
+///
 /// # Example
 ///
 /// ```
@@ -32,12 +37,13 @@ use crate::webhooks::{SignedSample, SigningSecrets};
 ///     let config = ReceiverConfig::new(bind, secrets.clone());
 ///     let mut receiver = Receiver::bind(config, CancellationToken::new()).await?;
 ///
-///     let status =
-///         xdk::testing::deliver_signed_sample(receiver.local_addr(), DEFAULT_PATH, &secrets)
-///             .await?;
-///
-///     assert_eq!(status, 200);
+///     let address = receiver.local_addr();
+///     let delivery = tokio::spawn(async move {
+///         xdk::testing::deliver_signed_sample(address, DEFAULT_PATH, &secrets).await
+///     });
 ///     let event = receiver.next_event().await.expect("the sample");
+///
+///     assert_eq!(delivery.await.expect("the delivery task")?, 200);
 ///     assert!(event.body.starts_with(br#"{"xr_test_event":true"#));
 ///     Ok(())
 /// }

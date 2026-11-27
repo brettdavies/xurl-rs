@@ -20,6 +20,7 @@
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::{Duration, SystemTime};
 
 use bytes::Bytes;
@@ -30,8 +31,9 @@ use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode};
 use hyper_util::rt::{TokioIo, TokioTimer};
 use tokio::net::TcpListener;
-use tokio::sync::{Semaphore, mpsc};
+use tokio::sync::{Semaphore, mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
+use tokio_util::task::TaskTracker;
 
 use crate::error::{Error, Result};
 
@@ -68,7 +70,8 @@ pub const DEFAULT_MAX_CONNECTIONS: usize = 64;
 /// whose headers or body take longer than this to arrive is dropped.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Events held for a caller that is slower than X delivers.
+/// Events held for a caller that is slower than X delivers, each with X's
+/// request waiting on its answer.
 const EVENT_BUFFER: usize = 64;
 
 /// How long the accept loop waits after the listener reports an error, such
@@ -161,9 +164,12 @@ impl Event {
 
 /// A bound webhook receiver.
 ///
-/// Dropping it stops the listener, ends the connections it is serving, and
-/// releases the port. The token given to [`Receiver::bind`] stays as the caller
-/// left it.
+/// Dropping it stops the listener, ends every connection it is serving but
+/// those of the deliveries whose event the caller took, and releases the
+/// port. Those go on to write their 200 for as long as the runtime runs, so a
+/// caller that ends the runtime or the process next stops it with
+/// [`Receiver::close`] instead. The token given to [`Receiver::bind`] stays as
+/// the caller left it.
 ///
 /// # Example
 ///
@@ -191,11 +197,12 @@ impl Event {
 #[derive(Debug)]
 pub struct Receiver {
     local_addr: SocketAddr,
-    events: mpsc::Receiver<Event>,
+    events: mpsc::Receiver<Delivery>,
     // A child of the caller's token: the caller's stop reaches every task
     // through it, and `Drop` cancels it without touching the caller's token.
     stop: CancellationToken,
     task: tokio::task::JoinHandle<()>,
+    connections: TaskTracker,
 }
 
 /// What a receiver stamps each [`Event::received_at`] with.
@@ -259,12 +266,19 @@ impl Receiver {
             clock,
         });
         let stop = cancel.child_token();
-        let task = tokio::spawn(accept_loop(listener, shared, stop.clone()));
+        let connections = TaskTracker::new();
+        let task = tokio::spawn(accept_loop(
+            listener,
+            shared,
+            stop.clone(),
+            connections.clone(),
+        ));
         Ok(Self {
             local_addr,
             events,
             stop,
             task,
+            connections,
         })
     }
 
@@ -276,12 +290,37 @@ impl Receiver {
 
     /// The next event whose signature verified, or `None` once the receiver
     /// has been cancelled.
+    ///
+    /// X's delivery of an event is answered 200 when this returns it. An
+    /// event still waiting when the receiver stops is answered 503, or its
+    /// connection closes unanswered, so X is never told an event arrived
+    /// that the caller did not take, and such an event is never returned
+    /// afterwards. X waits ten seconds for its answer,
+    /// and every event behind one the caller is still working on waits
+    /// unanswered, so a caller that does slow work on an event, such as a
+    /// forward, hands the event to a task or a channel before it calls this
+    /// again.
     pub async fn next_event(&mut self) -> Option<Event> {
-        tokio::select! {
-            biased;
-            event = self.events.recv() => event,
-            () = self.stop.cancelled() => None,
+        loop {
+            let delivery = tokio::select! {
+                biased;
+                delivery = self.events.recv() => delivery,
+                () = self.stop.cancelled() => None,
+            }?;
+            if delivery.claim.take() && delivery.answer.send(()).is_ok() {
+                return Some(delivery.event);
+            }
         }
+    }
+
+    /// Stops the receiver as dropping it does, and returns once each delivery
+    /// whose event the caller took has written its 200, or has had ten
+    /// seconds to, X's own wait for an answer.
+    pub async fn close(mut self) {
+        self.stop.cancel();
+        let _ = (&mut self.task).await;
+        self.connections.close();
+        self.connections.wait().await;
     }
 }
 
@@ -294,11 +333,53 @@ impl Drop for Receiver {
 
 struct Shared {
     config: ReceiverConfig,
-    sender: mpsc::Sender<Event>,
+    sender: mpsc::Sender<Delivery>,
     clock: ArrivalClock,
 }
 
-async fn accept_loop(listener: TcpListener, shared: Arc<Shared>, cancel: CancellationToken) {
+/// A verified event on its way to the caller. `answer` wakes the request
+/// waiting to answer X; `claim` settles a race a stop starts, between the
+/// caller taking the event and the stop ending its connection.
+struct Delivery {
+    event: Event,
+    answer: oneshot::Sender<()>,
+    claim: Arc<Claim>,
+}
+
+/// Whether the caller took a delivery's event or a stop ended its
+/// connection, whichever came first: X is answered 200 exactly when the
+/// caller has the event, on any runtime.
+#[derive(Default)]
+struct Claim(AtomicU8);
+
+impl Claim {
+    const OPEN: u8 = 0;
+    const TAKEN: u8 = 1;
+    const ENDED: u8 = 2;
+
+    /// Whether the caller took the event before a stop ended the connection.
+    fn take(&self) -> bool {
+        self.settle(Self::TAKEN)
+    }
+
+    /// Whether a stop ended the connection before the caller took the event.
+    fn end(&self) -> bool {
+        self.settle(Self::ENDED)
+    }
+
+    fn settle(&self, to: u8) -> bool {
+        self.0
+            .compare_exchange(Self::OPEN, to, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+    }
+}
+
+async fn accept_loop(
+    listener: TcpListener,
+    shared: Arc<Shared>,
+    cancel: CancellationToken,
+    connections: TaskTracker,
+) {
     // At least one slot, so a config that asks for none still serves.
     let slots = Arc::new(Semaphore::new(shared.config.max_connections.max(1)));
     loop {
@@ -322,26 +403,40 @@ async fn accept_loop(listener: TcpListener, shared: Arc<Shared>, cancel: Cancell
         };
         let shared = Arc::clone(&shared);
         let cancel = cancel.clone();
-        tokio::spawn(async move {
+        connections.spawn(async move {
             let _slot = slot;
-            let service = service_fn(move |request| {
-                let shared = Arc::clone(&shared);
-                async move { Ok::<_, Infallible>(respond(&shared, request).await) }
-            });
+            // One request per connection (keep-alive is off), so one claim.
+            let claim = Arc::new(Claim::default());
+            let service = {
+                let claim = Arc::clone(&claim);
+                service_fn(move |request| {
+                    let shared = Arc::clone(&shared);
+                    let claim = Arc::clone(&claim);
+                    async move { Ok::<_, Infallible>(respond(&shared, request, claim).await) }
+                })
+            };
             let connection = hyper::server::conn::http1::Builder::new()
                 .timer(TokioTimer::new())
                 .header_read_timeout(REQUEST_TIMEOUT)
                 .keep_alive(false)
                 .serve_connection(TokioIo::new(stream), service);
+            tokio::pin!(connection);
             tokio::select! {
                 () = cancel.cancelled() => {}
-                _ = connection => {}
+                _ = &mut connection => return,
+            }
+            if !claim.end() {
+                let _ = tokio::time::timeout(REQUEST_TIMEOUT, connection).await;
             }
         });
     }
 }
 
-async fn respond(shared: &Shared, request: Request<Incoming>) -> Response<Full<Bytes>> {
+async fn respond(
+    shared: &Shared,
+    request: Request<Incoming>,
+    claim: Arc<Claim>,
+) -> Response<Full<Bytes>> {
     if request.uri().path() != shared.config.path {
         return plain(StatusCode::NOT_FOUND, "Not Found");
     }
@@ -349,7 +444,7 @@ async fn respond(shared: &Shared, request: Request<Incoming>) -> Response<Full<B
         return answer_crc(shared, &request);
     }
     if request.method() == Method::POST {
-        return receive_event(shared, request).await;
+        return receive_event(shared, request, claim).await;
     }
     let mut response = plain(StatusCode::METHOD_NOT_ALLOWED, "Method Not Allowed");
     response
@@ -388,7 +483,11 @@ fn answer_crc(shared: &Shared, request: &Request<Incoming>) -> Response<Full<Byt
     response
 }
 
-async fn receive_event(shared: &Shared, request: Request<Incoming>) -> Response<Full<Bytes>> {
+async fn receive_event(
+    shared: &Shared,
+    request: Request<Incoming>,
+    claim: Arc<Claim>,
+) -> Response<Full<Bytes>> {
     let received_at = (shared.clock)();
     let header = |name: &str| {
         request
@@ -447,7 +546,13 @@ async fn receive_event(shared: &Shared, request: Request<Incoming>) -> Response<
         headers,
         received_at,
     };
-    if shared.sender.send(event).await.is_err() {
+    let (answer, answered) = oneshot::channel();
+    let delivery = Delivery {
+        event,
+        answer,
+        claim,
+    };
+    if shared.sender.send(delivery).await.is_err() || answered.await.is_err() {
         return plain(StatusCode::SERVICE_UNAVAILABLE, "Service Unavailable");
     }
     Response::new(Full::new(Bytes::new()))

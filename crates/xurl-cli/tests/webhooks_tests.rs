@@ -7,6 +7,7 @@
 mod common;
 
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use tempfile::TempDir;
 use wiremock::matchers::{body_json, method, path, query_param};
@@ -14,8 +15,8 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::listen::{
     CRC_UNDER_CLIENT_SECRET, CRC_UNDER_CONSUMER_SECRET, EVENT, EVENT_UNDER_CLIENT_SECRET,
-    EVENT_UNDER_CONSUMER_SECRET, LEGACY_HEADER, OAUTH2_HEADER, crc_token_from, deliver, held_port,
-    listen_as, listen_tapped, listen_while, next_record,
+    EVENT_UNDER_CONSUMER_SECRET, LEGACY_HEADER, ListenProcess, OAUTH2_HEADER, crc_token_from,
+    deliver, held_port, listen_as, listen_tapped, listen_while, next_record,
 };
 use common::{oauth1_store, oauth2_store, run_in_process as run};
 
@@ -924,6 +925,28 @@ async fn listen_answers_the_crc_check_and_prints_a_signed_event() {
         Some(EVENT),
         "a one-line JSON body prints byte for byte as X sent it"
     );
+}
+
+/// The process ends once `--max-events` events have printed, while X's
+/// request for the last one still waits on its answer.
+#[tokio::test]
+async fn listen_answers_the_last_event_before_the_process_exits() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let listen = ListenProcess::start(&store, &["--max-events", "1"]);
+
+    let answer = reqwest::Client::new()
+        .post(format!("http://127.0.0.1:{}/webhook", listen.port))
+        .header(OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET)
+        .body(EVENT)
+        .send()
+        .await
+        .map(|response| response.status().as_u16())
+        .map_err(|e| e.to_string());
+    let (status, stderr) = listen.wait(Duration::from_secs(10));
+
+    assert_eq!(answer, Ok(200), "stderr: {stderr}");
+    assert_eq!(status.code(), Some(0), "stderr: {stderr}");
 }
 
 #[tokio::test]
