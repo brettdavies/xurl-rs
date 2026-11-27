@@ -1247,3 +1247,6 @@ and not built.
   U2, and KTD8, U4, and U5 say where a replay goes, in R U2's layout (`tests/all/` or `tests/isolated/`) if R U2 is on
   `dev` when the fix PR is cut, at the top level otherwise, for U2 to move. Checked against plan R's U2
   (`test-layout/stray-file`, its open-PR listing before the move commit).
+- 2026-11-27: #645 still open at 04:11 CST. The refs into `crates/xdk/src/auth/oauth2.rs` stay marked "lines pinned
+  after #645" (and P4L, S2d, S2e cite their functions by name); the repo prime pins them against its merge commit, which
+  KTD9 records. Brett's answers to KD5, KD6, and the decisions in § "Review record" are added the same way.
