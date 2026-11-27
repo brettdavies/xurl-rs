@@ -518,18 +518,31 @@ Notes on KTD3:
       reaches from `main.rs`. It follows nested modules too, a `foo.rs` with `mod bar;` reaching `foo/bar.rs`, so U10's
       `cli_tests/` directory needs no guard change. The message names the `mod <name>;` line and the file it goes in.
     - with `test-layout/stray-file` for a `.rs` file directly under a member's `tests/`, which Cargo would build as a
-      binary of its own.
+      binary of its own. The message names the `git mv` to `tests/all/<name>.rs`, the `mod <name>;` line for
+      `tests/all/main.rs`, and the `mod common;` to `use crate::common;` edit (DX review X3).
     - with `test-layout/isolation` for a test on the mutation allowlist whose entry names a file under a member's
       `tests/` but outside `tests/isolated/`. The allowlist's three `crates/xdk/src/config/mod.rs` entries
       (`env_mutation_guard.rs:68`, `:73`, and `:78`) are unit tests in `src` and are outside the rule (Eng review D10).
+      The message names the test, the file to move it to under `tests/isolated/`, keeping its name, the `mod` line for
+      `tests/isolated/main.rs`, and the allowlist entry whose path changes with it (DX review X3).
   - `test_invocation_guard` fails with `test-invocation/unknown-target` for a `cargo test --test <name>` or
     `cargo nextest run --test <name>` naming no real target. It also fails for a `<module>::` filter after `--test all`
     or `--test isolated` that names no module of that binary. It scans the live surfaces: `.github/workflows/`,
     `scripts/` (hooks and the release bats suites included), `.config/nextest.toml`, AGENTS.md, CONTRIBUTING.md,
     `RELEASES*.md`, `KNOWN_DIFFERENCES.md`, CONCEPTS.md, and the READMEs. Plans, `docs/solutions/`, and changelogs
-    record history and are not scanned (CI plan, "Guard scope").
+    record history and are not scanned (CI plan, "Guard scope"). It also scans the `.rs` files under each member's
+    `src/` and `tests/`, where a test's failure message or a `//!` usage block hands a reader a command to run
+    (`golden_tests.rs:2161` and `agentic_tests.rs:998` at `492e187`). It skips its own file and builds its seeded
+    violations at run time (DX review X2).
+    - When `<name>` is a module of the package's `all` or `isolated` target, the message names the replacement:
+      `<file>:<line>: cargo test --test golden_tests names no test target of xurl-rs; its tests are module golden_tests
+      of target all: -p xurl-rs --test all golden_tests:: (AGENTS.md § test-invocation/unknown-target)`. Otherwise it
+      names the package's targets, `all` and `isolated` (DX review X3).
+  - Each message follows `nextest_config_guard`'s shape (`nextest_config_guard.rs:66-80`). It starts with the code,
+    names the file and line, says the fix, and ends with `(AGENTS.md § <code>)` (DX review X3).
   - Each code gets a heading of its own in AGENTS.md § "Testing", written as the code in backticks, as
-    `nextest-config/unsafe-retry` has. Each guard holds its codes to those headings the way
+    `nextest-config/unsafe-retry` has. Each heading says what fails, why, and the fix, as the three existing code
+    headings do. Each guard holds its codes to those headings, and its messages to that ending, the way
     `nextest_config_guard.rs:159` (`each_code_has_a_heading_in_agents_md`) does.
   - Neither guard's message carries `Cause:`. `recipe_guard` reserves that marker for the command-family recipe's walks.
   - Both live in `crates/xurl-cli/tests/all/`, beside `nextest_config_guard`, and walk both members.
@@ -543,17 +556,39 @@ Notes on KTD3:
 | `cargo test --test spec_types_validation` (`scripts/update-types.sh:44`)                                                                     | `cargo test -p xdk-rs --test all spec_types_validation::`                                          |
 | `cargo test --locked -p xurl-rs --test webhooks_program_tests` (`ci.yml:367`, CONTRIBUTING.md:56)                                            | `cargo test --locked -p xurl-rs --test all webhooks_program_tests::`                               |
 | `cargo test --locked -p xurl-rs --test webhooks_tests listen_hands_out_a_signed_test_request` (`ci.yml:369`)                                 | `cargo test --locked -p xurl-rs --test all webhooks_tests::listen_hands_out_a_signed_test_request` |
+| `XURL_GOLDEN_BLESS=1 cargo test --test golden_tests` (the golden suite's failure message, `golden_tests.rs:2161`, and its `//!` line 22)     | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test all golden_tests::`                              |
+| `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests` (the `Fix:` line of `agentic_tests.rs:998`)                                  | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test all golden_tests::`                              |
+| `cargo test --test live_smoke -- --ignored` (the `//!` usage block, `live_smoke.rs:10`)                                                      | `cargo test -p xdk-rs --test all live_smoke:: -- --ignored`                                        |
+| `cargo test -p xdk-rs [--no-default-features --features native-tls] --test tls_backend -- --ignored` (`tls_backend.rs:12-13`)                | the same with `--test all tls_backend::` in place of `--test tls_backend`                          |
 
 - `-p` comes with every `--test all`: both crates have an `all` target, and a bare `--test all` builds and runs both.
+- The last four rows sit in Rust sources, and the golden suite's is the command an agent copies whenever a help page
+  moves. Cargo answers the old form with `error: no test target named ...` and a list of the package's targets (observed
+  for a missing target at `4d2bf83`), which names `all` but not the module filter. Each is edited in place on its own
+  line, which moves no line (KD3). They were found with `rg -n -- '--test[ =][A-Za-z_]+'` over `crates/`, which U2
+  reruns at its base, and `test_invocation_guard` scans those files from then on (KTD10; DX review X1, X2).
 - The first row's filter is the nextest form of the old example, one file's tests narrowed by name. One file's tests
-  alone is `cargo nextest run -p xurl-rs --test all cli_tests::`.
+  alone is `cargo nextest run -p xurl-rs --test all cli_tests::`. AGENTS.md's code block shows both lines, the one-file
+  line first (DX review X5).
+- A `<file>::` filter matches by substring under both runners. In `xurl-rs`, `schema_tests::` also runs
+  `envelope_schema_tests::`, the one in-crate case at `492e187`. The exact form is `-E 'test(/^schema_tests::/)'` (DX
+  review X5).
+- U2's docs commit adds one paragraph to AGENTS.md § "Testing", beside the code block. It says that each crate's
+  integration tests build as two binaries, `tests/all/` and `tests/isolated/`. It says that a new test file goes in
+  `tests/all/<name>.rs` with `mod <name>;` in `tests/all/main.rs` and `use crate::common;`, and a test that sets or
+  removes a variable goes in `tests/isolated/`. It also says that `-p` goes with every `--test all`, that a `<file>::`
+  filter matches by substring, and names `test_layout_guard` and `test_invocation_guard` with their codes. The paragraph
+  and the code headings quote no stale `--test <file>` command, since the guard scans AGENTS.md (DX review X4).
 - `.config/nextest.toml` needs no filter change: its one override matches tests by name with `test(...)`, and the module
   prefix does not stop a match.
 - The paths that only name a file change too. AGENTS.md holds 31 citations of 28 test files (counted with
   `rg -o 'crates/[a-z-]+/tests/[A-Za-z0-9_/.-]+\.rs' AGENTS.md`). The spike counted 32 at #634, and U2 recounts at its
-  base. Eleven more sit in other live files: CONTRIBUTING.md (2), CONCEPTS.md (1), RELEASES-PREFLIGHT.md (1),
+  base. Fourteen more sit in other live files: CONTRIBUTING.md (2), CONCEPTS.md (1), RELEASES-PREFLIGHT.md (1),
   `.config/nextest.toml` (1), `.github/tool-versions` (1), `ci.yml` (1), `scripts/generate-response-schemas.sh` (1),
-  `scripts/open-spec-refresh-pr.sh` (2), and `scripts/render-vendor-readme.sh` (1).
+  `scripts/open-spec-refresh-pr.sh` (2), `scripts/render-vendor-readme.sh` (1), `.cargo/config.toml:10`
+  (`parse_stack_tests.rs`, which moves to `tests/isolated/`), the root `Cargo.toml:42` (`release_profile_guard.rs`), and
+  `endpoint-decisions.json:2`'s `$comment` (`endpoint_decisions.rs`). The last three were found with
+  `rg -o 'crates/[a-z-]+/tests/[A-Za-z0-9_]+\.rs' --hidden` outside `crates/` and `docs/` (DX review X6).
 - The crates name test files too, and U2's docs commit edits each in place on its own lines (R5; Eng review D12):
   - The five `Fix:` lines in `crates/xdk/tests/spec_validation.rs` (961, 1346, 1356, 1364, and 1380) name
     `crates/xdk/tests/spec_validation.rs`.
@@ -592,6 +627,11 @@ Notes on KTD3:
   - For a green PR run: from the run's `createdAt` to the latest `completedAt` among the checks that
     `.github/rulesets/protect-dev.json` requires (27 at `492e187`), from `gh run view <id> --json createdAt,jobs` and
     the changelog workflow's run on the same head. Record the run ID, that time, and the slowest job with its time.
+  - Record beside each run whether its `Cache dependencies` steps restored an entry, read from each job's log. U2 edits
+    `.cargo/config.toml` (KTD11) and `crates/xdk/Cargo.toml`, both cache-key inputs, and a pull request that moves the
+    key saves nothing (`ci.yml:20-26`), so U2's own runs may build every dependency cold. Whether a comment-only edit
+    moves the key depends on whether rust-cache hashes the parsed TOML or the raw file, which this plan has not checked.
+    A cold run is recorded and marked cold, and is not compared with the 297 s baseline (DX review X7).
   - Baseline: run 45944823191 on #645, 297 s, slowest `ci / Tests (1/4)` at 251 s.
   - U4 reads U2's last green run and the next two green PR runs whose diff runs the Rust jobs. U11 reads U10's last
     green run and the next two the same way. Each reports the median beside the three runs.
@@ -655,22 +695,22 @@ on top of U9, and U3 and U4 follow it. Either order leaves each later unit's bas
 
 ### Risks & Dependencies
 
-| Risk                                                                                                  | Decision                                                                                                                                                                                                                             |
-| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A moved clap doc comment or attribute lands on the wrong variant, and the crate still compiles        | Items move whole, at item boundaries; the golden suite fails on any help page that moves; the diff is read before the push (KTD1)                                                                                                    |
-| A split widens a visibility past what the move needs                                                  | Only `pub(super)` or `pub(crate)` as the new boundary needs; the review reads every visibility change (KTD1)                                                                                                                         |
-| A private item that moves becomes reachable from outside the crate                                    | No item gains `pub` without a restriction, except the `families` module and its re-exports, which the doc-hidden `cli` module already exposes through `crate::cli::<Enum>` today                                                     |
-| The types split changes a public path or rustdoc's view                                               | Private domain modules, glob re-exports, and a local `cargo semver-checks` run before the push (KTD5)                                                                                                                                |
-| A test is lost in the merged layout because no `mod` line declares it                                 | The before and after `cargo nextest list` outputs match one for one; `test_layout_guard` fails for the file (KTD10)                                                                                                                  |
-| An environment-mutating or aborting test reaches the rest of a merged binary under plain `cargo test` | Those tests live in `tests/isolated/`; `test_layout_guard` keeps the environment-mutating ones there (R8), and no guard holds the aborting `parse_stack_tests` there (Eng review D11); U2 runs a plain `cargo test --workspace` once |
-| `#[serial]` tests from different files share one process under plain `cargo test`                     | `serial_test` serializes them against one another, which is correct and only slower; nextest runs each test in its own process anyway                                                                                                |
-| `Windows program target` compiles the whole merged `xurl-rs` test binary where it compiled two        | U2's run records that job's time against run 45944823191 (90 s); a PR verdict slower than the base run's 297 s stops U2 for a report                                                                                                 |
-| The Windows job's `--test all` filters run fewer tests than the two old binaries                      | The filters name the same modules (KTD11); the job's log shows the same test count as on the base                                                                                                                                    |
-| A doc or script names an old `--test` target                                                          | `test_invocation_guard` fails naming it (KTD10)                                                                                                                                                                                      |
-| A guard's `Fix:` line or AGENTS.md names a moved helper at its old file, and nothing fails            | Each split greps its moved items' names across the live docs and the guards' messages (U5 to U8 verification); `recipe_guard` only checks that a named file exists                                                                   |
-| The seam lets a production run clone another URL                                                      | `skill_from_process` sets `None` and reads no variable; the goldens, which spawn the binary, pin the manifest URL in `command_preview` (KTD7)                                                                                        |
-| The merged layout collides with the open state-machines stack                                         | U2's move waits for #645 to #648 (KD5); U1 and U5 to U9 touch none of their files                                                                                                                                                    |
-| Plan M's baseline runs on files a split later moves                                                   | U5 to U9 land before plan M's CLI and `xdk` baselines (KD3); M's webhooks pilot needs only U1 and U2                                                                                                                                 |
+| Risk                                                                                                  | Decision                                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A moved clap doc comment or attribute lands on the wrong variant, and the crate still compiles        | Items move whole, at item boundaries; the golden suite fails on any help page that moves; the diff is read before the push (KTD1)                                                                                                                            |
+| A split widens a visibility past what the move needs                                                  | Only `pub(super)` or `pub(crate)` as the new boundary needs; the review reads every visibility change (KTD1)                                                                                                                                                 |
+| A private item that moves becomes reachable from outside the crate                                    | No item gains `pub` without a restriction, except the `families` module and its re-exports, which the doc-hidden `cli` module already exposes through `crate::cli::<Enum>` today                                                                             |
+| The types split changes a public path or rustdoc's view                                               | Private domain modules, glob re-exports, and a local `cargo semver-checks` run before the push (KTD5)                                                                                                                                                        |
+| A test is lost in the merged layout because no `mod` line declares it                                 | The before and after `cargo nextest list` outputs match one for one; `test_layout_guard` fails for the file (KTD10)                                                                                                                                          |
+| An environment-mutating or aborting test reaches the rest of a merged binary under plain `cargo test` | Those tests live in `tests/isolated/`; `test_layout_guard` keeps the environment-mutating ones there (R8), and no guard holds the aborting `parse_stack_tests` there (Eng review D11); U2 runs a plain `cargo test --workspace` once                         |
+| `#[serial]` tests from different files share one process under plain `cargo test`                     | `serial_test` serializes them against one another, which is correct and only slower; nextest runs each test in its own process anyway                                                                                                                        |
+| `Windows program target` compiles the whole merged `xurl-rs` test binary where it compiled two        | U2's run records that job's time against run 45944823191 (90 s); a PR verdict slower than the base run's 297 s, on a run whose dependency caches restored (KTD13), stops U2 for a report; when no U2 run restores them, U4's first reading applies the check |
+| The Windows job's `--test all` filters run fewer tests than the two old binaries                      | The filters name the same modules (KTD11); the job's log shows the same test count as on the base                                                                                                                                                            |
+| A doc or script names an old `--test` target                                                          | `test_invocation_guard` fails naming it (KTD10)                                                                                                                                                                                                              |
+| A guard's `Fix:` line or AGENTS.md names a moved helper at its old file, and nothing fails            | Each split greps its moved items' names across the live docs and the guards' messages (U5 to U8 verification); `recipe_guard` only checks that a named file exists                                                                                           |
+| The seam lets a production run clone another URL                                                      | `skill_from_process` sets `None` and reads no variable; the goldens, which spawn the binary, pin the manifest URL in `command_preview` (KTD7)                                                                                                                |
+| The merged layout collides with the open state-machines stack                                         | U2's move waits for #645 to #648 (KD5); U1 and U5 to U9 touch none of their files                                                                                                                                                                            |
+| Plan M's baseline runs on files a split later moves                                                   | U5 to U9 land before plan M's CLI and `xdk` baselines (KD3); M's webhooks pilot needs only U1 and U2                                                                                                                                                         |
 
 Plan M (`docs/plans/2026-11-27-0033-test-mutation-testing-and-test-cuts-plan.md`) depends on R. Its pilot on
 `crates/xdk/src/webhooks/` (M2) waits for U1 and U2, its run over the rest of `xdk` (M7) for U8, and its CLI run (M8)
@@ -750,8 +790,11 @@ name test files at `492e187`'s paths, which hold only when the unit lands before
   - every command and path in KTD11: AGENTS.md (§ "Adding a command family", § "Testing", and four new code headings),
     CONTRIBUTING.md, CONCEPTS.md, RELEASES-PREFLIGHT.md, `.config/nextest.toml`, `.github/tool-versions`,
     `.github/workflows/ci.yml`, `scripts/update-types.sh`, `scripts/generate-response-schemas.sh`,
-    `scripts/open-spec-refresh-pr.sh`, `scripts/render-vendor-readme.sh`, `scripts/release/preflight.sh`, and
-    `scripts/release/tests/preflight.bats`.
+    `scripts/open-spec-refresh-pr.sh`, `scripts/render-vendor-readme.sh`, `scripts/release/preflight.sh`,
+    `scripts/release/tests/preflight.bats`, `.cargo/config.toml` (its line 10 comment), the root `Cargo.toml` (its line
+    42 comment), and `endpoint-decisions.json` (its `$comment`);
+  - the commands in the moved tests' messages and `//!` lines: `golden_tests.rs`, `agentic_tests.rs`, `live_smoke.rs`,
+    and `tls_backend.rs` (KTD11).
 - **Approach:**
   1. Record `cargo nextest list --workspace` (every test, qualified by its binary) and
      `cargo test --workspace --no-run --timings` on the base.
@@ -777,8 +820,10 @@ name test files at `492e187`'s paths, which hold only when the unit lands before
   - `test_layout_guard` fails for a seeded undeclared file in `tests/all/`, for a seeded undeclared nested file under
     `tests/all/<module>/`, for a seeded `tests/stray.rs`, and for an allowlisted environment-mutating test moved into
     `tests/all/`. Each fails with its code and names its fix.
-  - `test_invocation_guard` fails for a seeded `cargo test --test golden_tests` in a scanned document, and for a seeded
-    `--test all no_such_module::`.
+  - `test_invocation_guard` fails for a seeded `cargo test --test golden_tests` in a scanned document, for the same
+    command in a seeded `.rs` file's string literal under a member's `tests/`, and for a seeded
+    `--test all no_such_module::`. The first message names `-p xurl-rs --test all golden_tests::` (KTD10).
+  - Each new message starts with its code and ends with `(AGENTS.md § <code>)`, held by the heading test.
   - `store_isolation_guard` still fails on a seeded `TokenStore::new()` in a moved test file. `recipe_guard` still finds
     every walk AGENTS.md names.
   - `cargo test -p xdk-rs --features testing --test all mock_endpoint_coverage::` runs the module, and a build without
@@ -789,7 +834,8 @@ name test files at `492e187`'s paths, which hold only when the unit lands before
   - The test lists match.
   - Each guard fails on its seeded violations and passes on the moved tree.
   - The compile-phase drop is recorded from the two timing runs.
-  - The PR run's `Windows program target` time is recorded beside run 45944823191's 90 s.
+  - The PR run's `Windows program target` time is recorded beside run 45944823191's 90 s, with whether its cache
+    restored (KTD13).
   - `scripts/release/preflight.sh canon-drift` passes. It reads agent-skills on GitHub and sends nothing to X.
 
 ### U3. Dependency debug info, measured once (CI-U5)
@@ -960,7 +1006,7 @@ name test files at `492e187`'s paths, which hold only when the unit lands before
 | Plain `cargo test --workspace`                                                    | U2              | passes                                                            |
 | `strace -f -e trace=execve` over `rerun_walk`                                     | U1              | no `git` process names `github.com`                               |
 | The first walk-harness test, with the envelope change stashed                     | U1              | fails, naming the manifest's URL; output recorded in the PR body  |
-| PR run's slowest job and start-to-finish time                                     | U2, U4, U11     | recorded; U2 no slower than 297 s                                 |
+| PR run's slowest job and start-to-finish time                                     | U2, U4, U11     | recorded; U2 no slower than 297 s on a cache-restored run (KTD13) |
 
 ## Definition of Done
 
@@ -1451,8 +1497,8 @@ U2.
   `--test all` the plan writes carries `-p` (KTD11).
 - **B1 and B5 are internal module names**, outside R10's public surface and outside the CI plan's approved names. They
   are code calls, which xurl-plan-prime owns. The plan keeps them, and keeps `family_help::broadcasts` and
-  `broadcasts_own` as they are under KTD1. The rename B1 describes is listed under "Not in R". xurl-plan-prime has both
-  to confirm or overrule.
+  `broadcasts_own` as they are under KTD1. The rename B1 describes is listed under "Not in R". xurl-plan-prime, the
+  coordinating session, decided both on 2026-11-27: keep every name, for these reasons.
 
 ### Completion summary
 
@@ -1466,7 +1512,7 @@ U2.
 - What already exists: written
 - TODOS.md updates: 0 items proposed
 - Failure modes: 0 critical gaps flagged
-- Unresolved decisions: 5 in this review (B1 to B5, Brett's, undecided by design)
+- Unresolved decisions: 5 left open by this review (B1 to B5), each settled in the disposition above
 - Outside voice: skipped (caller instruction)
 - Parallelization: 1 lane, 0 parallel / 9 sequential PRs
 - Lake Score: 12/12 (D1 to D5, D7, D8, D10 to D14 scored; D6 and D15 differ in kind; D9 and D16 are corrections)
@@ -1480,7 +1526,380 @@ U2.
 
 ## Developer Experience Review
 
-Pending.
+`/plan-devex-review` round 1, on Opus, over this plan at `4d2bf83`. `origin/dev` is the same commit, and its code equals
+`492e187`'s (`git diff --stat 492e187 4d2bf83` outside `docs/plans/` is empty). The run is unattended under its caller's
+brief, so no human answers questions:
+
+- Each question is answered from the code, the repo's docs, `docs/solutions/`, and precedent, and the answer and its
+  evidence are recorded below.
+- Each applied remedy is written into the plan text above and cites its X-number.
+- No decision here is one only Brett can make (§ "Decisions only Brett can make").
+- No subagent, outside voice, cross-model pass, or web search ran. The peer rows in the benchmark are in-distribution
+  knowledge, labeled as reported and not re-checked.
+- The review edits only this file and commits nothing. So the gstack review log and the task JSONL are not persisted,
+  and their content sits here.
+
+### Step 0 answers
+
+Each is auto-decided under the brief, as the recommended option.
+
+| Question                   | Answer                                                                                                                                                                                                                        | Evidence                                                                                             |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Product type               | CLI tool, the contributor surface of a Rust workspace: the test commands, the guards' failure messages, and AGENTS.md § "Testing". Documentation second. Nobody who runs `xr` or embeds `xdk-rs` sees a change (R1, R2, R10). | KTD10, KTD11, U2's file list                                                                         |
+| Primary persona            | An AI coding agent working an xurl-rs task in an agent slot, with AGENTS.md as its authority. A human contributor following CONTRIBUTING.md is second.                                                                        | KD6, § "Execution profile", CONTRIBUTING.md § "Branch and PR flow" ("testing ... live in AGENTS.md") |
+| `/office-hours` design doc | Skipped. No design doc exists, and a refactor plan with Brett's fixed scope (KD1) needs none.                                                                                                                                 | `gstack-design-doc-find` printed none                                                                |
+| Empathy narrative          | Accepted as written below.                                                                                                                                                                                                    | `golden_tests.rs:2161`, AGENTS.md:512, cargo's error at `4d2bf83`                                    |
+| Clock and target           | Champion (under 2 minutes) on both clocks below.                                                                                                                                                                              | the spike's rebuild figures                                                                          |
+| Magical moment and vehicle | The rebuild after an edit, 66.7 s to 5.9 s, delivered by the one-file line in AGENTS.md § "Testing" (KTD11). No new vehicle.                                                                                                  | solutions doc table, row 5                                                                           |
+| Mode                       | DX POLISH: an enhancement to an existing workflow, scope fixed by KD1, no scope additions.                                                                                                                                    | KD1, § "Scope Boundaries"                                                                            |
+
+### Developer persona card
+
+```text
+TARGET DEVELOPER PERSONA
+========================
+Who:       an AI coding agent in an xurl-rs agent slot; second, a human contributor from CONTRIBUTING.md
+Context:   adds or edits a test, reruns one file's tests after an edit, re-blesses golden fixtures, fixes a red guard,
+           rebases an in-flight branch over U2
+Tolerance: reads each failure message literally and runs the command it names; one failed copy costs a search of
+           AGENTS.md and its tokens, and a second tends to end in a whole-suite run
+Expects:   every command in a message or a doc runs as written; a new test file goes where the others are; one file's
+           tests run by naming the file
+```
+
+### Developer perspective
+
+I'm an agent in a slot, told to add a flag to `xr lists`. AGENTS.md § "Testing" shows me how to run one file (observed:
+line 512, `--test cli_tests help`). After U2 that line names `--test all`, so I copy it and it runs. I change a help
+string, the golden suite goes red, and its message tells me to run `XURL_GOLDEN_BLESS=1 cargo test --test golden_tests`
+(observed, `golden_tests.rs:2161`). Before this review that line was on no list U2 edits, so I paste it and cargo
+answers `error: no test target named ...` with the package's targets (observed for a missing target at `4d2bf83`; after
+U2 the list would be `all` and `isolated`, predicted). I guess `--test all` with no `-p` and no filter, and cargo builds
+both crates' `all` binaries and re-blesses with the whole binary running (predicted). Then I add
+`crates/xurl-cli/tests/lists_count_tests.rs`, shaped like every test file I have seen and every one the plans in
+`docs/plans/` name. It builds as its own binary and passes, and `test-layout/stray-file` fails. A message that only says
+the file is stray leaves me unsure whether to move it, delete it, or add a `[[test]]` entry (predicted). With this
+review's changes, the bless line names `--test all golden_tests::`, and the stray-file message names the `git mv`, the
+`mod` line, and the `use crate::common;` edit.
+
+### Competitive DX benchmark
+
+Clock A, edit to result: an agent with a warm target directory edits `crates/xdk/src/lib.rs` and runs one file's tests.
+Clock B, red golden to re-blessed: the agent reads the golden suite's failure and runs the command it names. Both start
+from the documented state, AGENTS.md § "Testing" and the failure message, and neither counts reading the plan.
+
+| Tool                                                    | Start → result               | Time + evidence type                                                                                   | DX choice                                                | Source                                                                                               |
+| ------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Cargo's own repository                                  | unknown                      | unknown                                                                                                | one integration binary, `tests/testsuite/main.rs`        | rust-lang/cargo's layout, reported, not re-checked                                                   |
+| matklad, "Delete Cargo Integration Tests"               | n/a, an essay                | n/a                                                                                                    | one integration binary per crate, for link time          | `https://matklad.github.io/2021/02/27/delete-cargo-integration-tests.html`, reported, not re-checked |
+| xurl-rs at `492e187`, clock A                           | lib edit → one file's result | rebuild 66.7, 56.5 s wall, measured by the spike, plus a run of seconds, estimated: about 1 min        | `--test <file>` names one binary                         | solutions doc, row 5                                                                                 |
+| xurl-rs after U2, clock A                               | the same                     | rebuild 5.9, 6.0 s for one binary per crate, measured; the two-binary figure is U2 step 8's to measure | `-p <pkg> --test all <file>::`                           | the same row; U2 step 8                                                                              |
+| xurl-rs after U2 as written before this review, clock B | red golden → re-blessed      | 3 to 6 min, estimated: one failed copy, a search of AGENTS.md, a retry                                 | the message names a target that no longer exists         | `golden_tests.rs:2161`                                                                               |
+| xurl-rs after U2 with X1, clock B                       | the same                     | under 1 min, estimated: the copied command runs                                                        | the message names `-p xurl-rs --test all golden_tests::` | KTD11                                                                                                |
+
+The peers' times are not comparable, since neither publishes the clock, so they are compared by DX choice only. Target:
+Champion on both clocks. Clock A already meets it at `492e187` and U2 widens the margin. Clock B misses it only through
+the stale command, which X1 and X2 close.
+
+### Magical moment
+
+A contributor edits the library and gets one file's result in seconds where it took a minute. The vehicle is the
+one-file line in AGENTS.md § "Testing" (KTD11, X5), with no new surface. Its requirement is that the line runs as
+written and that U2 step 8 records the two-binary rebuild figure beside the spike's one-binary 5.9 s, so the claim the
+docs imply is the measured one.
+
+### Developer journey
+
+| Stage       | Developer does                                                    | Friction points                                                                                          | Status                              |
+| ----------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Discover    | reads AGENTS.md § "Testing" and CONTRIBUTING.md § "Dev setup"     | no paragraph said where a test file goes once the layout changes                                         | fixed, X4                           |
+| Install     | `scripts/dev-setup.sh`, `git config core.hooksPath scripts/hooks` | none from this plan; cargo's `profiles for the non root package will be ignored` warning is pre-existing | ok                                  |
+| Hello world | `cargo nextest run -p xurl-rs --test all cli_tests::`             | the old line's replacement was only the narrowed `-E` form; `<file>::` matches by substring              | fixed, X5                           |
+| Real usage  | adds a test file; re-blesses goldens                              | stray file's fix unstated; the bless command in the golden message was stale                             | fixed, X1, X3                       |
+| Debug       | reads a red guard or a stale command's cargo error                | three of four new codes had no fix line; `test_invocation_guard` did not scan Rust sources               | fixed, X2, X3                       |
+| Upgrade     | rebases an in-flight branch over U2                               | a new top-level test file; plans M and F hold no stale `--test` command (`rg` found 0 in each)           | ok, `test-layout/stray-file` and D4 |
+
+### First-time developer confusion report
+
+```text
+FIRST-TIME DEVELOPER REPORT
+============================
+Persona: AI coding agent in a slot, first task after U2 merges
+Attempting: change a help string, re-bless, add a test file
+
+CONFUSION LOG (predicted from the plan before this review, grounded in the cited lines):
+T+0:00  Reads AGENTS.md § "Testing". The one-file line runs. Addressed: X5 adds the plain one-file form.
+T+0:40  Help string edited; golden suite red. Message names `cargo test --test golden_tests`
+        (golden_tests.rs:2161). Addressed: X1.
+T+1:00  Pasted command fails: cargo lists `all` and `isolated`. Agent runs `--test all` without `-p` or a filter.
+        Addressed: X1 removes the cause; X2 keeps it from recurring.
+T+2:30  Adds tests/lists_count_tests.rs; `test-layout/stray-file` fires. Addressed: X3 names the git mv, the mod line,
+        and the common edit; X4 says where a file goes before the guard has to.
+T+3:30  Runs `--test all schema_tests::` and sees envelope_schema_tests run too. Addressed: X5 documents the
+        substring match and the anchored form.
+T+4:00  Succeeded. With the changes above, the same session ends at about T+1:00.
+```
+
+### Pass 1: Getting started
+
+7/10 → 8/10. A contributor's first commands (`scripts/dev-setup.sh`, `cargo nextest run --workspace`) do not change, and
+U1 makes the suite pass offline. The gap was the first narrowed run: AGENTS.md:512's replacement was only the `-E` regex
+form. X5 puts the one-file line first. The residual point is cargo's pre-existing warning on every `-p xurl-rs`
+invocation, outside R (§ "NOT in scope").
+
+### Pass 2: The test commands
+
+6/10 → 8/10. `-p <pkg> --test all <file>::` replaces `--test <file>`, and the plan says `-p` is always needed (KTD11).
+Found:
+
+- X5: a `<file>::` filter matches by substring under both runners, so `schema_tests::` also runs
+  `envelope_schema_tests::` (both in `crates/xurl-cli/tests/` at `492e187`). Cross-crate pairs (`drafts_tests` and
+  `post_drafts_tests`, `property_tests` and `envelope_property_tests`) are split by `-p`. Nothing is lost, and more
+  tests run. Applied: documented, with the anchored form.
+- `--test all` without `-p` builds both crates. A guard rule for it is Eng review B4, under "Not in R".
+
+### Pass 3: Error messages
+
+5/10 → 8/10. Surface: a test failure under nextest or plain cargo, so the channel is a non-zero exit and the failure
+text. All paths are validation errors found before any work, so recovery is fix and rerun with no side effects.
+
+```text
+ERROR PATH MATRIX (agent-ready-v1)
+Path                              | Class      | what | fix        | recovery | code | context | trace | redaction | channel | Cap before → after
+test-layout/undeclared-module     | validation | pass | pass       | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+test-layout/stray-file            | validation | pass | fail→pass  | N/A      | pass | N/A     | N/A   | pass      | pass    | CAP6:fix → none
+test-layout/isolation             | validation | pass | fail→pass  | N/A      | pass | N/A     | N/A   | pass      | pass    | CAP6:fix → none
+test-invocation/unknown-target    | validation | pass | fail→pass  | N/A      | pass | N/A     | N/A   | pass      | pass    | CAP6:fix → none
+golden divergence (U2 edits)      | validation | pass | fail→pass  | N/A      | N/A  | N/A     | N/A   | pass      | pass    | CAP6:fix → none
+cargo: no test target (unexpected)| dependency | pass | partial    | N/A      | N/A  | pass    | N/A   | pass      | pass    | residual, by design
+```
+
+- `CAP6:test-layout/stray-file:fix` — KTD10 gave the code and not the fix. Corrected line:
+
+  ```text
+  test-layout/stray-file: crates/xurl-cli/tests/lists_count_tests.rs builds as a binary of its own; git mv it to crates/xurl-cli/tests/all/lists_count_tests.rs, add mod lists_count_tests; to tests/all/main.rs, and change its mod common; to use crate::common; (AGENTS.md § test-layout/stray-file)
+  ```
+
+- `CAP6:test-layout/isolation:fix` — the same gap. The message names the test, its file under `tests/isolated/`, the
+  `mod` line, and the allowlist entry to repoint.
+- `CAP6:test-invocation/unknown-target:fix` — the same gap. The message names the replacement when the old name is a
+  module of `all` or `isolated` (KTD10's example), and the package's targets otherwise.
+- `CAP6:golden divergence:fix` — `golden_tests.rs:2161` names `cargo test --test golden_tests`, which fails after U2,
+  and KTD11 did not list it. `agentic_tests.rs:998`'s `Fix:` line names the same command. Corrected:
+
+  ```text
+  ... Re-capture only when the change to what `xr` prints is intended: XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test all golden_tests::
+  ```
+
+- The last row is cargo's own error for a stale command in a surface no guard scans, such as an old plan. It names the
+  target and lists `all` and `isolated` but not the module filter, which AGENTS.md's paragraph covers (X4). Plans are
+  history and stay unscanned (CI plan, "Guard scope").
+- Shape: each new message follows `nextest_config_guard.rs:66-80` (code first, then file, fix, and
+  `(AGENTS.md § <code>)`), and the heading test holds the ending (X3). No path prints a secret. A guard that cannot read
+  a file panics naming the path and the I/O error, as `nextest_config_guard.rs:151` does.
+
+### Pass 4: Documentation
+
+6/10 → 8/10. KTD11 rewrote every command and path but added no words on the layout itself, and a contributor's prior is
+`tests/<name>.rs`. X4 adds one paragraph to AGENTS.md § "Testing". X6 adds three path sites the inventory missed:
+`.cargo/config.toml:10`, `Cargo.toml:42`, and `endpoint-decisions.json:2`. The four code headings follow the three
+existing ones: what fails, why, and the fix.
+
+### Pass 5: Upgrade path
+
+7/10 → 8/10. An in-flight branch that adds a top-level test file fails `test-layout/stray-file` with the fix (X3), and
+U2 reports open PRs under `crates/*/tests/` (D4). Plans M and F name no `--test <file>` command
+(`rg -n -- '--test[ =][a-z_]+'` found 0 in each beyond `--test all`). Their 4 and 9 test-file paths are history once
+each executes, and D4 covers plan F's new file. No issues beyond these.
+
+### Pass 6: Developer environment
+
+8/10 → 9/10. The suite stops cloning github.com (U1), the rebuild after an edit falls by about nine tenths (U2), the
+target directory falls from 9.1 GB to 1.7 GB, and the Windows job's time is recorded (U2). rust-analyzer and nextest
+need no setting for `tests/<name>/main.rs`, Cargo's default discovery. No issues found.
+
+### Pass 7: Community and contributing
+
+7/10 → 7/10. CONTRIBUTING.md's only test-target command (line 56) is in KTD11, and its path citations are in the
+inventory. No issues found.
+
+### Pass 8: Measurement
+
+7/10 → 8/10. Clock A is measured by U2 steps 1 and 8, and the verdict by KTD13. Found:
+
+- X7: U2 edits `.cargo/config.toml` (X6) and `crates/xdk/Cargo.toml`, both cache-key inputs, and a pull request that
+  moves the key saves nothing (`ci.yml:20-26`). U2's own runs may then build every dependency cold, and the 297 s stop
+  rule would fire on a cold run. Whether a comment-only edit moves the key is not checked here: it depends on whether
+  rust-cache hashes parsed TOML or raw bytes. Applied: KTD13 records the cache state per run, and only a cache-restored
+  run is compared with 297 s.
+
+Clock B needs no measurement once its command runs. `/devex-review` on U2's PR (KTD15) is the boomerang for both clocks.
+
+### Decision ledger
+
+Each entry is one independently selectable choice, recommended option taken under the brief. None is destructive or
+irreversible. Each plan baseline is the plan text at `4d2bf83`.
+
+- **X0 — Step 0.** The answers in § "Step 0 answers". State: approved.
+- **X1 — KTD11: the commands inside Rust sources.** Evidence: `golden_tests.rs:22`, `:2161`, `agentic_tests.rs:998`,
+  `live_smoke.rs:10`, `tls_backend.rs:12-13`. Routine work under KTD11's "every documented command" and R5. No options.
+  State: recorded, applied to KTD11 and U2's files.
+- **X2 — KTD10: `test_invocation_guard` scans Rust sources.** Evidence: X1's lines, and R8 ("a command naming a test
+  target ... that does not exist each fail a guard"). A) Add the `.rs` files under each member's `src/` and `tests/` to
+  the scan, skipping the guard's own file (recommended, 10/10: the class X1 fixes once would recur with the next test
+  that prints a command). B) Keep the scan list, and rely on X1's one-time edit (7/10). Same code, no new surface.
+  Owner: xurl-plan-prime (a KTD). State: approved, A.
+- **X3 — KTD10: what each new message says.** Evidence: `nextest_config_guard.rs:66-80` and `:159-177`, AGENTS.md's
+  three code headings. Routine under R8 and the precedent. No options. State: recorded, applied.
+- **X4 — AGENTS.md § "Testing": one paragraph on the layout.** Evidence: AGENTS.md:506-560 has none, and U2 already
+  edits § "Testing". Routine documentation of the layout U2 creates. State: recorded, applied to KTD11.
+- **X5 — AGENTS.md's one-file line, and the substring note.** Evidence: AGENTS.md:512, the in-crate
+  `schema_tests`/`envelope_schema_tests` pair. A) Two lines, the one-file form first, and a note with the anchored form
+  (recommended). B) The `-E` line alone, as KTD11 had it. The options differ in kind, not coverage, so there is no
+  completeness score. State: approved, A.
+- **X6 — three path sites KTD11 missed.** Evidence: the `rg --hidden` count outside `crates/` and `docs/`. Routine under
+  R5. State: recorded, applied.
+- **X7 — cache state in the verdict readings.** Evidence: `ci.yml:20-26`, KTD12's cache-key statement. A) Record the
+  cache state per run and compare only a restored run with 297 s, moving the check to U4 when no U2 run restores
+  (recommended, 9/10). B) Keep the rule as written (5/10: a cold run can stop U2 falsely). Owner: xurl-plan-prime (a KTD
+  and a stop rule within it). State: approved, A.
+
+Approval readiness: PASS. X2, X5, and X7 are approved under the brief. X1, X3, X4, and X6 are routine work within
+approved contracts, recorded with their evidence.
+
+### Decisions only Brett can make
+
+None. No X-entry touches scope, a public surface, a name, a breaking change, or a version: the guard codes and binary
+names come from the CI plan's approved CI-U6 and KTD14, and every change here is a message, a scan list, a doc
+paragraph, or a measurement rule. X2 and X7 are code calls for xurl-plan-prime to confirm or overrule.
+
+### NOT in scope
+
+- Cargo's `profiles for the non root package will be ignored` warning, which every `-p xurl-rs` command prints
+  (`crates/xurl-cli/Cargo.toml:102`, observed at `4d2bf83`). It is pre-existing, and the root `Cargo.toml:38-41` comment
+  explains the copy.
+- A guard rule refusing `--test all` without `-p` (Eng review B4).
+- Scanning `docs/plans/` for stale commands. Plans record history (CI plan, "Guard scope").
+- Renaming `envelope_schema_tests` or `schema_tests` to end the substring overlap. A rename is not a move (KTD1).
+
+### What already exists
+
+- `nextest_config_guard.rs`: the message shape and the code-heading test X3 reuses.
+- AGENTS.md's three code headings (`pre-push/nextest-config`, `nextest-config/unsafe-retry`,
+  `nextest-config/no-termination`): the heading form.
+- Cargo's own error for a missing target, which lists the package's targets.
+- nextest's `test(...)` contains-match and `/regex/` filters, which keep `.config/nextest.toml` unchanged and give the
+  anchored form.
+
+### TODOS.md updates
+
+None proposed. The repo has no `TODOS.md`, and every finding is applied to the plan.
+
+### Implementation tasks
+
+Synthesized from this review's findings. Each fix is already written into the plan text it cites.
+
+- [ ] **T1 (P2, human: ~20min / CC: ~3min)** — U2 — repoint the six commands in Rust sources
+  - Surfaced by: Pass 3, `golden_tests.rs:2161` (X1)
+  - Files: `golden_tests.rs`, `agentic_tests.rs`, `live_smoke.rs`, `tls_backend.rs`, under `crates/*/tests/all/`
+  - Verify: `rg -n -- '--test[ =][A-Za-z_]+' crates/` names only `--test all` and `--test isolated`
+- [ ] **T2 (P2, human: ~1h / CC: ~10min)** — U2 — scan Rust sources in `test_invocation_guard`
+  - Surfaced by: Pass 3 (X2)
+  - Files: `crates/xurl-cli/tests/all/test_invocation_guard.rs`
+  - Verify: the seeded string-literal case fails; the guard passes on its own file
+- [ ] **T3 (P2, human: ~1h / CC: ~10min)** — U2 — write the four messages and headings
+  - Surfaced by: Pass 3 (X3)
+  - Files: `test_layout_guard.rs`, `test_invocation_guard.rs`, AGENTS.md § "Testing"
+  - Verify: the heading test checks each code's heading and message ending
+- [ ] **T4 (P2, human: ~30min / CC: ~5min)** — U2 — add the layout paragraph and the two command lines
+  - Surfaced by: Pass 4, Pass 2 (X4, X5)
+  - Files: AGENTS.md § "Testing"
+  - Verify: `recipe_guard` and `test_invocation_guard` pass on AGENTS.md
+- [ ] **T5 (P3, human: ~10min / CC: ~2min)** — U2 — repoint three path comments
+  - Surfaced by: Pass 4 (X6)
+  - Files: `.cargo/config.toml`, `Cargo.toml`, `endpoint-decisions.json`
+  - Verify: `rg -o 'crates/[a-z-]+/tests/[A-Za-z0-9_]+\.rs' --hidden` outside `crates/` and `docs/` names only moved
+    paths
+- [ ] **T6 (P2, human: ~15min / CC: ~3min)** — U2, U4 — record cache state with each timing
+  - Surfaced by: Pass 8 (X7)
+  - Files: this plan's § Measurements
+  - Verify: each recorded run names its cache state
+
+### DX implementation checklist
+
+```text
+DX IMPLEMENTATION CHECKLIST
+============================
+[ ] Clock A under 2 min, edit to one file's result (U2 steps 1 and 8)
+[x] Installation is one command (scripts/dev-setup.sh, unchanged)
+[ ] First run produces meaningful output: the one-file line runs as written (X5)
+[ ] Magical moment delivered via AGENTS.md's one-file line, with the measured two-binary rebuild beside it
+[ ] Every new guard message meets the agent-ready contract: code, file, fix, heading (X3)
+[x] Command naming is guessable: --test all <file>:: mirrors --test <file>
+[n/a] Every parameter has a sensible default
+[ ] Docs have copy-paste commands that run: KTD11's table, X1's six sites, X4's paragraph
+[n/a] Examples show real use cases
+[ ] Upgrade path documented: X4's paragraph and the stray-file fix
+[n/a] Breaking changes have deprecation warnings: no user-facing change (R10)
+[n/a] TypeScript types
+[ ] Works in CI without special configuration: the Windows job's filters (KTD11)
+[n/a] Free tier
+[x] Changelog exists: each PR's Changelog sections stay empty by design (KTD15)
+[n/a] Search in documentation
+[n/a] Community channel
+```
+
+### Completion summary
+
+- Step 0: product type, persona, clock, target, vehicle, and mode answered under the brief (X0)
+- Passes: 8 of 8 run; findings in Passes 2, 3, 4, and 8; Passes 1, 5, 6, and 7 found nothing beyond residuals
+- Findings: 7 (X1 to X7), all applied to the plan text
+- Unresolved decisions: 0 for Brett; X2 and X7 for xurl-plan-prime to confirm
+- Outside voice: skipped (caller instruction)
+- Not persisted: the gstack review log and the task JSONL (edit-only-this-file brief)
+
+## DX Review Scorecard
+
+```text
++====================================================================+
+|              DX PLAN REVIEW: SCORECARD                             |
++====================================================================+
+| Dimension            | Score          | Prior          | Trend     |
+| ---------------------+----------------+----------------+------     |
+| Getting Started      | 8/10           | 7/10           | ↑         |
+| API/CLI/SDK          | 8/10           | 6/10           | ↑         |
+| Error Messages       | 8/10           | 5/10           | ↑         |
+| Documentation        | 8/10           | 6/10           | ↑         |
+| Upgrade Path         | 8/10           | 7/10           | ↑         |
+| Dev Environment      | 9/10           | 8/10           | ↑         |
+| Community            | 7/10           | 7/10           | =         |
+| DX Measurement       | 8/10           | 7/10           | ↑         |
++--------------------------------------------------------------------+
+| TTHW, clock A        | ~0.2 min, est. | ~1 min, est.   | ↑         |
+| TTHW, clock B        | <1 min, est.   | 3-6 min, est.  | ↑         |
+| Overall DX           | 8/10           | 6/10           | ↑         |
++--------------------------------------------------------------------+
+| Competitive Rank     | Champion                                    |
+| Magical Moment       | designed, via AGENTS.md's one-file line     |
+| Product Type         | CLI tool (contributor test workflow)        |
+| Mode                 | POLISH                                      |
++====================================================================+
+| DX PRINCIPLE COVERAGE                                              |
+| Zero Friction        | covered (U1 offline suite, X5)              |
+| Learn by Doing       | covered (copy-paste commands, X1)           |
+| Fight Uncertainty    | covered (X3 messages, X2 scan)              |
+| Opinionated + Escape | covered (-E anchored form, X5)              |
+| Code in Context      | covered (X4 paragraph)                      |
+| Magical Moments      | covered (rebuild figure, U2 step 8)         |
+| Agents Are Users     | covered (each message names its fix)        |
++====================================================================+
+```
+
+"Prior" is this review's starting score for the plan at `4d2bf83`; no earlier DX review exists (`gstack-review-read`:
+`NO_REVIEWS`). Both TTHW rows are estimates around the spike's measured rebuild, and U2 step 8 measures clock A. Every
+pass is 7 or more, and none is below 6.
+
+Unresolved decisions: none from this review.
 
 ## Document Review
 
@@ -1493,31 +1912,33 @@ Pending.
 - 2026-11-27: `/plan-eng-review` round 1 started, as its own Opus process on a clone of this commit.
 - 2026-11-27: `/plan-eng-review` round 1 ended, on `d7a04d3`, as its own Opus process (`claude-opus-5-5` only, 132
   turns, about 26 minutes). 14 section findings and one scope finding, each answered from the code and applied to the
-  plan text (D1 to D16). The review left B1 to B5 open. The author settles B2 from AGENTS.md, puts B3 and B4 under
-  "Not in R", and keeps B1 and B5 as code calls for xurl-plan-prime to confirm. No decision goes to Brett.
+  plan text (D1 to D16). The review left B1 to B5 open. The author settles B2 from AGENTS.md, puts B3 and B4 under "Not
+  in R", and keeps B1 and B5 as code calls for xurl-plan-prime to confirm. No decision goes to Brett.
 - 2026-11-27: `/plan-devex-review` round 1 started, as its own Opus process on a clone of this commit.
+- 2026-11-27: `/plan-devex-review` round 1 ended, on `4d2bf83`, as its own Opus process (`claude-opus-5-5` only, 63
+  turns, about 13 minutes). Seven findings, all in U2, each applied to the plan text (X1 to X7). DX score 6/10 to 8/10.
+  No decision goes to Brett, and X2 and X7 go to xurl-plan-prime to confirm. xurl-plan-prime decided B1 and B5 the same
+  day: keep the names.
 
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger               | Why                             | Runs | Status                      | Findings                   |
-| -------------- | --------------------- | ------------------------------- | ---- | --------------------------- | -------------------------- |
-| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —                           | —                          |
-| Outside Review | none (codex)          | Independent 2nd opinion         | 0    | skipped (caller)            | —                          |
-| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN (not persisted) | 14 issues, 0 critical gaps |
-| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —                           | —                          |
-| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | —                           | —                          |
+| Review         | Trigger               | Why                             | Runs | Status                      | Findings                                                    |
+| -------------- | --------------------- | ------------------------------- | ---- | --------------------------- | ----------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —                           | —                                                           |
+| Outside Review | none (codex)          | Independent 2nd opinion         | 0    | skipped (caller)            | —                                                           |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN (not persisted) | 14 issues, 0 critical gaps                                  |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —                           | —                                                           |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | CLEAR (PLAN, not persisted) | score: 6/10 → 8/10, TTHW: ~1 min → ~0.2 min (est.), 7 found |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase, skipped by the caller's brief ("run no outside voice and no
-  cross-model pass"); no findings.
-- **VERDICT:** no review CLEARED. Eng round 1 found 14 issues and applied each to the plan text, and its review log is
-  not persisted. Eng review required.
+- **OUTSIDE COVERAGE:** codex, plan-review phase, skipped by the caller's brief for both the eng and the DX round ("run
+  no outside voice and no cross-model pass"); no findings.
+- **VERDICT:** DX CLEARED on the plan (round 1 at `4d2bf83`: 7 findings, X1 to X7, each applied to the plan text, 0
+  decisions for Brett). Eng round 1 found 14 issues and applied each to the plan text, and its review log is not
+  persisted. Eng review required.
 
 **UNRESOLVED DECISIONS:**
 
-- B1 (name): the top level of `families/broadcasts.rs` is the `broadcasts moderators` family; rename or keep.
-- B2 (public surface, breaking change, version): removing `xurl::cli::family_help::<family>` and adding
-  `xurl::cli::families` in the doc-hidden `xurl-rs` lib; outside R10 and the Changelog, or not.
-- B3 (scope): a guard that holds `parse_stack_tests` in `tests/isolated/`.
-- B4 (scope): a `test_invocation_guard` rule that refuses `--test all` without `-p`.
-- B5 (names): `cli/families/`, `commands/{checks,sending,paging,accounts}.rs`, `cli/argv_refusal.rs`,
-  `response/types/<domain>.rs`.
+- None for Brett from either review.
+- X2 and X7 are code calls sent to xurl-plan-prime to confirm or overrule. The plan text carries them until then.
+- B1 to B5 are settled (§ "Engineering Review", the disposition): B2 from AGENTS.md, B3 and B4 under "Not in R", and B1
+  and B5 kept by xurl-plan-prime's decision.
