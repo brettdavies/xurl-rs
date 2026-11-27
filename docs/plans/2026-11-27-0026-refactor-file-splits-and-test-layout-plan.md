@@ -194,7 +194,8 @@ Not in R:
 - A CI `--in-diff` mutation job, a doc-comment accuracy audit, and the media-upload chart.
 - The CI speed plan's dropped and tracked items, which its Status section records.
 - Renaming `family_help::broadcasts` (the `broadcasts moderators` family) and `broadcasts_own` (the `xr broadcasts`
-  family) to names that match their commands. A rename is not a move (KTD1; Eng review B1).
+  family) to names that match their commands. A rename is not a move (KTD1; Eng review B1). It is a rename candidate,
+  and a rename that ever happens lands before plan M's CLI baseline (M8), which keys on the file's lines (KD3).
 - A guard that holds the process-aborting `parse_stack_tests` in `tests/isolated/` (Eng review B3). R8 names the
   environment-mutating tests only.
 - A `test_invocation_guard` rule that refuses `--test all` without `-p` (Eng review B4).
@@ -1981,28 +1982,24 @@ in R", and they need no answer.
 Each entry is an item this review left for the author. None blocks implementation, and none is one of the plan's stop
 conditions.
 
-### From 2026-11-27 review
+### Decided
 
-- **Whether the published `xurl-rs` library's doc-hidden `cli` paths count as public surface** — Planning Contract, KTD2
-  (P2, scope-guardian, confidence 75)
+- **The published `xurl-rs` library's doc-hidden `cli` paths are not public surface** (Eng review B2, doc review P2).
+  xurl-plan-prime, the coordinating session, settled it on 2026-11-27 under the documented policy. AGENTS.md line 14
+  says the CLI crate's library target "exists for its own tests and is not an API", `crates/xurl-cli/src/lib.rs:3-10`
+  calls it "not an embedder API" and marks `cli` `#[doc(hidden)]`, and the only semver gate is the one on `xdk-rs`
+  (`ci.yml:298-319`). U5's removal of `xurl::cli::family_help::<family>` and addition of `xurl::cli::families::*`
+  therefore fall outside R10, and get no Changelog line and no version call.
+- **The module and file names the splits create stand** (Eng review B1 and B5, doc review P3): `cli/families/`,
+  `commands/checks.rs`, `sending.rs`, `paging.rs`, and `accounts.rs`, `cli/argv_refusal.rs`, the
+  `response/types/<domain>.rs` files, and `family_help::broadcasts` (the `broadcasts moderators` family) as the top level
+  of `families/broadcasts.rs` with `broadcasts_own` nested. They are internal module names, so code calls, and
+  xurl-plan-prime decided them on 2026-11-27. They are fixed before U5 starts because each is fixed by its split's PR,
+  and a later rename is another move PR that, after plan M's baseline, voids that file's line-keyed baseline (KD3).
 
-  This is a public-surface, breaking-change, and version call, and the caller's brief reserves it for Brett. U5 removes
-  the `xurl::cli::family_help::<family>` modules from the published `xurl-rs` 4.9.1 library target and adds
-  `xurl::cli::families::*`. If those paths count, R10's no-public-item stop condition fires at U5, and the move needs a
-  Changelog line and a version call. If they don't, U5 proceeds as written. Evidence for the plan's reading that they
-  don't count: `cli` is `#[doc(hidden)]` (`crates/xurl-cli/src/lib.rs:9-10`), the crate's docs call the library "not an
-  embedder API" (`lib.rs:3-5`, AGENTS.md line 14), and the only semver gate is the one on `xdk-rs` (`ci.yml:298-319`).
-  The author's disposition of Eng review B2 stands until Brett answers.
+### Open
 
-- **The module and file names the splits create** — Planning Contract, KTD2 to KTD5 (P3, scope-guardian, confidence 75)
-
-  The caller's brief reserves names for Brett. The names are `cli/families/`, `commands/checks.rs`, `sending.rs`,
-  `paging.rs`, and `accounts.rs`, `cli/argv_refusal.rs`, and the `response/types/<domain>.rs` files (Eng review B5).
-  They also include keeping `family_help::broadcasts` (the `broadcasts moderators` family) as the top level of
-  `families/broadcasts.rs`, with the `xr broadcasts` family nested as `broadcasts_own` (Eng review B1). Each name is
-  fixed by its split's PR. Renaming one later is another move PR, and after plan M's baseline it voids that file's
-  line-keyed baseline (KD3). xurl-plan-prime chose on 2026-11-27 to keep every name, and the plan's names stand until
-  Brett answers.
+None.
 
 ## Review log
 
@@ -2024,6 +2021,8 @@ conditions.
   applied (E1 to E4). Its FYI on shared test helpers is answered in U2. It defers two items, the doc-hidden `cli` paths
   (Eng review B2) and the split names (B1, B5), as Brett's, and both go to xurl-plan-prime to route. Under X7, each
   verdict reading also records the cache entries it finds missing, as xurl-plan-prime asked.
+- 2026-11-27: xurl-plan-prime settles both deferred items: B2 under the documented policy on the CLI crate's library
+  target, and the names as code calls it decided. Neither goes to Brett. The plan holds no open decision.
 
 ## GSTACK REVIEW REPORT
 
