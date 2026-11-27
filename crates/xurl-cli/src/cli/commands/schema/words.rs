@@ -1,10 +1,9 @@
 //! The words a caller names a command with, and what `xr schema` refuses.
 
-use clap::CommandFactory;
 use xdk::error::Error;
 
-use crate::cli::Cli;
 use crate::cli::classify::{ROOT_COMMAND, nearest};
+use crate::cli::parse;
 use crate::cli::retired_verbs;
 
 use super::{file_stem, registered_commands};
@@ -20,7 +19,7 @@ const IRREGULAR_OLD_NAMES: &[(&str, &str)] = &[
 /// spelled like one is refused rather than read as a command.
 #[must_use]
 pub fn scope_words() -> Vec<String> {
-    Cli::command()
+    parse::root()
         .find_subcommand("schema")
         .map(|schema| {
             schema
@@ -78,7 +77,7 @@ pub(super) fn resolve(words: &[String]) -> std::result::Result<&'static str, Ref
     if let Some(command) = registered_commands().find(|command| *command == joined) {
         return Ok(command);
     }
-    let root = Cli::command();
+    let root = parse::root();
     let mut current = &root;
     let mut path: Vec<&str> = Vec::new();
     for word in words {

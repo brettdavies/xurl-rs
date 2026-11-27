@@ -18,9 +18,8 @@ use std::ffi::OsString;
 use clap::builder::ValueParser;
 use clap::error::{ContextKind, ContextValue};
 use clap::parser::ValueSource;
-use clap::{Arg, ArgMatches, Command, CommandFactory};
+use clap::{Arg, ArgMatches, Command};
 
-use crate::cli::Cli;
 use crate::cli::conflict_source::{self, Refusal, Side, Source};
 use crate::cli::env::FlagEnv;
 use crate::cli::output::OutputFormat;
@@ -128,7 +127,7 @@ impl<'a> Variables<'a> {
         if held.is_empty() {
             return held;
         }
-        let command = Cli::command();
+        let command = parse::root();
         held.into_iter()
             .filter(|(spelling, value)| {
                 command
@@ -470,7 +469,7 @@ fn share_a_single_group(command: &Command, arg: &Arg, other: &Arg) -> bool {
 
 /// What `--output` reads `value` as, or the refusal that names the variable.
 fn read_output_variable(spelling: &Spelling, value: &str) -> Result<OutputFormat, Refused> {
-    let command = Cli::command();
+    let command = parse::root();
     let Some(parser) = command
         .get_arguments()
         .find(|arg| arg.get_id() == spelling.id)

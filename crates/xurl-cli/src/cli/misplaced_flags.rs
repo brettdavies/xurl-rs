@@ -10,7 +10,7 @@
 use std::ffi::OsString;
 
 use clap::parser::ValueSource;
-use clap::{Arg, ArgMatches, Command, CommandFactory};
+use clap::{Arg, ArgMatches, Command};
 
 use crate::cli::classify::{ROOT_COMMAND, raw_only_flag_given};
 use crate::cli::hints::shell_word;
@@ -48,7 +48,7 @@ pub(crate) fn misplaced(cli: &Cli, args: &[OsString]) -> Option<Misplaced> {
     if cli.command.is_none() || !raw_only_flag_given(cli) {
         return None;
     }
-    let root = Cli::command();
+    let root = parse::root();
     let matches = parse::try_matches(args, std::convert::identity).ok()?;
     let given: Vec<&Arg> = root
         .get_arguments()

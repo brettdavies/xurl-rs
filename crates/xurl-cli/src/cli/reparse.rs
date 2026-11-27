@@ -10,14 +10,14 @@
 use std::ffi::OsString;
 
 use clap::error::{ContextKind, ErrorKind};
-use clap::{Arg, ArgAction, ArgMatches, CommandFactory, FromArgMatches};
+use clap::{Arg, ArgAction, ArgMatches, FromArgMatches};
 
 use crate::cli::classify::{ROOT_COMMAND, color_intent, context_string, raw_intent, usage_command};
 use crate::cli::output::OutputFormat;
 use crate::cli::settings::{self, Variables};
 use crate::cli::{Cli, ColorChoice, parse};
 
-/// `Cli::command()` with the root help and version flags inert.
+/// [`parse::root`] with the root help and version flags inert.
 ///
 /// clap adds both flags while building the command, so neither can be edited
 /// in place: each is disabled, which clap applies to every subcommand, and an
@@ -156,7 +156,7 @@ pub(crate) fn equals_form_hint(
 /// Whether `flag`, as typed (`--wait`, `-w`), is declared `require_equals` on
 /// `command` or on a command above it.
 fn takes_value_after_equals(command: &str, flag: &str) -> bool {
-    let root = Cli::command();
+    let root = parse::root();
     let mut scopes = vec![&root];
     for name in command.split_whitespace().skip(1) {
         match scopes.last().and_then(|scope| scope.find_subcommand(name)) {

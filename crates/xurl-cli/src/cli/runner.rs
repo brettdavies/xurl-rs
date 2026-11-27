@@ -24,8 +24,8 @@ use std::ffi::OsString;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use clap::FromArgMatches;
 use clap::error::{ContextKind, ContextValue, ErrorKind};
-use clap::{CommandFactory, FromArgMatches};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
@@ -280,7 +280,7 @@ async fn run_inner(
     // does, so the matches stay to name the command that ran.
     let parsed = crate::cli::parse::try_matches(args_vec.iter(), std::convert::identity)
         .and_then(|matches| Cli::from_arg_matches(&matches).map(|cli| (cli, matches)))
-        .map_err(|e| e.format(&mut Cli::command()));
+        .map_err(|e| e.format(&mut crate::cli::parse::root()));
     let (cli, matches) = match parsed {
         Ok(parsed) => parsed,
         Err(e) => {
@@ -327,7 +327,7 @@ async fn run_inner(
     if let Some(ref cmd) = cli.command {
         match cmd {
             Commands::Completions { shell } => {
-                let mut cmd = Cli::command();
+                let mut cmd = crate::cli::parse::root();
                 clap_complete::generate(*shell, &mut cmd, "xr", stdout);
                 return EXIT_SUCCESS;
             }
@@ -417,7 +417,7 @@ async fn run_inner(
                 out.print_invalid_args(stderr, NO_COMMAND_MESSAGE, " ", ROOT_COMMAND);
                 EXIT_USAGE_ERROR
             } else {
-                let _ = write!(stdout, "{}", Cli::command().render_help());
+                let _ = write!(stdout, "{}", crate::cli::parse::root().render_help());
                 EXIT_SUCCESS
             };
         }
@@ -762,7 +762,7 @@ fn render_parse_error(
             let _ = write!(stdout, "{}", help_command_page(args));
             return EXIT_SUCCESS;
         }
-        let unexpected = Cli::command().error(
+        let unexpected = crate::cli::parse::root().error(
             ErrorKind::UnknownArgument,
             format!("unexpected argument '{word}' found"),
         );
@@ -865,7 +865,7 @@ fn render_invalid_args(
 /// clap's rejection of `word` as a stray argument at the root, built as clap
 /// builds it for a word it scores against no command, usage line included.
 fn unexpected_argument(word: &str, args: &[OsString]) -> clap::Error {
-    let mut cmd = Cli::command();
+    let mut cmd = crate::cli::parse::root();
     if let Some(bin) = args.first().and_then(|arg| Path::new(arg).file_name()) {
         cmd = cmd.bin_name(bin.to_string_lossy().into_owned());
     }
