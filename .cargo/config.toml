@@ -9,3 +9,31 @@ CARGO_WORKSPACE_DIR = { value = "", relative = true, force = true }
 # threads' 2 MiB default (a release build takes about 295 KiB).
 # crates/xurl-cli/tests/parse_stack_tests.rs holds the parser to half of this.
 RUST_MIN_STACK = "8388608"
+
+# A debug test run spends most of its CPU in these dependencies: rustls
+# decoding the platform's root certificates, clap building and rendering xr's
+# command tree, and YAML for the token store. Optimizing them alone roughly
+# halves the suite's run time and leaves the cold build as it was, while xdk
+# and xr stay at opt-level 0 for debugging and quick rebuilds. They sit here
+# rather than in the root Cargo.toml because CI's cache key hashes this file
+# and not the virtual root manifest, so editing the list rebuilds the cache.
+[profile.dev.package.rustls-pki-types]
+opt-level = 3
+[profile.dev.package.rustls-webpki]
+opt-level = 3
+[profile.dev.package.rustls-native-certs]
+opt-level = 3
+[profile.dev.package.rustls-platform-verifier]
+opt-level = 3
+[profile.dev.package.anstyle-parse]
+opt-level = 3
+[profile.dev.package.anstream]
+opt-level = 3
+[profile.dev.package.clap_builder]
+opt-level = 3
+[profile.dev.package.clap_lex]
+opt-level = 3
+[profile.dev.package.serde-saphyr]
+opt-level = 3
+[profile.dev.package.granit-parser]
+opt-level = 3
