@@ -977,3 +977,105 @@ async fn a_refresh_response_without_a_refresh_token_keeps_the_one_in_hand() {
         "a response that omits refresh_token means keep the one in hand"
     );
 }
+
+// ── The store hook writes the rotated pair where it belongs ──
+
+/// A store with `main` (client `cid`, alice signed in) and `other` (client
+/// `cid2`, bob signed in), `main` the default.
+fn two_apps_with_their_own_clients(store_path: &std::path::Path) -> TokenStore {
+    let mut store = TokenStore::new_with_path(store_path.to_str().unwrap());
+    store.add_app("main", "cid", "csec").unwrap();
+    store
+        .save_oauth2_token_for_app("main", "alice", "old-at", "old-rt", 0)
+        .unwrap();
+    store.add_app("other", "cid2", "csec2").unwrap();
+    store
+        .save_oauth2_token_for_app("other", "bob", "bob-at", "bob-rt", 0)
+        .unwrap();
+    store.set_default_app("main").unwrap();
+    store
+}
+
+/// The hook built from the store follows the default app, and another
+/// process makes `other` the default before the refresh. The pair `cid`
+/// minted is not `other`'s: written there, it would replace bob's login with
+/// a token `other`'s client cannot refresh.
+#[tokio::test]
+async fn the_store_hook_leaves_an_app_whose_client_did_not_mint_the_pair() {
+    let server = MockServer::start().await;
+    mount_refresh(&server, 1).await;
+    mount_me(&server, "new-at").await;
+    let tmp = TempDir::new().unwrap();
+    let store_path = tmp.path().join(".xurl");
+    let store = two_apps_with_their_own_clients(&store_path);
+    let client = Client::builder()
+        .oauth2(expired_oauth2())
+        .on_token_refreshed(store)
+        .base_url(server.uri())
+        .token_url(format!("{}/2/oauth2/token", server.uri()))
+        .build()
+        .unwrap();
+    TokenStore::new_with_path(store_path.to_str().unwrap())
+        .set_default_app("other")
+        .unwrap();
+
+    let _ = client.get_me().send().await;
+
+    let reloaded = TokenStore::new_with_path(store_path.to_str().unwrap());
+    let bob = reloaded
+        .get_oauth2_token_for_app("other", "bob")
+        .and_then(|t| t.oauth2.clone())
+        .expect("bob's login is still stored");
+    assert_eq!(
+        (bob.access_token.as_str(), bob.refresh_token.as_str()),
+        ("bob-at", "bob-rt"),
+        "bob's login keeps its own pair"
+    );
+}
+
+/// The default user's login was cleared, which leaves the app's default
+/// user naming no login. A request with no user name is then sent as the
+/// app's first login, bob, so the pair it rotates is bob's, and the next
+/// load reads it there.
+#[tokio::test]
+async fn the_store_hook_writes_where_a_request_with_no_user_reads() {
+    let server = MockServer::start().await;
+    mount_refresh(&server, 1).await;
+    mount_me(&server, "new-at").await;
+    let tmp = TempDir::new().unwrap();
+    let store_path = tmp.path().join(".xurl");
+    let mut store = TokenStore::new_with_path(store_path.to_str().unwrap());
+    store.add_app("main", "cid", "csec").unwrap();
+    store
+        .save_oauth2_token_for_app("main", "alice", "alice-at", "alice-rt", 0)
+        .unwrap();
+    store.set_default_user("main", "alice").unwrap();
+    store
+        .save_oauth2_token_for_app("main", "bob", "old-at", "old-rt", 0)
+        .unwrap();
+    store.clear_oauth2_token_for_app("main", "alice").unwrap();
+    let client = Client::builder()
+        .oauth2(expired_oauth2())
+        .on_token_refreshed(store)
+        .base_url(server.uri())
+        .token_url(format!("{}/2/oauth2/token", server.uri()))
+        .build()
+        .unwrap();
+
+    client
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed read completes");
+
+    let reloaded = TokenStore::new_with_path(store_path.to_str().unwrap());
+    let bob = reloaded
+        .get_oauth2_token_for_app("main", "bob")
+        .and_then(|t| t.oauth2.clone())
+        .expect("bob's login is stored");
+    assert_eq!(bob.refresh_token, "new-rt", "the rotated pair is bob's");
+    assert!(
+        reloaded.get_oauth2_token_for_app("main", "alice").is_none(),
+        "the cleared login stays cleared"
+    );
+}
