@@ -137,7 +137,8 @@ against killing tests is the evidence each cut and each gap test rests on.
   `anstyle_parse` compile line, and no `-C debuginfo`.
 - AE4. On the pilot's output, the script's missed list equals `missed.txt` line for line, and every mutant in
   `caught.txt` has at least one killing test in the matrix.
-- AE5. A cut PR's rerun ends with every rerun mutant caught, and its body quotes the summary line.
+- AE5. A cut PR's rerun ends with every rerun mutant caught, or, for one of the area's timeouts, timed out as its run
+  recorded it (KTD20), and its body quotes the summary line.
 - AE6. A gap test is seen failing on its mutant's diff before the gap PR is pushed, and the PR body quotes that failure.
 
 ### Scope Boundaries
@@ -470,8 +471,13 @@ The decisions below settle what the sources leave open.
   - **Self-checks, which fail the script and name the mutant:** the missed list must equal `missed.txt` (`missed-list`);
     every mutant in `caught.txt` must show at least one killing test (`caught-without-killer`); no missed mutant's log
     may show one (`missed-with-killer`); the baseline log must show no failure (`baseline-failed`); every mutant log
-    that ran tests must list as many tests as the baseline, timeouts excepted (`test-count`); and the runs it merges
-    must not disagree on a file's content (`file-content`, R4).
+    that ran tests must list as many tests as the baseline, timeouts excepted (`test-count`); and each mutated file's
+    mutants are read from the newest run that mutated it, which must hold the file's content at the newest commit given,
+    the one every other run's commit is an ancestor of (`git merge-base --is-ancestor`, then `git diff --quiet`), or the
+    file fails (`file-content`, R4). So a per-file refresh (KTD20) passed beside the run it refreshes supersedes that
+    run's records of the file, runs at one commit (shards, a batch and its resume) are read together, and a set of runs
+    with no such newest commit fails on every file. The other self-checks compare against cargo-mutants' lists less the
+    superseded records.
   - **Exit codes and what follows them.** 0: every file above is written. 1: a self-check failed, and no list is
     written, so no stale list survives beside a failed check. Each failure is one stderr line,
     `self-check <name>: <mutant or file>: <what disagrees>`, under the names above. Running the script again on the same
@@ -512,20 +518,22 @@ The decisions below settle what the sources leave open.
   (`-F '^<escaped name>$'` for each), with `-f <file>` for each file that holds one. A name is escaped with
   `sed 's/[][\.*^$+?(){}|]/\\&/g'`, since `-F` reads a regex and the names hold `(`, `[`, `*`, `+`, and `|`; over the 19
   names in `signing.rs` at 492e187, each escaped name under `--list` matched exactly its own mutant. Every named mutant
-  must end caught. Two cargo-mutants behaviors shape the check. `-F` reaches no struct-field mutant (KTD10), so the file
-  filter keeps the run to the named files and their struct-field mutants come along: each of those is judged against its
-  recorded outcome, and only a named mutant must end caught. A `-F` that matches nothing exits 0 having tested nothing
-  (`--list -F '^no such mutant$'` exits 0), so a name that drifted (a helper deleted from `crates/xdk/src/testing/`, a
-  rebase) would pass the rerun silently: before the rerun counts, the sorted names in its `outcomes.json` must include
-  every expected name (`comm -13` of the two lists prints nothing), and a missing name sends the cut back to the
-  per-file refresh below. Deleting a unit test moves no mutant today: in each of the 51 `src` files with `#[cfg(test)]`,
-  the test module sits after every mutated line or in its own file. Deleting a test can't change the outcome of a mutant
-  whose catchers were all kept: nextest runs each test in its own process, so a kept test that failed on a mutant fails
-  on it again. A full rerun of the area would add only mutants that can't change. Before choosing cuts, every file whose
-  content changed since its run (`git diff --quiet <run sha> <base> -- <file>`) is run again at the base, so every name
-  in the matrix exists at the base (R4). A rerun mutant that ends missed means a deleted test was needed: restore one
-  that caught it, rerun that mutant, and record it on the card. After a cut PR merges, its deleted tests leave the
-  matrix.
+  must end caught, except that one of the area's timeouts may end timed out again, as its run recorded it: a hang that
+  cargo-mutants' test timeout ends is not caught in its terms, and the timeout repeats with the deleted test gone, so
+  only a timeout that now ends missed means a deleted test was needed. Two cargo-mutants behaviors shape the check. `-F`
+  reaches no struct-field mutant (KTD10), so the file filter keeps the run to the named files and their struct-field
+  mutants come along: each of those is judged against its recorded outcome, and only a named mutant must end caught. A
+  `-F` that matches nothing exits 0 having tested nothing (`--list -F '^no such mutant$'` exits 0), so a name that
+  drifted (a rebase onto a base whose `src` moved) would pass the rerun silently: before the rerun counts, the sorted
+  names in its `outcomes.json` must include every expected name (`comm -13` of the two lists prints nothing), and a
+  missing name sends the cut back to the per-file refresh below. Deleting a unit test moves no mutant today: in each of
+  the 51 `src` files with `#[cfg(test)]`, the test module sits after every mutated line or in its own file. Deleting a
+  test can't change the outcome of a mutant whose catchers were all kept: nextest runs each test in its own process, so
+  a kept test that failed on a mutant fails on it again. A full rerun of the area would add only mutants that can't
+  change. Before choosing cuts, every file whose content changed since its run
+  (`git diff --quiet <run sha> <base> -- <file>`) is run again at the base, so every name in the matrix exists at the
+  base (R4). A rerun mutant that ends missed means a deleted test was needed: restore one that caught it, rerun that
+  mutant, and record it on the card. After a cut PR merges, its deleted tests leave the matrix.
 - KTD21. **When a cut PR may open. Pending Brett. B is written below; A and C change only M9's gate.** A cut in one area
   can delete the only test that catches a mutant in an area not yet run, and that cut's rerun can't see it, because a
   run records catches only in the files it mutates. `xdk`'s tests reach no CLI code (`crates/xdk/Cargo.toml` has no
@@ -575,7 +583,9 @@ The decisions below settle what the sources leave open.
     pilot's commit and time `cargo nextest run --workspace --cargo-profile mutants` with and without `--no-fail-fast`,
     alternating (ABBA);
   - **spurious catches:** each list-4 mutant is rerun once at `-j1`. A sole catch that doesn't repeat is a flake, and it
-    hides a gap. Later areas repeat this only if the pilot finds one;
+    hides a gap, so that mutant joins list 1. List 4 is the script's output, and the script is written from the pilot's
+    logs (M3), so this rerun runs once M3's script has read the pilot's output, as M5's first step. Later areas repeat
+    this only if the pilot finds one;
   - **spurious timeouts:** each timeout is rerun alone at `-j1`. One that passes there means `-j2` slowed the suite past
     the bound, and `timeout_multiplier` goes into the config for later runs.
 - KTD25. **The comment sweep and the pilot's lists.** The order note's Phase 4 sweep deletes plain `//` comment lines,
@@ -633,9 +643,9 @@ The areas, each with the same two `-E` flags. "Serial" is KTD23's estimate of 46
 ```text
 M1 config PR ──► M2 pilot run (webhooks, 151) ──► M3 script PR (from M2's logs)
                        │                                   │
-                       └────────► M4 skill decision ◄──────┘
-                                         │
-M5 webhooks gap PR ◄─────────────────────┘
+                       └────────► M4 skill decision ◄──────┤
+                                                           │
+M5 webhooks gap PR ◄───────────────────────────────────────┘
 M6 store+auth run ──► gap PR      (after F's fix PRs and the sweep)
 M7 rest-of-xdk run ──► gap PR     (after #648, R's types.rs split, and the sweep)
 M8 CLI run (shards) ──► gap PR    (after R's source splits and the sweep)
@@ -772,8 +782,8 @@ The keys of `.cargo/mutants.toml`:
   1. Record the base commit and `--list -f 'crates/xdk/src/webhooks/**'`'s count.
   2. Run under KTD16 at `-j2`, sized as one batch (about two hours by KTD23's estimate, so a 3-hour bound, past a Claude
      Code background task's 2 hours, which is why step 5 detaches it and step 10 watches it).
-  3. Take KTD24's measurements: the fail-fast sample, the `-j1` reruns of list-4 mutants and of timeouts, a build
-     directory's peak size, and load and memory.
+  3. Take KTD24's measurements: the fail-fast sample, the `-j1` reruns of timeouts, a build directory's peak size, and
+     load and memory. The `-j1` rerun of list-4 mutants waits for M3's script and is M5's first step.
   4. Report the results to the coordinating session: the outcome counts, per-mutant time beside the run's load samples,
      the `-j` and disk numbers, and what the logs' result lines look like.
 - **Verification:** `<run>/exit-code` is 0, 2, or 3, or the pilot stopped early and finished through KTD16's step 11,
@@ -794,8 +804,10 @@ The keys of `.cargo/mutants.toml`:
     equal the failing tests in each log.
   - A copy of M2's output with one test removed from a caught mutant's log fails the "at least one killing test" or
     "test count" check, naming that mutant.
-  - Two `out` directories of the same files at different commits are refused, exit 1, with a `file-content` line naming
-    the file.
+  - A run of a file at an older commit, where that file differs from the newest commit given, is refused, exit 1, with a
+    `file-content` line naming the file; with a run of that file at the newest commit beside it, the file's mutants are
+    read from the newer run and the check passes. Copies of M2's output with their `commit` files edited serve, a commit
+    before #647 being one where the `webhooks` files differ.
   - A `<run>` with no `out/mutants.out/outcomes.json` exits 2 naming that path, and `--out` holds no list afterwards.
   - A copy of M2's output with one mutant's entry removed from `outcomes.json`, as an interrupt leaves it, is read with
     that mutant's log skipped and every self-check passing.
@@ -824,7 +836,9 @@ The keys of `.cargo/mutants.toml`:
 - **Requirements:** R9. KTD17, KTD22.
 - **Dependencies:** M3.
 - **Approach:**
-  1. Run KTD17's doctest check on list 1.
+  1. Rerun each list-4 mutant once at `-j1` under KTD16 (KTD24's spurious-catch check: always for `webhooks`, and for a
+     later area only if the pilot found a flake), add to list 1 each one that ends missed, then run KTD17's doctest
+     check on list 1.
   2. For each remaining missed mutant, read the function and decide:
      - **a test:** it asserts the behavior the mutant breaks, through `xdk`'s public API (`crates/xdk/tests`, or a unit
        test of a `pub` item where the integration path can't reach it). For a behavior only `xr` shows, the test goes
@@ -902,9 +916,14 @@ The keys of `.cargo/mutants.toml`:
        reaches the mutated code, or it asserts nothing about what it runs);
      - `history`: `git log --follow --format='%h %s' -- <file>` for its file, and why it was written;
      - `validation`: the rerun's summary and the suite's summary line.
-  4. Delete the tests, and any helper only they used, in one commit per test file.
+  4. Delete the tests, and any helper only they used in test code (`crates/*/tests/` or a `#[cfg(test)]` module), in one
+     commit per test file. An item of `crates/xdk/src/testing/` stays even when only deleted tests used it:
+     `xdk::testing` is a published module behind the `testing` feature (AGENTS.md § "Where a change goes", rule 3), so
+     removing one changes the library's public surface, which this plan leaves alone (§ "System-Wide Impact"), and would
+     move that file's mutant names under the rerun.
   5. Run KTD20's rerun on the branch. Its `outcomes.json` names every expected mutant, and every named mutant ends
-     caught (AE5). On a miss, restore a test that caught it, rerun, and record it on the card.
+     caught, or timed out for one of the area's timeouts (AE5). On a miss, restore a test that caught it, rerun, and
+     record it on the card.
 - **Verification:** the cards, the rerun's summary and its name check, the test count before and after,
   `cargo nextest run --workspace` and `cargo test --doc --workspace` green, and no golden fixture, wire-format test, or
   source-reading guard touched.
@@ -922,7 +941,7 @@ The keys of `.cargo/mutants.toml`:
 | Script self-checks    | `scripts/mutants-matrix.py` over the run's `out` directories exits 0                                            | M3 onwards                |
 | Doctests              | KTD17's check on every list-1 mutant                                                                            | M5 to M8                  |
 | Red first             | each gap test seen failing on its mutant's diff, the failure quoted                                             | M5 to M8                  |
-| No caught mutant lost | KTD20's rerun ends with every rerun mutant caught                                                               | M9                        |
+| No caught mutant lost | KTD20's rerun ends with every rerun mutant caught, and each rerun timeout caught or timed out                   | M9                        |
 | Tests                 | `cargo nextest run --workspace`, read from its summary line, and `cargo test --doc --workspace`                 | M1, M3, M5 to M9          |
 | Lint and format       | `cargo clippy -- -D warnings`, `cargo fmt --check`                                                              | M5 to M9                  |
 | Local CI mirror       | `scripts/hooks/pre-push`                                                                                        | before each push          |
@@ -1301,6 +1320,16 @@ REPORT".
   ships it, and names the check that retires the workaround.
 - 2026-11-27: `/compound-engineering:ce-doc-review` round 1 started, `mode:non-interactive`, on Opus, as its own process
   from a clone of the commit that adds this line.
+- 2026-11-27: `/compound-engineering:ce-doc-review` round 1 ended (`claude-opus-5-5` only, 664 s; coherence,
+  feasibility, scope-guardian, and adversarial lenses run inline): 1 P1, 3 P2, 2 P3, five folded into the plan. P1:
+  KTD18's `file-content` check refused the old run beside its own per-file refresh, so every cut after a source change
+  failed it; each file now reads from the newest run that mutated it, at the newest commit given, and M3's scenario
+  tests both outcomes. P2: a rerun timeout may end timed out as its run recorded it (AE5, KTD20, M9, the Verification
+  Contract); a helper in `crates/xdk/src/testing/` stays when its tests go, since `xdk::testing` is published (M9 step
+  4); and the `-j1` rerun of list-4 mutants waits for M3's script, as M5's first step (KTD24, M2, M5). P3: the diagram
+  hangs M5 off M3. The P3 that inline unit-test cuts make the next cut's refresh rerun a whole file stays as a known
+  cost, since narrowing the refresh is a mechanism the plan does not commit to. No KTD1 to KTD8 text changed. Pending
+  Brett: KTD21; all three reviews recommend C.
 
 ## GSTACK REVIEW REPORT
 
