@@ -1299,6 +1299,8 @@ REPORT".
 - 2026-11-27: the struct-field filter gap needs no decision and no report: it is reported upstream as #632, closed
   by #634, and #666, open. KTD10 cites them, states that #634's fix reaches #666's path but no release after v27.1.0
   ships it, and names the check that retires the workaround.
+- 2026-11-27: `/compound-engineering:ce-doc-review` round 1 started, `mode:non-interactive`, on Opus, as its own process
+  from a clone of the commit that adds this line.
 
 ## GSTACK REVIEW REPORT
 
